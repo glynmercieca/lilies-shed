@@ -1,0 +1,205 @@
+@if (!auth.isConfigured) {
+  <div class="auth-shell">
+    <mat-card appearance="outlined">
+      <mat-card-header>
+        <mat-card-title>Google setup required</mat-card-title>
+        <mat-card-subtitle>Add your OAuth client before signing in.</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <p>
+          Update <code>src/app/core/app-settings.ts</code> with a Google OAuth client ID that has
+          access to the Sheets API and allows this app's origin.
+        </p>
+      </mat-card-content>
+    </mat-card>
+  </div>
+} @else if (!auth.currentUser()) {
+  <div class="auth-shell">
+    <mat-card appearance="outlined">
+      <mat-card-header>
+        <mat-card-title>Sign in to Lilies Toolbox</mat-card-title>
+        <mat-card-subtitle>Google sign-in unlocks your tools, loans, and sheet updates.</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <p>
+          This app reads the shared <strong>Tools</strong> and <strong>Status</strong> tabs and writes
+          borrow, return, and owned-tool changes back to the same spreadsheet.
+        </p>
+        @if (auth.error()) {
+          <p>{{ auth.error() }}</p>
+        }
+      </mat-card-content>
+      <mat-card-actions align="end">
+        <button mat-flat-button (click)="signIn()" [disabled]="auth.isBusy()">
+          <mat-icon>login</mat-icon>
+          Sign in with Google
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+} @else {
+  <mat-toolbar>
+    <span>{{ title }}</span>
+    <span class="toolbar-spacer"></span>
+    <button mat-icon-button type="button" (click)="refresh()" [disabled]="loading()">
+      <mat-icon>refresh</mat-icon>
+    </button>
+    <button mat-icon-button type="button" (click)="signOut()">
+      <mat-icon>logout</mat-icon>
+    </button>
+  </mat-toolbar>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  }
+
+  <main class="page-shell">
+    <section [hidden]="activeSection() !== 'tools'" class="section-layout">
+      <mat-card appearance="outlined">
+        <mat-card-header>
+          <mat-card-title>Tools</mat-card-title>
+          <mat-card-subtitle>Browse the shared inventory and request available items.</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <mat-form-field appearance="outline">
+            <mat-label>Search tools</mat-label>
+            <input matInput [value]="searchTerm()" (input)="setSearchTerm($any($event.target).value)" />
+            <mat-icon matSuffix>search</mat-icon>
+          </mat-form-field>
+
+          <div class="card-grid">
+            @for (tool of filteredTools(); track tool.id) {
+              <mat-card appearance="outlined" class="tool-card">
+                <img mat-card-image [src]="tool.images[0] || '/tool-placeholder.svg'" [alt]="tool.name" />
+                <mat-card-header>
+                  <mat-card-title>{{ tool.name }}</mat-card-title>
+                  <mat-card-subtitle>{{ tool.owner || 'Unknown owner' }}</mat-card-subtitle>
+                </mat-card-header>
+                <mat-card-content>
+                  <p>{{ tool.description }}</p>
+                  <mat-chip-set>
+                    <mat-chip>{{ tool.available ? 'Available' : 'Not available' }}</mat-chip>
+                  </mat-chip-set>
+                </mat-card-content>
+                <mat-card-actions align="end">
+                  <button mat-button type="button" (click)="openTool(tool)">View</button>
+                </mat-card-actions>
+              </mat-card>
+            } @empty {
+              <mat-card appearance="outlined">
+                <mat-card-content>No tools match your search right now.</mat-card-content>
+              </mat-card>
+            }
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </section>
+
+    <section [hidden]="activeSection() !== 'borrowed'" class="section-layout">
+      <mat-card appearance="outlined">
+        <mat-card-header>
+          <mat-card-title>Borrowed</mat-card-title>
+          <mat-card-subtitle>Track items you currently have from other people.</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <mat-list>
+            @for (tool of borrowedTools(); track tool.id) {
+              <mat-list-item lines="3">
+                <span matListItemTitle>{{ tool.name }}</span>
+                <span matListItemLine>{{ tool.description }}</span>
+                <span matListItemLine>Owner: {{ tool.owner || 'Unknown' }}</span>
+                <button
+                  mat-flat-button
+                  matListItemMeta
+                  type="button"
+                  (click)="returnTool(tool)"
+                  [disabled]="savingToolId() === tool.id"
+                >
+                  Mark returned
+                </button>
+              </mat-list-item>
+              <mat-divider></mat-divider>
+            } @empty {
+              <mat-list-item>
+                <span matListItemTitle>No borrowed tools right now.</span>
+                <span matListItemLine>Borrowed items will appear here while they are checked out to you.</span>
+              </mat-list-item>
+            }
+          </mat-list>
+        </mat-card-content>
+      </mat-card>
+    </section>
+
+    <section [hidden]="activeSection() !== 'my-tools'" class="section-layout">
+      <mat-card appearance="outlined">
+        <mat-card-header>
+          <mat-card-title>My Tools</mat-card-title>
+          <mat-card-subtitle>Manage tools you own and add new ones to the sheet.</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-actions align="end">
+          <button mat-flat-button type="button" (click)="addTool()">
+            <mat-icon>add</mat-icon>
+            Add tool
+          </button>
+        </mat-card-actions>
+        <mat-card-content>
+          <mat-list>
+            @for (tool of ownedTools(); track tool.id) {
+              <mat-list-item lines="3">
+                <span matListItemTitle>{{ tool.name }}</span>
+                <span matListItemLine>{{ tool.description }}</span>
+                <span matListItemLine>{{ tool.available ? 'Available for editing' : 'Currently loaned out' }}</span>
+                <button
+                  mat-icon-button
+                  matListItemMeta
+                  type="button"
+                  (click)="editTool(tool)"
+                  [disabled]="!tool.available || savingToolId() === tool.id"
+                  aria-label="Edit tool"
+                >
+                  <mat-icon>edit</mat-icon>
+                </button>
+              </mat-list-item>
+              <mat-divider></mat-divider>
+            } @empty {
+              <mat-list-item>
+                <span matListItemTitle>You have not added any tools yet.</span>
+                <span matListItemLine>Use the add button to create your first listing.</span>
+              </mat-list-item>
+            }
+          </mat-list>
+        </mat-card-content>
+      </mat-card>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <button
+      mat-button
+      type="button"
+      [class.active-nav]="activeSection() === 'tools'"
+      (click)="activeSection.set('tools')"
+    >
+      <mat-icon>construction</mat-icon>
+      Tools
+    </button>
+    <button
+      mat-button
+      type="button"
+      [class.active-nav]="activeSection() === 'borrowed'"
+      (click)="activeSection.set('borrowed')"
+    >
+      <mat-icon>assignment_returned</mat-icon>
+      Borrowed
+    </button>
+    <button
+      mat-button
+      type="button"
+      [class.active-nav]="activeSection() === 'my-tools'"
+      (click)="activeSection.set('my-tools')"
+    >
+      <mat-icon>inventory_2</mat-icon>
+      My Tools
+    </button>
+  </nav>
+}

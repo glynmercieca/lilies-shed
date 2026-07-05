@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img" aria-labelledby="title desc">
+  <title id="title">Tool placeholder</title>
+  <desc id="desc">Placeholder illustration for a tool without an image.</desc>
+  <rect width="400" height="300" rx="32" fill="#e8f0ff"/>
+  <rect x="52" y="88" width="296" height="124" rx="20" fill="#005cbb" opacity="0.12"/>
+  <path d="M124 176c-8-8-8-21 0-29l39-39c8-8 21-8 29 0l12 12 33-33c8-8 21-8 29 0l11 11c8 8 8 21 0 29l-33 33 12 12c8 8 8 21 0 29l-39 39c-8 8-21 8-29 0l-12-12-33 33c-8 8-21 8-29 0l-11-11c-8-8-8-21 0-29l33-33-12-12z" fill="#005cbb"/>
+</svg>
