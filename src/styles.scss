@@ -10,8 +10,8 @@ html {
   @include mat.theme(
     (
       color: (
-        primary: mat.$azure-palette,
-        tertiary: mat.$blue-palette,
+        primary: mat.$violet-palette,
+        tertiary: mat.$violet-palette,
       ),
       typography: Roboto,
       density: 0,
@@ -35,6 +35,20 @@ body {
   // Reset the user agent margin.
   margin: 0;
   height: 100%;
+
+  --mat-sys-primary: #522e6b;
+  --mat-sys-on-primary: #ffffff;
+  --mat-sys-primary-container: #eedcff;
+  --mat-sys-on-primary-container: #241132;
+  --mat-sys-inverse-primary: #d8b8f2;
+  --mat-sys-secondary: #522e6b;
+  --mat-sys-on-secondary: #ffffff;
+  --mat-sys-secondary-container: #eedcff;
+  --mat-sys-on-secondary-container: #241132;
+  --mat-sys-tertiary: #522e6b;
+  --mat-sys-on-tertiary: #ffffff;
+  --mat-sys-tertiary-container: #eedcff;
+  --mat-sys-on-tertiary-container: #241132;
 }
 
 .tool-card-image {

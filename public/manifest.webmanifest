@@ -3,7 +3,7 @@
   "short_name": "Lilies Shed",
   "display": "standalone",
   "orientation": "portrait",
-  "theme_color": "#005cbb",
+  "theme_color": "#522e6b",
   "background_color": "#f8f9ff",
   "scope": "./",
   "start_url": "./",
@@ -35,6 +35,12 @@
     {
       "src": "icons/icon-152x152.png",
       "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "icons/icon-180x180.png",
+      "sizes": "180x180",
       "type": "image/png",
       "purpose": "maskable any"
     },
