@@ -7,7 +7,7 @@ import { firstValueFrom } from 'rxjs';
 import { GoogleAuthService } from './google-auth.service';
 import { GoogleDriveService } from './google-drive.service';
 import { GoogleSheetsService } from './google-sheets.service';
-import { matchesUserIdentity } from './identity.util';
+import { formatUserIdentity, matchesUserEmail, matchesUserIdentity } from './identity.util';
 import { SheetsSnapshot, ToolWithStatus } from './models';
 import { decorateTools } from './tool-status.util';
 import { ToolDetailDialogComponent } from '../tool-detail-dialog';
@@ -48,7 +48,10 @@ export class ToolboxStateService {
   });
   readonly borrowedTools = computed(() =>
     this.tools().filter(
-      (tool) => tool.activeLoan && matchesUserIdentity(this.auth.currentUser(), tool.activeLoan.borrower),
+      (tool) =>
+        tool.activeLoan &&
+        (matchesUserEmail(this.auth.currentUser(), tool.activeLoan.borrowerEmail) ||
+          (!tool.activeLoan.borrowerEmail && matchesUserIdentity(this.auth.currentUser(), tool.activeLoan.borrower))),
     ),
   );
   readonly ownedTools = computed(() =>
@@ -143,7 +146,7 @@ export class ToolboxStateService {
 
     this.savingToolId.set(tool.id);
     try {
-      await this.sheets.addBorrowRequest(token, tool.id, user.name || user.email);
+      await this.sheets.addBorrowRequest(token, tool.id, formatUserIdentity(user));
       await this.refresh();
       await this.router.navigate(['/borrowed']);
       this.notify(`Borrow request saved for ${tool.name}.`);

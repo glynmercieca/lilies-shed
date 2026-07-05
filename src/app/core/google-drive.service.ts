@@ -1,5 +1,7 @@
 import { Injectable } from '@angular/core';
 
+import { normalizeImageUrl } from './image-url.util';
+
 interface DriveFileListResponse {
   files?: Array<{
     id?: string;
@@ -64,7 +66,7 @@ export class GoogleDriveService {
 
     await this.throwIfNotOk(permissionResponse, 'Google Drive image sharing setup failed.');
 
-    return `https://drive.google.com/uc?export=view&id=${uploadPayload.id}`;
+    return normalizeImageUrl(`https://drive.google.com/uc?export=view&id=${uploadPayload.id}`);
   }
 
   private async ensureFolderPath(accessToken: string, path: string[]): Promise<string> {

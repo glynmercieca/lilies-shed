@@ -23,18 +23,28 @@
   @for (tool of state.filteredTools(); track tool.id) {
     <div class="col d-flex">
       <mat-card appearance="outlined" class="w-100 tool-card">
-        <img mat-card-image [src]="tool.images[0] || '/tool-placeholder.svg'" [alt]="tool.name" />
+        <img
+          class="w-100"
+          mat-card-image
+          [appResolvedSrc]="tool.images[0] || ''"
+          [alt]="tool.name"
+          (error)="fallbackImage($event)"
+        />
         <mat-card-header>
           <mat-card-title>{{ tool.name }}</mat-card-title>
-          <mat-card-subtitle>{{ tool.ownerFirstName || 'Unknown owner' }}</mat-card-subtitle>
+          <mat-card-subtitle>{{ tool.id }}</mat-card-subtitle>
         </mat-card-header>
         <mat-card-content>
           <p class="m-0 mb-3">{{ tool.description }}</p>
           <mat-chip-set>
-            <mat-chip>{{ tool.available ? 'Available' : 'Not available' }}</mat-chip>
-            @if (tool.activeLoan?.borrowerFirstName) {
-              <mat-chip>Borrowed by {{ tool.activeLoan.borrowerFirstName }}</mat-chip>
-            }
+            <mat-chip [class.available-chip]="tool.available" [class.unavailable-chip]="!tool.available">
+              <mat-icon matChipAvatar>{{ tool.available ? 'check_circle' : 'cancel' }}</mat-icon>
+              {{ tool.available ? 'Available' : 'Not available' }}
+            </mat-chip>
+            <mat-chip>
+              <mat-icon matChipAvatar>person</mat-icon>
+              {{ tool.ownerFirstName || 'Unknown owner' }}
+            </mat-chip>
           </mat-chip-set>
         </mat-card-content>
         <mat-card-actions align="end">

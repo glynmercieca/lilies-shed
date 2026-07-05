@@ -59,6 +59,14 @@ export function formatOwnerDisplay(firstName: string, lastName: string, email: s
   return name || normalizedEmail;
 }
 
+export function matchesUserEmail(user: UserProfile | null, email: string): boolean {
+  if (!user || !email.trim()) {
+    return false;
+  }
+
+  return normalize(user.email) === normalize(email);
+}
+
 export function matchesUserIdentity(user: UserProfile | null, value: string): boolean {
   if (!user || !value.trim()) {
     return false;

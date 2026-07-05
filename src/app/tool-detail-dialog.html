@@ -1,7 +1,7 @@
 <h2 mat-dialog-title>{{ data.tool.name }}</h2>
 <mat-dialog-content>
   <mat-card appearance="outlined">
-    <img mat-card-image [src]="selectedImage()" [alt]="data.tool.name" />
+    <img class="w-100" mat-card-image [appResolvedSrc]="selectedImage()" [alt]="data.tool.name" (error)="fallbackImage($event)" />
   </mat-card>
 
   @if (data.tool.images.length > 1) {
@@ -16,18 +16,38 @@
 
   <div class="d-grid gap-3 mt-3">
     <mat-chip-set>
-      <mat-chip>{{ data.tool.available ? 'Available' : 'Not available' }}</mat-chip>
-      <mat-chip>Owner: {{ data.tool.ownerFirstName || 'Unknown' }}</mat-chip>
+      <mat-chip [class.available-chip]="data.tool.available" [class.unavailable-chip]="!data.tool.available">
+        <mat-icon matChipAvatar>{{ data.tool.available ? 'check_circle' : 'cancel' }}</mat-icon>
+        {{ data.tool.available ? 'Available' : 'Not available' }}
+      </mat-chip>
+      <mat-chip>
+        <mat-icon matChipAvatar>person</mat-icon>
+        {{ data.tool.ownerFirstName || 'Unknown' }}
+      </mat-chip>
       @if (data.tool.activeLoan?.borrowerFirstName) {
-        <mat-chip>Borrowed by: {{ data.tool.activeLoan.borrowerFirstName }}</mat-chip>
+        <mat-chip>
+          <mat-icon matChipAvatar>assignment_ind</mat-icon>
+          {{ data.tool.activeLoan.borrowerFirstName }}
+        </mat-chip>
       }
-      <mat-chip>ID: {{ data.tool.id }}</mat-chip>
+      <mat-chip>
+        <mat-icon matChipAvatar>tag</mat-icon>
+        {{ data.tool.id }}
+      </mat-chip>
     </mat-chip-set>
 
     <p class="m-0">{{ data.tool.description }}</p>
 
     @if (data.tool.notes) {
-      <p class="m-0">{{ data.tool.notes }}</p>
+      <section class="note-block">
+        <mat-chip-set>
+          <mat-chip>
+            <mat-icon matChipAvatar>sticky_note_2</mat-icon>
+            Note
+          </mat-chip>
+        </mat-chip-set>
+        <p class="m-0">{{ data.tool.notes }}</p>
+      </section>
     }
   </div>
 </mat-dialog-content>

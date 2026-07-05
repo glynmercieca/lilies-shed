@@ -10,3 +10,20 @@ mat-dialog-content {
 mat-chip-set {
   row-gap: 8px;
 }
+
+mat-chip mat-icon {
+  margin-right: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1em;
+  height: 1em;
+  width: 1em;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.note-block {
+  display: grid;
+  gap: 8px;
+}

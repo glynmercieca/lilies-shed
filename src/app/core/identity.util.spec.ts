@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatUserIdentity, matchesUserIdentity } from './identity.util';
+import { formatUserIdentity, matchesUserEmail, matchesUserIdentity } from './identity.util';
 import { UserProfile } from './models';
 
 const user: UserProfile = {
@@ -20,6 +20,11 @@ describe('identity utilities', () => {
 
   it('matches an email-based identity string', () => {
     expect(matchesUserIdentity(user, 'Glyn Morgan <glyn@example.com>')).toBe(true);
+  });
+
+  it('matches borrower emails exactly', () => {
+    expect(matchesUserEmail(user, 'glyn@example.com')).toBe(true);
+    expect(matchesUserEmail(user, 'other@example.com')).toBe(false);
   });
 
   it('does not match unrelated users', () => {

@@ -5,43 +5,39 @@
 
 <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
   @for (tool of state.borrowedTools(); track tool.id) {
-    <div class="col d-flex">
-      <mat-card appearance="outlined" class="w-100 tool-card">
-        <mat-card-header>
-          <mat-card-title>{{ tool.name }}</mat-card-title>
-          <mat-card-subtitle>{{ tool.id }}</mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content class="d-grid gap-3">
-          <p class="m-0">{{ tool.description }}</p>
-          <mat-chip-set>
-            <mat-chip>Owner: {{ tool.ownerFirstName || 'Unknown' }}</mat-chip>
-            @if (tool.activeLoan?.borrowerFirstName) {
-              <mat-chip>Borrowed by {{ tool.activeLoan.borrowerFirstName }}</mat-chip>
-            }
-          </mat-chip-set>
-        </mat-card-content>
-        <mat-card-actions align="end">
-          <button
-            mat-flat-button
-            type="button"
-            (click)="state.returnTool(tool)"
-            [disabled]="state.savingToolId() === tool.id"
-          >
-            Mark returned
-          </button>
-        </mat-card-actions>
-      </mat-card>
-    </div>
+  <div class="col d-flex">
+    <mat-card appearance="outlined" class="w-100 tool-card">
+      <mat-card-header>
+        <mat-card-title>{{ tool.name }}</mat-card-title>
+        <mat-card-subtitle>{{ tool.id }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content class="d-grid gap-3">
+        <p class="m-0">{{ tool.description }}</p>
+        <mat-chip-set>
+          <mat-chip>
+            <mat-icon matChipAvatar>person</mat-icon>
+            {{ tool.ownerFirstName || 'Unknown' }}
+          </mat-chip>
+        </mat-chip-set>
+      </mat-card-content>
+      <mat-card-actions align="end">
+        <button mat-flat-button type="button" (click)="state.returnTool(tool)"
+          [disabled]="state.savingToolId() === tool.id">
+          Mark returned
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
   } @empty {
-    <div class="col-12">
-      <mat-card appearance="outlined">
-        <mat-card-content>
-          <p class="m-0 fs-5">No borrowed tools right now.</p>
-          <p class="m-0 mt-3 text-body-secondary">
-            Borrowed items will appear here while they are checked out to you.
-          </p>
-        </mat-card-content>
-      </mat-card>
-    </div>
+  <div class="col-12">
+    <mat-card appearance="outlined">
+      <mat-card-content>
+        <p class="m-0 fs-5">No borrowed tools right now.</p>
+        <p class="m-0 mt-3 text-body-secondary">
+          Borrowed items will appear here while they are checked out to you.
+        </p>
+      </mat-card-content>
+    </mat-card>
+  </div>
   }
 </div>

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 
 import { APP_SETTINGS } from './app-settings';
+import { normalizeImageUrls } from './image-url.util';
 import { LoanRecord, SheetsSnapshot, ToolFormValue, ToolRecord } from './models';
 import { formatOwnerDisplay, splitUserName } from './identity.util';
 
@@ -254,10 +255,7 @@ export class GoogleSheetsService {
   }
 
   private parseImages(value: string): string[] {
-    return value
-      .split(/[\n,]+/)
-      .map((entry) => entry.trim())
-      .filter(Boolean);
+    return normalizeImageUrls(value.split(/[\n,]+/));
   }
 
   private buildToolRow(schema: ToolsSheetSchema, tool: ToolRecord): Primitive[] {

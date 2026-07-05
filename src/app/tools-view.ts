@@ -7,6 +7,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 
+import { fallbackImage, resolveToolImageUrl } from './core/image-url.util';
+import { ResolvedImageDirective } from './core/resolved-image.directive';
 import { ToolboxStateService } from './core/toolbox-state.service';
 
 @Component({
@@ -19,10 +21,13 @@ import { ToolboxStateService } from './core/toolbox-state.service';
     MatIconModule,
     MatInputModule,
     MatSlideToggleModule,
+    ResolvedImageDirective,
   ],
   templateUrl: './tools-view.html',
   changeDetection: ChangeDetectionStrategy.Eager,
 })
 export class ToolsViewComponent {
   readonly state = inject(ToolboxStateService);
+  protected readonly fallbackImage = fallbackImage;
+  protected readonly resolveToolImageUrl = resolveToolImageUrl;
 }

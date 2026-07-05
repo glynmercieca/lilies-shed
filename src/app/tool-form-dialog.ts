@@ -14,6 +14,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 
+import { fallbackImage } from './core/image-url.util';
+import { ResolvedImageDirective } from './core/resolved-image.directive';
 import { ToolFormValue } from './core/models';
 
 interface ToolFormDialogData {
@@ -34,6 +36,7 @@ interface ToolFormDialogData {
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    ResolvedImageDirective,
   ],
   templateUrl: './tool-form-dialog.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -45,6 +48,7 @@ export class ToolFormDialogComponent implements OnDestroy {
   readonly data = inject<ToolFormDialogData>(MAT_DIALOG_DATA);
   readonly imageUrls = signal<string[]>(this.data.value?.imageUrls ?? []);
   readonly selectedFiles = signal<Array<{ file: File; previewUrl: string }>>([]);
+  protected readonly fallbackImage = fallbackImage;
 
   readonly form = this.formBuilder.nonNullable.group({
     name: [this.data.value?.name ?? '', Validators.required],
