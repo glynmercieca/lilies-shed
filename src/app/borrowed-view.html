@@ -1,17 +1,17 @@
-<header class="page-intro">
-  <h1 class="page-title">Borrowed</h1>
-  <p class="page-description">Track the items you currently have from other people.</p>
+<header class="d-grid gap-1 mb-3">
+  <h1 class="m-0">Borrowed</h1>
+  <p class="m-0 text-body-secondary">Track the items you currently have from other people.</p>
 </header>
 
-<div class="mobile-list">
+<div class="d-grid gap-3">
   @for (tool of state.borrowedTools(); track tool.id) {
-    <div class="mobile-list-row">
-      <div class="mobile-list-copy">
-        <span class="mobile-list-title">{{ tool.name }}</span>
-        <span class="mobile-list-line">{{ tool.description }}</span>
-        <span class="mobile-list-line">Owner: {{ tool.owner || 'Unknown' }}</span>
+    <div class="d-grid d-sm-flex justify-content-sm-between align-items-sm-center gap-3 py-3">
+      <div class="d-grid gap-1">
+        <span class="fs-5">{{ tool.name }}</span>
+        <span class="text-body-secondary">{{ tool.description }}</span>
+        <span class="text-body-secondary">Owner: {{ tool.ownerFirstName || 'Unknown' }}</span>
       </div>
-      <div class="mobile-list-actions">
+      <div class="d-flex justify-content-start justify-content-sm-end">
         <button
           mat-flat-button
           type="button"
@@ -24,10 +24,10 @@
     </div>
     <mat-divider></mat-divider>
   } @empty {
-    <div class="mobile-list-row">
-      <div class="mobile-list-copy">
-        <span class="mobile-list-title">No borrowed tools right now.</span>
-        <span class="mobile-list-line">Borrowed items will appear here while they are checked out to you.</span>
+    <div class="d-grid gap-1 py-3">
+      <div class="d-grid gap-1">
+        <span class="fs-5">No borrowed tools right now.</span>
+        <span class="text-body-secondary">Borrowed items will appear here while they are checked out to you.</span>
       </div>
     </div>
   }

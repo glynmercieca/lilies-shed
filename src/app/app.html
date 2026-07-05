@@ -2,8 +2,8 @@
   <mat-progress-bar mode="indeterminate"></mat-progress-bar>
 }
 
-<main class="page-shell">
-  <div class="shell-actions">
+<main class="page-shell container-fluid px-3 px-md-4 pt-3">
+  <div class="d-flex flex-wrap justify-content-end gap-2 mb-2">
     @if (isSignedIn()) {
       <button mat-icon-button type="button" (click)="refresh()" [disabled]="loading()" aria-label="Refresh data">
         <mat-icon>refresh</mat-icon>
@@ -12,12 +12,27 @@
         <mat-icon>logout</mat-icon>
       </button>
     } @else {
-      <a mat-button routerLink="/home" routerLinkActive="active-link" [routerLinkActiveOptions]="{ exact: true }">Home</a>
-      <a mat-button routerLink="/about" routerLinkActive="active-link" [routerLinkActiveOptions]="{ exact: true }">About</a>
-      <a mat-button routerLink="/privacy" routerLinkActive="active-link" [routerLinkActiveOptions]="{ exact: true }">Privacy</a>
+      <a
+        mat-button
+        routerLink="/home"
+        routerLinkActive="active-link"
+        [routerLinkActiveOptions]="{ exact: true }"
+      >Home</a>
+      <a
+        mat-button
+        routerLink="/about"
+        routerLinkActive="active-link"
+        [routerLinkActiveOptions]="{ exact: true }"
+      >About</a>
+      <a
+        mat-button
+        routerLink="/privacy"
+        routerLinkActive="active-link"
+        [routerLinkActiveOptions]="{ exact: true }"
+      >Privacy</a>
     }
   </div>
-  <section class="section-layout">
+  <section class="content-shell d-grid gap-3 mx-auto">
     <router-outlet></router-outlet>
   </section>
 </main>
@@ -26,6 +41,7 @@
   <nav class="bottom-nav">
     <a
       mat-button
+      class="text-decoration-none rounded-4"
       routerLink="/tools"
       routerLinkActive="active-nav"
       [routerLinkActiveOptions]="{ exact: true }"
@@ -35,6 +51,7 @@
     </a>
     <a
       mat-button
+      class="text-decoration-none rounded-4"
       routerLink="/borrowed"
       routerLinkActive="active-nav"
       [routerLinkActiveOptions]="{ exact: true }"
@@ -44,6 +61,7 @@
     </a>
     <a
       mat-button
+      class="text-decoration-none rounded-4"
       routerLink="/my-tools"
       routerLinkActive="active-nav"
       [routerLinkActiveOptions]="{ exact: true }"

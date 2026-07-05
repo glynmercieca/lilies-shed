@@ -31,6 +31,34 @@ export function formatUserIdentity(user: UserProfile): string {
   return name || email;
 }
 
+export function splitUserName(name: string): { firstName: string; lastName: string } {
+  const trimmedName = name.trim();
+  if (!trimmedName) {
+    return { firstName: '', lastName: '' };
+  }
+
+  const parts = trimmedName.split(/\s+/);
+  if (parts.length === 1) {
+    return { firstName: parts[0], lastName: '' };
+  }
+
+  return {
+    firstName: parts[0],
+    lastName: parts.slice(1).join(' '),
+  };
+}
+
+export function formatOwnerDisplay(firstName: string, lastName: string, email: string): string {
+  const name = [firstName.trim(), lastName.trim()].filter(Boolean).join(' ').trim();
+  const normalizedEmail = email.trim().toLowerCase();
+
+  if (name && normalizedEmail) {
+    return `${name} <${normalizedEmail}>`;
+  }
+
+  return name || normalizedEmail;
+}
+
 export function matchesUserIdentity(user: UserProfile | null, value: string): boolean {
   if (!user || !value.trim()) {
     return false;

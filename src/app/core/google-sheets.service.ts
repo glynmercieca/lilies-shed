@@ -2,8 +2,18 @@ import { Injectable } from '@angular/core';
 
 import { APP_SETTINGS } from './app-settings';
 import { LoanRecord, SheetsSnapshot, ToolFormValue, ToolRecord } from './models';
+import { formatOwnerDisplay, splitUserName } from './identity.util';
 
 type Primitive = string | number;
+
+interface ToolsSheetSchema {
+  headerMap: Map<string, number>;
+  headers: string[];
+}
+
+interface StatusSheetSchema {
+  headers: string[];
+}
 
 @Injectable({ providedIn: 'root' })
 export class GoogleSheetsService {
@@ -19,13 +29,22 @@ export class GoogleSheetsService {
     };
   }
 
-  async addBorrowRequest(accessToken: string, toolId: string, person: string): Promise<void> {
-    await this.appendRow(accessToken, APP_SETTINGS.statusSheetName, [
-      this.today(),
-      '',
-      toolId,
-      person,
-    ]);
+  async addBorrowRequest(accessToken: string, toolId: string, borrowerIdentity: string): Promise<void> {
+    const schema = await this.readStatusSheetSchema(accessToken);
+    const parsedBorrower = this.parseLegacyOwner(borrowerIdentity);
+    const values = this.buildStatusRow(schema, {
+      itemId: toolId,
+      borrower:
+        formatOwnerDisplay(parsedBorrower.firstName, parsedBorrower.lastName, parsedBorrower.email) || borrowerIdentity,
+      borrowerFirstName: parsedBorrower.firstName,
+      borrowerLastName: parsedBorrower.lastName,
+      borrowerEmail: parsedBorrower.email,
+      loanDate: this.today(),
+      returnDate: '',
+      rowNumber: 0,
+    });
+
+    await this.appendRow(accessToken, APP_SETTINGS.statusSheetName, values);
   }
 
   async markReturned(accessToken: string, loan: LoanRecord): Promise<void> {
@@ -36,29 +55,46 @@ export class GoogleSheetsService {
     );
   }
 
-  async addTool(accessToken: string, formValue: ToolFormValue, owner: string): Promise<void> {
+  async addTool(accessToken: string, formValue: ToolFormValue, ownerName: string, ownerEmail: string): Promise<void> {
     const currentTools = await this.readSheet(accessToken, `${APP_SETTINGS.toolsSheetName}!A:A`);
+    const schema = await this.readToolsSheetSchema(accessToken);
     const ids = currentTools
       .slice(1)
       .map((row) => Number(row[0] ?? 0))
       .filter((value) => !Number.isNaN(value));
     const nextId = (ids.length ? Math.max(...ids) : 99999) + 1;
 
-    await this.appendRow(accessToken, APP_SETTINGS.toolsSheetName, [
-      nextId,
-      formValue.name,
-      formValue.description,
-      formValue.notes,
-      owner,
-      formValue.images,
-    ]);
+    const ownerParts = splitUserName(ownerName);
+    const rowValues = this.buildToolRow(schema, {
+      id: String(nextId),
+      name: formValue.name,
+      description: formValue.description,
+      notes: formValue.notes,
+      owner: formatOwnerDisplay(ownerParts.firstName, ownerParts.lastName, ownerEmail),
+      ownerFirstName: ownerParts.firstName,
+      ownerLastName: ownerParts.lastName,
+      ownerEmail,
+      images: this.parseImages(formValue.images),
+      rowNumber: 0,
+    });
+
+    await this.appendRow(accessToken, APP_SETTINGS.toolsSheetName, rowValues);
   }
 
   async updateTool(accessToken: string, tool: ToolRecord, formValue: ToolFormValue): Promise<void> {
+    const schema = await this.readToolsSheetSchema(accessToken);
+    const rowValues = this.buildToolRow(schema, {
+      ...tool,
+      name: formValue.name,
+      description: formValue.description,
+      notes: formValue.notes,
+      images: this.parseImages(formValue.images),
+    });
+
     await this.updateRange(
       accessToken,
-      `${APP_SETTINGS.toolsSheetName}!A${tool.rowNumber}:F${tool.rowNumber}`,
-      [[tool.id, formValue.name, formValue.description, formValue.notes, tool.owner, formValue.images]],
+      `${APP_SETTINGS.toolsSheetName}!A${tool.rowNumber}:${this.columnNameFromIndex(rowValues.length)}${tool.rowNumber}`,
+      [rowValues],
     );
   }
 
@@ -78,6 +114,19 @@ export class GoogleSheetsService {
         }),
       },
     );
+  }
+
+  private async readToolsSheetSchema(accessToken: string): Promise<ToolsSheetSchema> {
+    const [headers = []] = await this.readSheet(accessToken, `${APP_SETTINGS.toolsSheetName}!1:1`);
+    return {
+      headers,
+      headerMap: this.createHeaderMap(headers),
+    };
+  }
+
+  private async readStatusSheetSchema(accessToken: string): Promise<StatusSheetSchema> {
+    const [headers = []] = await this.readSheet(accessToken, `${APP_SETTINGS.statusSheetName}!1:1`);
+    return { headers };
   }
 
   private async updateRange(accessToken: string, range: string, values: Primitive[][]): Promise<void> {
@@ -132,15 +181,35 @@ export class GoogleSheetsService {
 
     return values
       .slice(1)
-      .map((row, index) => ({
-        id: this.readCell(row, headers, 'id'),
-        name: this.readCell(row, headers, 'name'),
-        description: this.readCell(row, headers, 'description'),
-        notes: this.readCell(row, headers, 'notes'),
-        owner: this.readCell(row, headers, 'owner'),
-        images: this.parseImages(this.readCell(row, headers, 'images')),
-        rowNumber: index + 2,
-      }))
+      .map((row, index) => {
+        const ownerFirstName =
+          this.readCell(row, headers, 'owner first name') ||
+          this.readCell(row, headers, 'owner firstname');
+        const ownerLastName =
+          this.readCell(row, headers, 'owner last name') ||
+          this.readCell(row, headers, 'owner lastname');
+        const ownerEmail = this.readCell(row, headers, 'owner email');
+        const legacyOwner = this.readCell(row, headers, 'owner');
+        const parsedLegacyOwner = this.parseLegacyOwner(legacyOwner);
+
+        return {
+          id: this.readCell(row, headers, 'id'),
+          name: this.readCell(row, headers, 'name'),
+          description: this.readCell(row, headers, 'description'),
+          notes: this.readCell(row, headers, 'notes'),
+          ownerFirstName: ownerFirstName || parsedLegacyOwner.firstName,
+          ownerLastName: ownerLastName || parsedLegacyOwner.lastName,
+          ownerEmail: ownerEmail || parsedLegacyOwner.email,
+          owner:
+            formatOwnerDisplay(
+              ownerFirstName || parsedLegacyOwner.firstName,
+              ownerLastName || parsedLegacyOwner.lastName,
+              ownerEmail || parsedLegacyOwner.email,
+            ) || legacyOwner,
+          images: this.parseImages(this.readCell(row, headers, 'images')),
+          rowNumber: index + 2,
+        };
+      })
       .filter((tool) => Boolean(tool.id && tool.name));
   }
 
@@ -153,13 +222,21 @@ export class GoogleSheetsService {
 
     return values
       .slice(1)
-      .map((row, index) => ({
-        loanDate: this.readCell(row, headers, 'loan date'),
-        returnDate: this.readCell(row, headers, 'return date'),
-        itemId: this.readCell(row, headers, 'item'),
-        person: this.readCell(row, headers, 'person'),
-        rowNumber: index + 2,
-      }))
+      .map((row, index) => {
+        const borrowerValue = this.readCell(row, headers, 'borrower');
+        const parsedBorrower = this.parseLegacyOwner(borrowerValue);
+
+        return {
+          loanDate: this.readCell(row, headers, 'loan date'),
+          returnDate: this.readCell(row, headers, 'return date'),
+          itemId: this.readCell(row, headers, 'item'),
+          borrower: borrowerValue,
+          borrowerFirstName: parsedBorrower.firstName,
+          borrowerLastName: parsedBorrower.lastName,
+          borrowerEmail: parsedBorrower.email,
+          rowNumber: index + 2,
+        };
+      })
       .filter((loan) => Boolean(loan.itemId));
   }
 
@@ -181,6 +258,100 @@ export class GoogleSheetsService {
       .split(/[\n,]+/)
       .map((entry) => entry.trim())
       .filter(Boolean);
+  }
+
+  private buildToolRow(schema: ToolsSheetSchema, tool: ToolRecord): Primitive[] {
+    const headers = schema.headers.length
+      ? schema.headers
+      : ['Id', 'Name', 'Description', 'Notes', 'Owner', 'Images'];
+    const values = new Array<Primitive>(headers.length).fill('');
+
+    headers.forEach((header, index) => {
+      const normalizedHeader = this.normalizeHeader(header);
+      values[index] = this.valueForToolHeader(normalizedHeader, tool);
+    });
+
+    return values;
+  }
+
+  private valueForToolHeader(header: string, tool: ToolRecord): Primitive {
+    switch (header) {
+      case 'id':
+        return tool.id;
+      case 'name':
+        return tool.name;
+      case 'description':
+        return tool.description;
+      case 'notes':
+        return tool.notes;
+      case 'owner':
+        return tool.owner;
+      case 'owner first name':
+      case 'owner firstname':
+        return tool.ownerFirstName;
+      case 'owner last name':
+      case 'owner lastname':
+        return tool.ownerLastName;
+      case 'owner email':
+        return tool.ownerEmail;
+      case 'images':
+        return tool.images.join('\n');
+      default:
+        return '';
+    }
+  }
+
+  private parseLegacyOwner(value: string): { email: string; firstName: string; lastName: string } {
+    const trimmedValue = value.trim();
+    const emailMatch = trimmedValue.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+    const email = emailMatch ? emailMatch[0].toLowerCase() : '';
+    const name = trimmedValue.replace(/<[^>]+>/g, '').trim();
+    const { firstName, lastName } = splitUserName(name);
+
+    return { firstName, lastName, email };
+  }
+
+  private buildStatusRow(schema: StatusSheetSchema, loan: LoanRecord): Primitive[] {
+    const headers = schema.headers.length
+      ? schema.headers
+      : ['Loan Date', 'Return Date', 'Item', 'Borrower'];
+    const values = new Array<Primitive>(headers.length).fill('');
+
+    headers.forEach((header, index) => {
+      const normalizedHeader = this.normalizeHeader(header);
+
+      switch (normalizedHeader) {
+        case 'loan date':
+          values[index] = loan.loanDate;
+          break;
+        case 'return date':
+          values[index] = loan.returnDate;
+          break;
+        case 'item':
+          values[index] = loan.itemId;
+          break;
+        case 'borrower':
+          values[index] = loan.borrower;
+          break;
+        default:
+          values[index] = '';
+      }
+    });
+
+    return values;
+  }
+
+  private columnNameFromIndex(length: number): string {
+    let columnIndex = Math.max(length, 1);
+    let columnName = '';
+
+    while (columnIndex > 0) {
+      const remainder = (columnIndex - 1) % 26;
+      columnName = String.fromCharCode(65 + remainder) + columnName;
+      columnIndex = Math.floor((columnIndex - 1) / 26);
+    }
+
+    return columnName;
   }
 
   private today(): string {

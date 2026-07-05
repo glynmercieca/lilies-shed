@@ -1,17 +1,17 @@
-<header class="page-intro">
-  <h1 class="page-title">Shed</h1>
-  <p class="page-description">Browse the shared inventory and request available items.</p>
+<header class="d-grid gap-1 mb-3">
+  <h1 class="m-0">Shed</h1>
+  <p class="m-0 text-body-secondary">Browse the shared inventory and request available items.</p>
 </header>
 
-<div class="tools-filters">
-  <mat-form-field appearance="outline" class="tools-search-field">
+<div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+  <mat-form-field appearance="outline" class="w-100 flex-grow-1 mb-0">
     <mat-label>Search tools</mat-label>
     <input matInput [value]="state.searchTerm()" (input)="state.setSearchTerm($any($event.target).value)" />
     <mat-icon matSuffix>search</mat-icon>
   </mat-form-field>
 
   <mat-slide-toggle
-    class="tools-filter-toggle"
+    class="flex-shrink-0"
     [checked]="state.showUnavailableTools()"
     (change)="state.setShowUnavailableTools($event.checked)"
   >
@@ -19,29 +19,36 @@
   </mat-slide-toggle>
 </div>
 
-<div class="card-grid">
+<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
   @for (tool of state.filteredTools(); track tool.id) {
-    <mat-card appearance="outlined" class="tool-card">
-      <img mat-card-image [src]="tool.images[0] || '/tool-placeholder.svg'" [alt]="tool.name" />
-      <mat-card-header>
-        <mat-card-title>{{ tool.name }}</mat-card-title>
-        <mat-card-subtitle>{{ tool.owner || 'Unknown owner' }}</mat-card-subtitle>
-      </mat-card-header>
-      <mat-card-content>
-        <p class="section-copy">{{ tool.description }}</p>
-        <mat-chip-set>
-          <mat-chip>{{ tool.available ? 'Available' : 'Not available' }}</mat-chip>
-        </mat-chip-set>
-      </mat-card-content>
-      <mat-card-actions align="end">
-        <button mat-button type="button" (click)="state.openTool(tool)">View</button>
-      </mat-card-actions>
-    </mat-card>
+    <div class="col d-flex">
+      <mat-card appearance="outlined" class="w-100 tool-card">
+        <img mat-card-image [src]="tool.images[0] || '/tool-placeholder.svg'" [alt]="tool.name" />
+        <mat-card-header>
+          <mat-card-title>{{ tool.name }}</mat-card-title>
+          <mat-card-subtitle>{{ tool.ownerFirstName || 'Unknown owner' }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <p class="m-0 mb-3">{{ tool.description }}</p>
+          <mat-chip-set>
+            <mat-chip>{{ tool.available ? 'Available' : 'Not available' }}</mat-chip>
+            @if (tool.activeLoan?.borrowerFirstName) {
+              <mat-chip>Borrowed by {{ tool.activeLoan.borrowerFirstName }}</mat-chip>
+            }
+          </mat-chip-set>
+        </mat-card-content>
+        <mat-card-actions align="end">
+          <button mat-button type="button" (click)="state.openTool(tool)">View</button>
+        </mat-card-actions>
+      </mat-card>
+    </div>
   } @empty {
-    <mat-card appearance="outlined">
-      <mat-card-content>
-        <p class="section-copy">No tools match your current filters right now.</p>
-      </mat-card-content>
-    </mat-card>
+    <div class="col-12">
+      <mat-card appearance="outlined">
+        <mat-card-content>
+          <p class="m-0">No tools match your current filters right now.</p>
+        </mat-card-content>
+      </mat-card>
+    </div>
   }
 </div>

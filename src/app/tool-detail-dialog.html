@@ -5,7 +5,7 @@
   </mat-card>
 
   @if (data.tool.images.length > 1) {
-    <div class="image-strip">
+    <div class="d-flex flex-wrap gap-2 mt-3">
       @for (image of data.tool.images; track image; let index = $index) {
         <button mat-stroked-button type="button" (click)="setImage(index)">
           Image {{ index + 1 }}
@@ -14,17 +14,20 @@
     </div>
   }
 
-  <div class="detail-copy">
+  <div class="d-grid gap-3 mt-3">
     <mat-chip-set>
       <mat-chip>{{ data.tool.available ? 'Available' : 'Not available' }}</mat-chip>
-      <mat-chip>Owner: {{ data.tool.owner || 'Unknown' }}</mat-chip>
+      <mat-chip>Owner: {{ data.tool.ownerFirstName || 'Unknown' }}</mat-chip>
+      @if (data.tool.activeLoan?.borrowerFirstName) {
+        <mat-chip>Borrowed by: {{ data.tool.activeLoan.borrowerFirstName }}</mat-chip>
+      }
       <mat-chip>ID: {{ data.tool.id }}</mat-chip>
     </mat-chip-set>
 
-    <p>{{ data.tool.description }}</p>
+    <p class="m-0">{{ data.tool.description }}</p>
 
     @if (data.tool.notes) {
-      <p>{{ data.tool.notes }}</p>
+      <p class="m-0">{{ data.tool.notes }}</p>
     }
   </div>
 </mat-dialog-content>

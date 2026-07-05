@@ -10,13 +10,19 @@ export interface ToolRecord {
   description: string;
   notes: string;
   owner: string;
+  ownerEmail: string;
+  ownerFirstName: string;
+  ownerLastName: string;
   images: string[];
   rowNumber: number;
 }
 
 export interface LoanRecord {
   itemId: string;
-  person: string;
+  borrower: string;
+  borrowerEmail: string;
+  borrowerFirstName: string;
+  borrowerLastName: string;
   loanDate: string;
   returnDate: string;
   rowNumber: number;

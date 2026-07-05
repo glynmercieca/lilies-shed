@@ -1,16 +1,3 @@
-.image-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.detail-copy {
-  display: grid;
-  gap: 12px;
-  margin-top: 16px;
-}
-
 mat-card img {
   aspect-ratio: 4 / 3;
   object-fit: cover;

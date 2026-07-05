@@ -13,6 +13,9 @@ describe('decorateTools', () => {
           description: 'desc',
           notes: '',
           owner: 'Glyn',
+          ownerEmail: 'glyn@example.com',
+          ownerFirstName: 'Glyn',
+          ownerLastName: '',
           images: [],
           rowNumber: 2,
         },
@@ -22,6 +25,9 @@ describe('decorateTools', () => {
           description: 'desc',
           notes: '',
           owner: 'Glyn',
+          ownerEmail: 'glyn@example.com',
+          ownerFirstName: 'Glyn',
+          ownerLastName: '',
           images: [],
           rowNumber: 3,
         },
@@ -29,14 +35,20 @@ describe('decorateTools', () => {
       loans: [
         {
           itemId: '100000',
-          person: 'Louis',
+          borrower: 'Glyn Mercieca <glyn@example.com>',
+          borrowerEmail: 'glyn@example.com',
+          borrowerFirstName: 'Glyn',
+          borrowerLastName: 'Mercieca',
           loanDate: '2026-07-01',
           returnDate: '',
           rowNumber: 2,
         },
         {
           itemId: '100001',
-          person: 'Louis',
+          borrower: 'Glyn Mercieca <glyn@example.com>',
+          borrowerEmail: 'glyn@example.com',
+          borrowerFirstName: 'Glyn',
+          borrowerLastName: 'Mercieca',
           loanDate: '2026-07-01',
           returnDate: '2026-07-04',
           rowNumber: 3,
@@ -47,7 +59,7 @@ describe('decorateTools', () => {
     const [activeLoanTool, returnedTool] = decorateTools(snapshot);
 
     expect(activeLoanTool.available).toBe(false);
-    expect(activeLoanTool.activeLoan?.person).toBe('Louis');
+    expect(activeLoanTool.activeLoan?.borrowerFirstName).toBe('Glyn');
     expect(returnedTool.available).toBe(true);
     expect(returnedTool.activeLoan).toBeUndefined();
   });
@@ -61,6 +73,9 @@ describe('decorateTools', () => {
           description: 'desc',
           notes: '',
           owner: 'Glyn',
+          ownerEmail: 'glyn@example.com',
+          ownerFirstName: 'Glyn',
+          ownerLastName: '',
           images: [],
           rowNumber: 4,
         },
