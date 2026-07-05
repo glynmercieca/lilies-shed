@@ -1,10 +1,12 @@
 import { applyAppSettings, AppSettings, DEFAULT_APP_SETTINGS } from './app-settings';
 
-const CONFIG_URL = '/app-config.json';
+function configUrl(): string {
+  return new URL('app-config.json', document.baseURI).toString();
+}
 
 export async function loadAppSettings(): Promise<void> {
   try {
-    const response = await fetch(CONFIG_URL, {
+    const response = await fetch(configUrl(), {
       cache: 'no-store',
     });
 
