@@ -38,7 +38,9 @@ jobs:
           REPO_NAME="${GITHUB_REPOSITORY#*/}"
           OWNER_NAME="${GITHUB_REPOSITORY%/*}"
 
-          if [[ "$REPO_NAME" == "${OWNER_NAME}.github.io" ]]; then
+          if [[ -f public/CNAME ]]; then
+            echo "value=/" >> "$GITHUB_OUTPUT"
+          elif [[ "$REPO_NAME" == "${OWNER_NAME}.github.io" ]]; then
             echo "value=/" >> "$GITHUB_OUTPUT"
           else
             echo "value=/$REPO_NAME/" >> "$GITHUB_OUTPUT"
