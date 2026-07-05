@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
 import { GoogleAuthService } from './google-auth.service';
+import { GoogleDriveService } from './google-drive.service';
 import { GoogleSheetsService } from './google-sheets.service';
 import { matchesUserIdentity } from './identity.util';
 import { SheetsSnapshot, ToolWithStatus } from './models';
@@ -17,6 +18,7 @@ export class ToolboxStateService {
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly sheets = inject(GoogleSheetsService);
+  private readonly drive = inject(GoogleDriveService);
   private readonly router = inject(Router);
 
   readonly auth = inject(GoogleAuthService);
@@ -190,9 +192,18 @@ export class ToolboxStateService {
 
     this.loading.set(true);
     try {
-      await this.sheets.addTool(token, result, user.name, user.email);
+      const uploadedImageUrls = await this.drive.uploadImages(token, result.imageFiles);
+      await this.sheets.addTool(
+        token,
+        {
+          ...result,
+          imageUrls: [...result.imageUrls, ...uploadedImageUrls],
+        },
+        user.name,
+        user.email,
+      );
       await this.refresh();
-      this.notify('Tool added to the sheet.');
+      this.notify('Tool added.');
     } catch (error) {
       this.notify(error instanceof Error ? error.message : 'Unable to add a new tool.');
     } finally {
@@ -213,7 +224,8 @@ export class ToolboxStateService {
           name: tool.name,
           description: tool.description,
           notes: tool.notes,
-          images: tool.images.join('\n'),
+          imageUrls: tool.images,
+          imageFiles: [],
         },
       },
       maxWidth: '640px',
@@ -227,7 +239,11 @@ export class ToolboxStateService {
 
     this.savingToolId.set(tool.id);
     try {
-      await this.sheets.updateTool(token, tool, result);
+      const uploadedImageUrls = await this.drive.uploadImages(token, result.imageFiles);
+      await this.sheets.updateTool(token, tool, {
+        ...result,
+        imageUrls: [...result.imageUrls, ...uploadedImageUrls],
+      });
       await this.refresh();
       this.notify(`${tool.name} updated.`);
     } catch (error) {

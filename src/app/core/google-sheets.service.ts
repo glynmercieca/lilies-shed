@@ -74,7 +74,7 @@ export class GoogleSheetsService {
       ownerFirstName: ownerParts.firstName,
       ownerLastName: ownerParts.lastName,
       ownerEmail,
-      images: this.parseImages(formValue.images),
+      images: formValue.imageUrls,
       rowNumber: 0,
     });
 
@@ -88,7 +88,7 @@ export class GoogleSheetsService {
       name: formValue.name,
       description: formValue.description,
       notes: formValue.notes,
-      images: this.parseImages(formValue.images),
+      images: formValue.imageUrls,
     });
 
     await this.updateRange(

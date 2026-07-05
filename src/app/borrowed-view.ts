@@ -1,13 +1,13 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { MatDividerModule } from '@angular/material/divider';
+import { MatChipsModule } from '@angular/material/chips';
 
 import { ToolboxStateService } from './core/toolbox-state.service';
 
 @Component({
   selector: 'app-borrowed-view',
-  imports: [MatButtonModule, MatCardModule, MatDividerModule],
+  imports: [MatButtonModule, MatCardModule, MatChipsModule],
   templateUrl: './borrowed-view.html',
   changeDetection: ChangeDetectionStrategy.Eager,
 })

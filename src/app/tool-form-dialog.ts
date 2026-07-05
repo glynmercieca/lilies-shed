@@ -1,4 +1,4 @@
-import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnDestroy, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
   MAT_DIALOG_DATA,
@@ -9,6 +9,8 @@ import {
   MatDialogTitle,
 } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 
@@ -28,24 +30,60 @@ interface ToolFormDialogData {
     MatDialogContent,
     MatDialogTitle,
     MatButtonModule,
+    MatCardModule,
     MatFormFieldModule,
+    MatIconModule,
     MatInputModule,
   ],
   templateUrl: './tool-form-dialog.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './tool-form-dialog.scss',
 })
-export class ToolFormDialogComponent {
+export class ToolFormDialogComponent implements OnDestroy {
   private readonly formBuilder = inject(FormBuilder);
   private readonly dialogRef = inject(MatDialogRef<ToolFormDialogComponent>);
   readonly data = inject<ToolFormDialogData>(MAT_DIALOG_DATA);
+  readonly imageUrls = signal<string[]>(this.data.value?.imageUrls ?? []);
+  readonly selectedFiles = signal<Array<{ file: File; previewUrl: string }>>([]);
 
   readonly form = this.formBuilder.nonNullable.group({
     name: [this.data.value?.name ?? '', Validators.required],
     description: [this.data.value?.description ?? '', Validators.required],
     notes: [this.data.value?.notes ?? ''],
-    images: [this.data.value?.images ?? ''],
   });
+
+  onFilesSelected(event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    const files = Array.from(input?.files ?? []);
+    if (!files.length) {
+      return;
+    }
+
+    const nextFiles = files.map((file) => ({
+      file,
+      previewUrl: URL.createObjectURL(file),
+    }));
+
+    this.selectedFiles.update((current) => [...current, ...nextFiles]);
+
+    if (input) {
+      input.value = '';
+    }
+  }
+
+  removeExistingImage(index: number): void {
+    this.imageUrls.update((current) => current.filter((_, currentIndex) => currentIndex !== index));
+  }
+
+  removeSelectedFile(index: number): void {
+    const files = this.selectedFiles();
+    const selectedFile = files[index];
+    if (selectedFile) {
+      URL.revokeObjectURL(selectedFile.previewUrl);
+    }
+
+    this.selectedFiles.set(files.filter((_, currentIndex) => currentIndex !== index));
+  }
 
   submit(): void {
     if (this.form.invalid) {
@@ -53,6 +91,16 @@ export class ToolFormDialogComponent {
       return;
     }
 
-    this.dialogRef.close(this.form.getRawValue());
+    this.dialogRef.close({
+      ...this.form.getRawValue(),
+      imageUrls: this.imageUrls(),
+      imageFiles: this.selectedFiles().map((entry) => entry.file),
+    });
+  }
+
+  ngOnDestroy(): void {
+    for (const file of this.selectedFiles()) {
+      URL.revokeObjectURL(file.previewUrl);
+    }
   }
 }

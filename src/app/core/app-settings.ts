@@ -5,6 +5,7 @@ export interface AppSettings {
   toolsSheetName: string;
   statusSheetName: string;
   sheetsScope: string;
+  driveFileScope: string;
 }
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
@@ -14,6 +15,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   toolsSheetName: 'Tools',
   statusSheetName: 'Status',
   sheetsScope: 'https://www.googleapis.com/auth/spreadsheets',
+  driveFileScope: 'https://www.googleapis.com/auth/drive',
 };
 
 export let APP_SETTINGS: AppSettings = { ...DEFAULT_APP_SETTINGS };

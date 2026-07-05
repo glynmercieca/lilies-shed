@@ -38,7 +38,8 @@ export interface ToolFormValue {
   name: string;
   description: string;
   notes: string;
-  images: string;
+  imageUrls: string[];
+  imageFiles: File[];
 }
 
 export interface SheetsSnapshot {

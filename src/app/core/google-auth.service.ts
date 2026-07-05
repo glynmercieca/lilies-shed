@@ -139,7 +139,9 @@ export class GoogleAuthService {
     return new Promise<GoogleTokenResponse>((resolve, reject) => {
       const tokenClient = window.google!.accounts.oauth2.initTokenClient({
         client_id: APP_SETTINGS.googleClientId,
-        scope: `openid email profile ${APP_SETTINGS.sheetsScope}`,
+        scope: ['openid', 'email', 'profile', APP_SETTINGS.sheetsScope, APP_SETTINGS.driveFileScope]
+          .filter(Boolean)
+          .join(' '),
         callback: (response) => {
           if (response.error || !response.access_token) {
             reject(new Error('Google did not return an access token.'));
