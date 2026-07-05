@@ -2,40 +2,77 @@
   <mat-progress-bar mode="indeterminate"></mat-progress-bar>
 }
 
-<main class="page-shell container-fluid px-3 px-md-4 pt-3">
-  <div class="d-flex flex-wrap justify-content-end gap-2 mb-2">
-    @if (isSignedIn()) {
-      <button mat-icon-button type="button" (click)="refresh()" [disabled]="loading()" aria-label="Refresh data">
-        <mat-icon>refresh</mat-icon>
-      </button>
-      <button mat-icon-button type="button" (click)="signOut()" aria-label="Sign out">
-        <mat-icon>logout</mat-icon>
-      </button>
-    } @else {
-      <a
-        mat-button
-        routerLink="/home"
-        routerLinkActive="active-link"
-        [routerLinkActiveOptions]="{ exact: true }"
-      >Home</a>
-      <a
-        mat-button
-        routerLink="/about"
-        routerLinkActive="active-link"
-        [routerLinkActiveOptions]="{ exact: true }"
-      >About</a>
-      <a
-        mat-button
-        routerLink="/privacy"
-        routerLinkActive="active-link"
-        [routerLinkActiveOptions]="{ exact: true }"
-      >Privacy</a>
-    }
-  </div>
-  <section class="content-shell d-grid gap-3 mx-auto">
-    <router-outlet></router-outlet>
-  </section>
-</main>
+<mat-drawer-container class="app-shell" [hasBackdrop]="isSignedIn()">
+  @if (isSignedIn()) {
+    <mat-drawer
+      class="app-drawer"
+      position="end"
+      mode="over"
+      [opened]="menuOpen()"
+      (closedStart)="closeMenu()"
+    >
+      <div class="drawer-header d-flex justify-content-between align-items-center">
+        <h2 class="m-0 fs-5">Menu</h2>
+        <button mat-icon-button type="button" (click)="closeMenu()" aria-label="Close menu">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+      <div class="drawer-actions d-grid gap-2">
+        <button mat-button type="button" (click)="refresh()" [disabled]="loading()" class="justify-content-start">
+          <mat-icon>refresh</mat-icon>
+          Reload
+        </button>
+        <button mat-button type="button" (click)="signOut()" class="justify-content-start">
+          <mat-icon>logout</mat-icon>
+          Sign out
+        </button>
+      </div>
+      <div class="drawer-version text-body-secondary small">
+        Version {{ version }}
+      </div>
+    </mat-drawer>
+  }
+
+  <main class="page-shell container-fluid px-3 px-md-4 pt-3">
+    <div class="d-flex flex-wrap justify-content-end gap-2 mb-2">
+      @if (!isSignedIn()) {
+        <a
+          mat-button
+          routerLink="/home"
+          routerLinkActive="active-link"
+          [routerLinkActiveOptions]="{ exact: true }"
+        >Home</a>
+        <a
+          mat-button
+          routerLink="/about"
+          routerLinkActive="active-link"
+          [routerLinkActiveOptions]="{ exact: true }"
+        >About</a>
+        <a
+          mat-button
+          routerLink="/privacy"
+          routerLinkActive="active-link"
+          [routerLinkActiveOptions]="{ exact: true }"
+        >Privacy</a>
+      }
+    </div>
+    <section class="content-shell d-grid gap-3 mx-auto">
+      <router-outlet></router-outlet>
+    </section>
+  </main>
+
+  @if (isSignedIn()) {
+    <button
+      mat-mini-fab
+      type="button"
+      class="menu-fab"
+      (click)="openMenu()"
+      aria-label="Open menu"
+    >
+      <mat-icon>menu</mat-icon>
+    </button>
+  }
+</mat-drawer-container>
 
 @if (isSignedIn()) {
   <nav class="bottom-nav">

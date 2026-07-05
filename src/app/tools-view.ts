@@ -5,7 +5,6 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 
 import { fallbackImage, resolveToolImageUrl } from './core/image-url.util';
 import { ResolvedImageDirective } from './core/resolved-image.directive';
@@ -20,7 +19,6 @@ import { ToolboxStateService } from './core/toolbox-state.service';
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
-    MatSlideToggleModule,
     ResolvedImageDirective,
   ],
   templateUrl: './tools-view.html',

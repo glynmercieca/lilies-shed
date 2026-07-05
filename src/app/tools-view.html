@@ -9,14 +9,6 @@
     <input matInput [value]="state.searchTerm()" (input)="state.setSearchTerm($any($event.target).value)" />
     <mat-icon matSuffix>search</mat-icon>
   </mat-form-field>
-
-  <mat-slide-toggle
-    class="flex-shrink-0"
-    [checked]="state.showUnavailableTools()"
-    (change)="state.setShowUnavailableTools($event.checked)"
-  >
-    Show unavailable
-  </mat-slide-toggle>
 </div>
 
 <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">

@@ -4,6 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatSidenavModule } from '@angular/material/sidenav';
 import { filter } from 'rxjs';
 
 import { APP_SETTINGS } from './core/app-settings';
@@ -16,6 +17,7 @@ import { ToolboxStateService } from './core/toolbox-state.service';
     MatCardModule,
     MatIconModule,
     MatProgressBarModule,
+    MatSidenavModule,
     RouterLink,
     RouterLinkActive,
     RouterOutlet,
@@ -28,14 +30,17 @@ export class App {
   readonly state = inject(ToolboxStateService);
   readonly auth = this.state.auth;
   readonly title = APP_SETTINGS.appName;
+  readonly version = APP_SETTINGS.version;
   readonly loading = this.state.loading;
   readonly isSignedIn = computed(() => Boolean(this.auth.currentUser()));
   private readonly router = inject(Router);
   readonly isPublicRoute = signal(true);
+  readonly menuOpen = signal(false);
 
   constructor() {
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
       this.isPublicRoute.set(this.checkIsPublicRoute(this.router.url));
+      this.menuOpen.set(false);
     });
     this.isPublicRoute.set(this.checkIsPublicRoute(this.router.url));
     this.lockPortraitOrientation();
@@ -47,6 +52,15 @@ export class App {
 
   async refresh(): Promise<void> {
     await this.state.refresh();
+    this.menuOpen.set(false);
+  }
+
+  openMenu(): void {
+    this.menuOpen.set(true);
+  }
+
+  closeMenu(): void {
+    this.menuOpen.set(false);
   }
 
   private checkIsPublicRoute(url: string): boolean {
