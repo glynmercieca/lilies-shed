@@ -50,7 +50,7 @@ jobs:
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist/lilies-toolbox/browser
+          path: dist/lilies-shed/browser
 
   deploy:
     needs: build

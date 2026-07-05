@@ -9,7 +9,7 @@ interface StoredGoogleSession {
   user: UserProfile;
 }
 
-const STORAGE_KEY = 'lilies-toolbox.google-session';
+const STORAGE_KEY = 'lilies-shed.google-session';
 const TOKEN_REFRESH_BUFFER_MS = 60_000;
 
 @Injectable({ providedIn: 'root' })

@@ -1,5 +1,5 @@
 {
-  "name": "lilies-toolbox",
+  "name": "lilies-shed",
   "version": "0.0.0",
   "scripts": {
     "ng": "node scripts/run-ng.cjs",

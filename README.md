@@ -1,6 +1,6 @@
-# Lilies Toolbox
+# Lilies Shed
 
-Lilies Toolbox is an Angular Material PWA backed by a shared Google Sheet. Users sign in with Google, browse tool listings from the `Tools` tab, borrow and return items through the `Status` tab, and manage the tools they own.
+Lilies Shed is an Angular Material PWA backed by a shared Google Sheet. Users sign in with Google, browse tool listings from the `Tools` tab, borrow and return items through the `Status` tab, and manage the tools they own.
 
 ## Stack
 
@@ -24,7 +24,7 @@ If your global Node.js runtime is older than Angular 22 requires, the project au
 
 ```json
 {
-  "appName": "Lilies Toolbox",
+  "appName": "Lilies Shed",
   "googleClientId": "YOUR_CLIENT_ID.apps.googleusercontent.com",
   "spreadsheetId": "1ZmAkBYhR6y5JeRD5qF_gcC6_wBQzjm3QZMOQkJml4XU",
   "toolsSheetName": "Tools",

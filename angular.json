@@ -7,7 +7,7 @@
   },
   "newProjectRoot": "projects",
   "projects": {
-    "lilies-toolbox": {
+    "lilies-shed": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -64,10 +64,10 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "lilies-toolbox:build:production"
+              "buildTarget": "lilies-shed:build:production"
             },
             "development": {
-              "buildTarget": "lilies-toolbox:build:development"
+              "buildTarget": "lilies-shed:build:development"
             }
           },
           "defaultConfiguration": "development"
