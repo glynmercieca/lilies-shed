@@ -1,0 +1,39 @@
+<mat-card appearance="outlined">
+  <mat-card-header>
+    <mat-card-title>My Tools</mat-card-title>
+    <mat-card-subtitle>Manage tools you own and add new ones to the sheet.</mat-card-subtitle>
+  </mat-card-header>
+  <mat-card-actions align="end">
+    <button mat-flat-button type="button" (click)="state.addTool()">
+      <mat-icon>add</mat-icon>
+      Add tool
+    </button>
+  </mat-card-actions>
+  <mat-card-content>
+    <mat-list>
+      @for (tool of state.ownedTools(); track tool.id) {
+        <mat-list-item lines="3">
+          <span matListItemTitle>{{ tool.name }}</span>
+          <span matListItemLine>{{ tool.description }}</span>
+          <span matListItemLine>{{ tool.available ? 'Available for editing' : 'Currently loaned out' }}</span>
+          <button
+            mat-icon-button
+            matListItemMeta
+            type="button"
+            (click)="state.editTool(tool)"
+            [disabled]="!tool.available || state.savingToolId() === tool.id"
+            aria-label="Edit tool"
+          >
+            <mat-icon>edit</mat-icon>
+          </button>
+        </mat-list-item>
+        <mat-divider></mat-divider>
+      } @empty {
+        <mat-list-item>
+          <span matListItemTitle>You have not added any tools yet.</span>
+          <span matListItemLine>Use the add button to create your first listing.</span>
+        </mat-list-item>
+      }
+    </mat-list>
+  </mat-card-content>
+</mat-card>

@@ -1,0 +1,38 @@
+<mat-card appearance="outlined">
+  <mat-card-header>
+    <mat-card-title>Tools</mat-card-title>
+    <mat-card-subtitle>Browse the shared inventory and request available items.</mat-card-subtitle>
+  </mat-card-header>
+  <mat-card-content>
+    <mat-form-field appearance="outline">
+      <mat-label>Search tools</mat-label>
+      <input matInput [value]="state.searchTerm()" (input)="state.setSearchTerm($any($event.target).value)" />
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+
+    <div class="card-grid">
+      @for (tool of state.filteredTools(); track tool.id) {
+        <mat-card appearance="outlined" class="tool-card">
+          <img mat-card-image [src]="tool.images[0] || '/tool-placeholder.svg'" [alt]="tool.name" />
+          <mat-card-header>
+            <mat-card-title>{{ tool.name }}</mat-card-title>
+            <mat-card-subtitle>{{ tool.owner || 'Unknown owner' }}</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <p>{{ tool.description }}</p>
+            <mat-chip-set>
+              <mat-chip>{{ tool.available ? 'Available' : 'Not available' }}</mat-chip>
+            </mat-chip-set>
+          </mat-card-content>
+          <mat-card-actions align="end">
+            <button mat-button type="button" (click)="state.openTool(tool)">View</button>
+          </mat-card-actions>
+        </mat-card>
+      } @empty {
+        <mat-card appearance="outlined">
+          <mat-card-content>No tools match your search right now.</mat-card-content>
+        </mat-card>
+      }
+    </div>
+  </mat-card-content>
+</mat-card>

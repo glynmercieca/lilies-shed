@@ -5,12 +5,13 @@ import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 
 import { App } from './app';
+import { routes } from './app.routes';
 
 describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App, MatSnackBarModule],
-      providers: [provideZonelessChangeDetection(), provideNoopAnimations(), provideRouter([])],
+      providers: [provideZonelessChangeDetection(), provideNoopAnimations(), provideRouter(routes)],
     }).compileComponents();
   });
 
