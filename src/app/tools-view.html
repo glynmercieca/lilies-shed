@@ -3,8 +3,8 @@
   <p class="m-0 text-body-secondary">Browse the shared inventory and request available items.</p>
 </header>
 
-<div class="d-flex flex-wrap align-items-center gap-3 mb-3">
-  <mat-form-field appearance="outline" class="w-100 flex-grow-1 mb-0">
+<div class="d-flex align-items-center gap-3 mb-3">
+  <mat-form-field appearance="outline" class="flex-grow-1 mb-0">
     <mat-label>Search tools</mat-label>
     <input matInput [value]="state.searchTerm()" (input)="state.setSearchTerm($any($event.target).value)" />
     <mat-icon matSuffix>search</mat-icon>
