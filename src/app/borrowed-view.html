@@ -1,32 +1,34 @@
-<mat-card appearance="outlined">
-  <mat-card-header>
-    <mat-card-title>Borrowed</mat-card-title>
-    <mat-card-subtitle>Track items you currently have from other people.</mat-card-subtitle>
-  </mat-card-header>
-  <mat-card-content>
-    <mat-list>
-      @for (tool of state.borrowedTools(); track tool.id) {
-        <mat-list-item lines="3">
-          <span matListItemTitle>{{ tool.name }}</span>
-          <span matListItemLine>{{ tool.description }}</span>
-          <span matListItemLine>Owner: {{ tool.owner || 'Unknown' }}</span>
-          <button
-            mat-flat-button
-            matListItemMeta
-            type="button"
-            (click)="state.returnTool(tool)"
-            [disabled]="state.savingToolId() === tool.id"
-          >
-            Mark returned
-          </button>
-        </mat-list-item>
-        <mat-divider></mat-divider>
-      } @empty {
-        <mat-list-item>
-          <span matListItemTitle>No borrowed tools right now.</span>
-          <span matListItemLine>Borrowed items will appear here while they are checked out to you.</span>
-        </mat-list-item>
-      }
-    </mat-list>
-  </mat-card-content>
-</mat-card>
+<header class="page-intro">
+  <h1 class="page-title">Borrowed</h1>
+  <p class="page-description">Track the items you currently have from other people.</p>
+</header>
+
+<div class="mobile-list">
+  @for (tool of state.borrowedTools(); track tool.id) {
+    <div class="mobile-list-row">
+      <div class="mobile-list-copy">
+        <span class="mobile-list-title">{{ tool.name }}</span>
+        <span class="mobile-list-line">{{ tool.description }}</span>
+        <span class="mobile-list-line">Owner: {{ tool.owner || 'Unknown' }}</span>
+      </div>
+      <div class="mobile-list-actions">
+        <button
+          mat-flat-button
+          type="button"
+          (click)="state.returnTool(tool)"
+          [disabled]="state.savingToolId() === tool.id"
+        >
+          Mark returned
+        </button>
+      </div>
+    </div>
+    <mat-divider></mat-divider>
+  } @empty {
+    <div class="mobile-list-row">
+      <div class="mobile-list-copy">
+        <span class="mobile-list-title">No borrowed tools right now.</span>
+        <span class="mobile-list-line">Borrowed items will appear here while they are checked out to you.</span>
+      </div>
+    </div>
+  }
+</div>

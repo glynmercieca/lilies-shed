@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
@@ -22,13 +22,19 @@ export class ToolboxStateService {
   readonly auth = inject(GoogleAuthService);
   readonly loading = signal(false);
   readonly searchTerm = signal('');
+  readonly showUnavailableTools = signal(false);
   readonly savingToolId = signal<string | null>(null);
   private readonly snapshot = signal<SheetsSnapshot>({ tools: [], loans: [] });
+  private readonly loadedUserEmail = signal<string | null>(null);
 
   readonly tools = computed(() => decorateTools(this.snapshot()));
   readonly filteredTools = computed(() => {
     const query = this.searchTerm().trim().toLowerCase();
     return this.tools().filter((tool) => {
+      if (!this.showUnavailableTools() && !tool.available) {
+        return false;
+      }
+
       if (!query) {
         return true;
       }
@@ -47,6 +53,28 @@ export class ToolboxStateService {
     this.tools().filter((tool) => matchesUserIdentity(this.auth.currentUser(), tool.owner)),
   );
 
+  constructor() {
+    effect(() => {
+      const user = this.auth.currentUser();
+      const loadedUserEmail = this.loadedUserEmail();
+
+      if (!user) {
+        if (loadedUserEmail) {
+          this.snapshot.set({ tools: [], loans: [] });
+          this.loadedUserEmail.set(null);
+        }
+        return;
+      }
+
+      if (loadedUserEmail === user.email) {
+        return;
+      }
+
+      this.loadedUserEmail.set(user.email);
+      void this.refresh();
+    });
+  }
+
   async signIn(): Promise<void> {
     await this.auth.signIn();
     if (this.auth.currentUser()) {
@@ -59,11 +87,16 @@ export class ToolboxStateService {
     this.auth.signOut();
     this.snapshot.set({ tools: [], loans: [] });
     this.searchTerm.set('');
+    this.loadedUserEmail.set(null);
     await this.router.navigate(['/']);
   }
 
   setSearchTerm(value: string): void {
     this.searchTerm.set(value);
+  }
+
+  setShowUnavailableTools(value: boolean): void {
+    this.showUnavailableTools.set(value);
   }
 
   async refresh(): Promise<void> {

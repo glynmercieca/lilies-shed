@@ -1,39 +1,48 @@
-<mat-card appearance="outlined">
-  <mat-card-header>
-    <mat-card-title>My Tools</mat-card-title>
-    <mat-card-subtitle>Manage tools you own and add new ones to the sheet.</mat-card-subtitle>
-  </mat-card-header>
-  <mat-card-actions align="end">
+<header class="page-intro page-intro-actions">
+  <div class="page-intro-copy">
+    <h1 class="page-title">My Tools</h1>
+    <p class="page-description">Manage tools you own and add new ones to the sheet.</p>
+  </div>
+  <div class="page-intro-button">
     <button mat-flat-button type="button" (click)="state.addTool()">
       <mat-icon>add</mat-icon>
       Add tool
     </button>
-  </mat-card-actions>
-  <mat-card-content>
-    <mat-list>
-      @for (tool of state.ownedTools(); track tool.id) {
-        <mat-list-item lines="3">
-          <span matListItemTitle>{{ tool.name }}</span>
-          <span matListItemLine>{{ tool.description }}</span>
-          <span matListItemLine>{{ tool.available ? 'Available for editing' : 'Currently loaned out' }}</span>
-          <button
-            mat-icon-button
-            matListItemMeta
-            type="button"
-            (click)="state.editTool(tool)"
-            [disabled]="!tool.available || state.savingToolId() === tool.id"
-            aria-label="Edit tool"
-          >
-            <mat-icon>edit</mat-icon>
-          </button>
-        </mat-list-item>
-        <mat-divider></mat-divider>
-      } @empty {
-        <mat-list-item>
-          <span matListItemTitle>You have not added any tools yet.</span>
-          <span matListItemLine>Use the add button to create your first listing.</span>
-        </mat-list-item>
-      }
-    </mat-list>
-  </mat-card-content>
-</mat-card>
+  </div>
+</header>
+
+<div class="card-grid">
+  @for (tool of state.ownedTools(); track tool.id) {
+    <mat-card appearance="outlined" class="tool-card my-tool-card">
+      <mat-card-header>
+        <mat-card-title>{{ tool.name }}</mat-card-title>
+        <mat-card-subtitle>{{ tool.id }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <p class="section-copy">{{ tool.description }}</p>
+        <mat-chip-set>
+          <mat-chip>{{ tool.available ? 'Available for editing' : 'Currently loaned out' }}</mat-chip>
+          <mat-chip>{{ tool.owner || 'Unknown owner' }}</mat-chip>
+        </mat-chip-set>
+      </mat-card-content>
+      <mat-card-actions align="end">
+        <button
+          mat-stroked-button
+          type="button"
+          (click)="state.editTool(tool)"
+          [disabled]="!tool.available || state.savingToolId() === tool.id"
+        >
+          <mat-icon>edit</mat-icon>
+          Edit
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  } @empty {
+    <mat-card appearance="outlined">
+      <mat-card-content>
+        <p class="section-copy">You have not added any tools yet.</p>
+        <p class="section-copy">Use the add button to create your first listing.</p>
+      </mat-card-content>
+    </mat-card>
+  }
+</div>

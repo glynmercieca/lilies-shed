@@ -5,12 +5,21 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 
 import { ToolboxStateService } from './core/toolbox-state.service';
 
 @Component({
   selector: 'app-tools-view',
-  imports: [MatButtonModule, MatCardModule, MatChipsModule, MatFormFieldModule, MatIconModule, MatInputModule],
+  imports: [
+    MatButtonModule,
+    MatCardModule,
+    MatChipsModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+    MatSlideToggleModule,
+  ],
   templateUrl: './tools-view.html',
   changeDetection: ChangeDetectionStrategy.Eager,
 })

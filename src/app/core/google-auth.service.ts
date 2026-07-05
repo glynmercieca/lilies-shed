@@ -3,6 +3,15 @@ import { Injectable, computed, signal } from '@angular/core';
 import { APP_SETTINGS } from './app-settings';
 import { UserProfile } from './models';
 
+interface StoredGoogleSession {
+  expiresAt: number;
+  token: string;
+  user: UserProfile;
+}
+
+const STORAGE_KEY = 'lilies-toolbox.google-session';
+const TOKEN_REFRESH_BUFFER_MS = 60_000;
+
 @Injectable({ providedIn: 'root' })
 export class GoogleAuthService {
   private readonly token = signal<string | null>(null);
@@ -16,6 +25,10 @@ export class GoogleAuthService {
   readonly error = computed(() => this.errorMessage());
   readonly isConfigured = computed(() => Boolean(APP_SETTINGS.googleClientId.trim()));
 
+  constructor() {
+    this.restoreSession();
+  }
+
   async signIn(): Promise<void> {
     if (!this.isConfigured()) {
       this.errorMessage.set('Add a Google OAuth client ID in public/app-config.json before signing in.');
@@ -26,14 +39,13 @@ export class GoogleAuthService {
     this.errorMessage.set(null);
 
     try {
-      const accessToken = await this.requestAccessToken();
+      const tokenResponse = await this.requestAccessToken(this.token() ? '' : 'consent');
+      const accessToken = tokenResponse.access_token;
       const profile = await this.fetchProfile(accessToken);
-      this.token.set(accessToken);
-      this.user.set(profile);
+      this.setSession(profile, accessToken, tokenResponse.expires_in);
     } catch (error) {
       this.errorMessage.set(error instanceof Error ? error.message : 'Google sign-in failed.');
-      this.token.set(null);
-      this.user.set(null);
+      this.clearSessionState();
     } finally {
       this.busy.set(false);
     }
@@ -45,15 +57,86 @@ export class GoogleAuthService {
       window.google.accounts.oauth2.revoke(currentToken, () => undefined);
     }
 
-    this.token.set(null);
-    this.user.set(null);
+    this.clearSessionState();
+    this.clearStoredSession();
     this.errorMessage.set(null);
   }
 
-  private async requestAccessToken(): Promise<string> {
+  async ensureValidSession(): Promise<boolean> {
+    if (!this.isConfigured()) {
+      return false;
+    }
+
+    const storedSession = this.readStoredSession();
+    if (!storedSession) {
+      return Boolean(this.token() && this.user());
+    }
+
+    const now = Date.now();
+    if (storedSession.expiresAt > now + TOKEN_REFRESH_BUFFER_MS) {
+      if (!this.token() || !this.user()) {
+        this.setSession(storedSession.user, storedSession.token, Math.floor((storedSession.expiresAt - now) / 1000));
+      }
+      return true;
+    }
+
+    try {
+      this.busy.set(true);
+      const tokenResponse = await this.requestAccessToken('');
+      const profile = this.user() ?? storedSession.user ?? (await this.fetchProfile(tokenResponse.access_token));
+      this.setSession(profile, tokenResponse.access_token, tokenResponse.expires_in);
+      return true;
+    } catch {
+      this.clearSessionState();
+      this.clearStoredSession();
+      return false;
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  private restoreSession(): void {
+    const storedSession = this.readStoredSession();
+    if (!storedSession) {
+      return;
+    }
+
+    const now = Date.now();
+    if (storedSession.expiresAt > now) {
+      this.token.set(storedSession.token);
+      this.user.set(storedSession.user);
+      queueMicrotask(() => {
+        void this.ensureValidSession();
+      });
+      return;
+    }
+
+    queueMicrotask(() => {
+      void this.ensureValidSession();
+    });
+  }
+
+  private setSession(user: UserProfile, token: string, expiresInSeconds: number): void {
+    const expiresAt = Date.now() + expiresInSeconds * 1000;
+    this.token.set(token);
+    this.user.set(user);
+    this.errorMessage.set(null);
+    this.writeStoredSession({
+      user,
+      token,
+      expiresAt,
+    });
+  }
+
+  private clearSessionState(): void {
+    this.token.set(null);
+    this.user.set(null);
+  }
+
+  private async requestAccessToken(prompt: '' | 'consent'): Promise<GoogleTokenResponse> {
     await this.waitForGoogleIdentity();
 
-    return new Promise<string>((resolve, reject) => {
+    return new Promise<GoogleTokenResponse>((resolve, reject) => {
       const tokenClient = window.google!.accounts.oauth2.initTokenClient({
         client_id: APP_SETTINGS.googleClientId,
         scope: `openid email profile ${APP_SETTINGS.sheetsScope}`,
@@ -63,12 +146,12 @@ export class GoogleAuthService {
             return;
           }
 
-          resolve(response.access_token);
+          resolve(response);
         },
         error_callback: () => reject(new Error('Google sign-in was cancelled or blocked.')),
       });
 
-      tokenClient.requestAccessToken({ prompt: this.token() ? '' : 'consent' });
+      tokenClient.requestAccessToken({ prompt });
     });
   }
 
@@ -115,5 +198,34 @@ export class GoogleAuthService {
 
       check();
     });
+  }
+
+  private readStoredSession(): StoredGoogleSession | null {
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        return null;
+      }
+
+      return JSON.parse(raw) as StoredGoogleSession;
+    } catch {
+      return null;
+    }
+  }
+
+  private writeStoredSession(session: StoredGoogleSession): void {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+    } catch {
+      // Ignore storage failures and keep the in-memory session.
+    }
+  }
+
+  private clearStoredSession(): void {
+    try {
+      window.localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // Ignore storage failures.
+    }
   }
 }

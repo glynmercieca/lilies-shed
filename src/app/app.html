@@ -1,64 +1,28 @@
-@if (!auth.isConfigured()) {
-  <div class="auth-shell">
-    <mat-card appearance="outlined">
-      <mat-card-header>
-        <mat-card-title>Google setup required</mat-card-title>
-        <mat-card-subtitle>Add your OAuth client before signing in.</mat-card-subtitle>
-      </mat-card-header>
-      <mat-card-content>
-        <p>
-          Update <code>public/app-config.json</code> with a Google OAuth client ID that has
-          access to the Sheets API and allows this app's origin.
-        </p>
-      </mat-card-content>
-    </mat-card>
+@if (loading() && isSignedIn()) {
+  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+}
+
+<main class="page-shell">
+  <div class="shell-actions">
+    @if (isSignedIn()) {
+      <button mat-icon-button type="button" (click)="refresh()" [disabled]="loading()" aria-label="Refresh data">
+        <mat-icon>refresh</mat-icon>
+      </button>
+      <button mat-icon-button type="button" (click)="signOut()" aria-label="Sign out">
+        <mat-icon>logout</mat-icon>
+      </button>
+    } @else {
+      <a mat-button routerLink="/home" routerLinkActive="active-link" [routerLinkActiveOptions]="{ exact: true }">Home</a>
+      <a mat-button routerLink="/about" routerLinkActive="active-link" [routerLinkActiveOptions]="{ exact: true }">About</a>
+      <a mat-button routerLink="/privacy" routerLinkActive="active-link" [routerLinkActiveOptions]="{ exact: true }">Privacy</a>
+    }
   </div>
-} @else if (!isSignedIn()) {
-  <div class="auth-shell">
-    <mat-card appearance="outlined">
-      <mat-card-header>
-        <mat-card-title>Sign in to Lilies Toolbox</mat-card-title>
-        <mat-card-subtitle>Google sign-in unlocks your tools, loans, and sheet updates.</mat-card-subtitle>
-      </mat-card-header>
-      <mat-card-content>
-        <p>
-          This app reads the shared <strong>Tools</strong> and <strong>Status</strong> tabs and writes
-          borrow, return, and owned-tool changes back to the same spreadsheet.
-        </p>
-        @if (auth.error()) {
-          <p>{{ auth.error() }}</p>
-        }
-      </mat-card-content>
-      <mat-card-actions align="end">
-        <button mat-flat-button (click)="signIn()" [disabled]="auth.isBusy()">
-          <mat-icon>login</mat-icon>
-          Sign in with Google
-        </button>
-      </mat-card-actions>
-    </mat-card>
-  </div>
-} @else {
-  <mat-toolbar>
-    <span>{{ title }}</span>
-    <span class="toolbar-spacer"></span>
-    <button mat-icon-button type="button" (click)="refresh()" [disabled]="loading()">
-      <mat-icon>refresh</mat-icon>
-    </button>
-    <button mat-icon-button type="button" (click)="signOut()">
-      <mat-icon>logout</mat-icon>
-    </button>
-  </mat-toolbar>
+  <section class="section-layout">
+    <router-outlet></router-outlet>
+  </section>
+</main>
 
-  @if (loading()) {
-    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-  }
-
-  <main class="page-shell">
-    <section class="section-layout">
-      <router-outlet></router-outlet>
-    </section>
-  </main>
-
+@if (isSignedIn()) {
   <nav class="bottom-nav">
     <a
       mat-button
@@ -67,7 +31,7 @@
       [routerLinkActiveOptions]="{ exact: true }"
     >
       <mat-icon>construction</mat-icon>
-      Tools
+      Shed
     </a>
     <a
       mat-button

@@ -1,17 +1,22 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 
 import { ToolboxStateService } from './core/toolbox-state.service';
 
 @Component({
-  selector: 'app-my-tools-view',
-  imports: [MatButtonModule, MatCardModule, MatChipsModule, MatIconModule],
-  templateUrl: './my-tools-view.html',
+  selector: 'app-home-view',
+  imports: [MatButtonModule, MatCardModule, MatIconModule, RouterLink],
+  templateUrl: './home-view.html',
   changeDetection: ChangeDetectionStrategy.Eager,
 })
-export class MyToolsViewComponent {
+export class HomeViewComponent {
   readonly state = inject(ToolboxStateService);
+  readonly auth = this.state.auth;
+
+  async signIn(): Promise<void> {
+    await this.state.signIn();
+  }
 }

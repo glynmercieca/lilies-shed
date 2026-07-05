@@ -1,0 +1,37 @@
+<header class="page-intro">
+  <h1 class="page-title">Lilies Toolbox</h1>
+  <p class="page-description">
+    A shared tool library for browsing, borrowing, returning, and managing community equipment.
+  </p>
+</header>
+
+<div class="public-stack">
+  <mat-card appearance="outlined">
+    <mat-card-content>
+      <p class="section-copy">
+        Signed-in users can browse available tools, request to borrow items, track borrowed tools,
+        and manage the tools they own.
+      </p>
+      @if (!auth.isConfigured()) {
+        <p class="section-copy">
+          Google sign-in is not configured yet. Update <code>public/app-config.json</code> with a
+          valid OAuth client ID.
+        </p>
+      } @else if (!auth.currentUser()) {
+        <div class="public-actions">
+          <button mat-flat-button (click)="signIn()" [disabled]="auth.isBusy()">
+            <mat-icon>login</mat-icon>
+            Sign in with Google
+          </button>
+        </div>
+        @if (auth.error()) {
+          <p class="section-copy">{{ auth.error() }}</p>
+        }
+      } @else {
+        <div class="public-actions">
+          <a mat-flat-button routerLink="/tools">Open shed</a>
+        </div>
+      }
+    </mat-card-content>
+  </mat-card>
+</div>

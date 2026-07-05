@@ -1,10 +1,10 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatToolbarModule } from '@angular/material/toolbar';
+import { filter } from 'rxjs';
 
 import { APP_SETTINGS } from './core/app-settings';
 import { ToolboxStateService } from './core/toolbox-state.service';
@@ -16,7 +16,6 @@ import { ToolboxStateService } from './core/toolbox-state.service';
     MatCardModule,
     MatIconModule,
     MatProgressBarModule,
-    MatToolbarModule,
     RouterLink,
     RouterLinkActive,
     RouterOutlet,
@@ -31,13 +30,15 @@ export class App {
   readonly title = APP_SETTINGS.appName;
   readonly loading = this.state.loading;
   readonly isSignedIn = computed(() => Boolean(this.auth.currentUser()));
+  private readonly router = inject(Router);
+  readonly isPublicRoute = signal(true);
 
   constructor() {
+    this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
+      this.isPublicRoute.set(this.checkIsPublicRoute(this.router.url));
+    });
+    this.isPublicRoute.set(this.checkIsPublicRoute(this.router.url));
     this.lockPortraitOrientation();
-  }
-
-  async signIn(): Promise<void> {
-    await this.state.signIn();
   }
 
   async signOut(): Promise<void> {
@@ -46,6 +47,11 @@ export class App {
 
   async refresh(): Promise<void> {
     await this.state.refresh();
+  }
+
+  private checkIsPublicRoute(url: string): boolean {
+    const [path] = url.split('?');
+    return ['/home', '/about', '/privacy', '/'].includes(path || '/');
   }
 
   private async lockPortraitOrientation(): Promise<void> {
