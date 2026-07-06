@@ -21,7 +21,6 @@
 
 <mat-drawer-container
   class="app-shell"
-  [class.menu-open]="menuOpen()"
   [class.notifications-open]="notificationsOpen()"
   [hasBackdrop]="isSignedIn()"
   (backdropClick)="closeDrawers()"
@@ -59,56 +58,6 @@
           No notifications yet.
         </div>
       }
-    </mat-drawer>
-  }
-
-  @if (isSignedIn()) {
-    <mat-drawer
-      class="app-drawer app-drawer-end"
-      position="end"
-      mode="over"
-      [opened]="menuOpen()"
-      (closedStart)="closeMenu()"
-    >
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="m-0 fs-5">Menu</h2>
-        <button mat-icon-button type="button" (click)="closeMenu()" aria-label="Close menu">
-          <mat-icon>close</mat-icon>
-        </button>
-      </div>
-      <div class="d-grid gap-2 flex-grow-1 align-content-start">
-        <div class="theme-toggle-row">
-          <button
-            mat-button
-            type="button"
-            class="theme-toggle-control"
-            [class.dark-mode-active]="theme.mode() === 'dark'"
-            (click)="toggleTheme()"
-            [attr.aria-label]="nextThemeLabel"
-          >
-            <mat-icon class="theme-toggle-action-icon">{{ nextThemeIcon }}</mat-icon>
-          </button>
-        </div>
-        <button mat-button type="button" (click)="requestTool()" class="justify-content-start">
-          <mat-icon>campaign</mat-icon>
-          Request tool
-        </button>
-        <button mat-button type="button" (click)="requestNotificationPermission()" class="justify-content-start">
-          <mat-icon>notifications</mat-icon>
-          Enable notifications
-        </button>
-        <button mat-button type="button" (click)="refresh()" [disabled]="loading()" class="justify-content-start">
-          <mat-icon>refresh</mat-icon>
-          Reload
-        </button>
-        <button mat-button type="button" (click)="signOut()" class="justify-content-start">
-          <mat-icon>logout</mat-icon>
-          Sign out
-        </button>
-      </div>
-      <div class="text-body-secondary small mt-3">
-        Version {{ version }}
-      </div>
     </mat-drawer>
   }
 
@@ -173,6 +122,16 @@
           <mat-icon>inventory_2</mat-icon>
           My Tools
         </a>
+        <a
+          mat-button
+          class="text-decoration-none rounded-4"
+          routerLink="/options"
+          routerLinkActive="active-nav"
+          [routerLinkActiveOptions]="{ exact: true }"
+        >
+          <mat-icon>menu</mat-icon>
+          Options
+        </a>
       </nav>
 
       <button
@@ -183,16 +142,6 @@
         aria-label="Open notifications"
       >
         <mat-icon>notifications</mat-icon>
-      </button>
-
-      <button
-        mat-mini-fab
-        type="button"
-        class="shell-fab menu-fab"
-        (click)="openMenu()"
-        aria-label="Open menu"
-      >
-        <mat-icon>menu</mat-icon>
       </button>
     }
   </mat-drawer-content>

@@ -1,0 +1,37 @@
+<section class="options-page">
+  <header class="d-grid gap-1 mb-3">
+    <h1 class="m-0">Options</h1>
+    <p class="m-0 text-body-secondary">App settings and quick actions.</p>
+  </header>
+
+  <div class="options-grid">
+    <button mat-button type="button" class="option-block" (click)="toggleTheme()">
+      <mat-icon>{{ themeIcon }}</mat-icon>
+      <span>Theme</span>
+    </button>
+
+    <button mat-button type="button" class="option-block" (click)="requestTool()">
+      <mat-icon>tools_power_drill</mat-icon>
+      <span>Request tool</span>
+    </button>
+
+    <button mat-button type="button" class="option-block" (click)="requestNotificationPermission()">
+      <mat-icon>notifications</mat-icon>
+      <span>Enable notifications</span>
+    </button>
+
+    <button mat-button type="button" class="option-block" (click)="refresh()" [disabled]="isRefreshing()">
+      <mat-icon>refresh</mat-icon>
+      <span>Reload</span>
+    </button>
+
+    <button mat-button type="button" class="option-block" (click)="signOut()">
+      <mat-icon>logout</mat-icon>
+      <span>Sign out</span>
+    </button>
+  </div>
+
+  <div class="options-version text-body-secondary small">
+    Version {{ version }}
+  </div>
+</section>
