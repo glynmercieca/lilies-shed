@@ -91,18 +91,32 @@ async function notifyOwner(loan, eventType) {
   }
 
   const owner = ownerSnapshot.data() || {};
+  const borrowerId = readString(loan.borrowerId);
+  const borrowerSummary = await resolveUserSummary(borrowerId, loan.borrower, 'Someone');
+  const toolName = readString(tool.name) || readString(tool.id) || 'An item';
+  const notification = buildNotificationPayload(toolName, borrowerSummary.displayName, eventType);
+
+  if (eventType === 'borrowed') {
+    await createNotification({
+      type: 'borrow',
+      title: notification.notification.title,
+      message: notification.notification.body,
+      actorUserId: borrowerId,
+      actorFirstName: borrowerSummary.firstName,
+      recipientId: ownerId,
+    });
+  }
+
   const tokens = readStringArray(owner.notificationTokens);
   if (!tokens.length) {
     logger.info('Owner has no notification tokens.', { ownerId, toolId });
     return;
   }
 
-  const borrowerId = readString(loan.borrowerId);
-  const borrowerName = await resolveBorrowerName(borrowerId, loan);
-  const toolName = readString(tool.name) || readString(tool.id) || 'An item';
-  const message = buildMessage(tokens, toolName, borrowerName, eventType);
-
-  const response = await messaging.sendEachForMulticast(message);
+  const response = await messaging.sendEachForMulticast({
+    ...notification,
+    tokens,
+  });
   const invalidTokens = [];
   response.responses.forEach((result, index) => {
     if (!result.success && isInvalidTokenError(result.error?.code)) {
@@ -117,21 +131,41 @@ async function notifyOwner(loan, eventType) {
   }
 }
 
-async function resolveBorrowerName(borrowerId, loan) {
-  if (borrowerId) {
-    const borrowerSnapshot = await db.collection('users').doc(borrowerId).get();
-    if (borrowerSnapshot.exists) {
-      const borrower = borrowerSnapshot.data() || {};
-      return (
-        readString(borrower.displayName) ||
-        [readString(borrower.firstName), readString(borrower.lastName)].filter(Boolean).join(' ') ||
-        readString(borrower.email) ||
-        'Someone'
-      );
+async function resolveUserSummary(userId, fallbackDisplayName, emptyFallback) {
+  if (userId) {
+    const userSnapshot = await db.collection('users').doc(userId).get();
+    if (userSnapshot.exists) {
+      const user = userSnapshot.data() || {};
+      const displayName =
+        readString(user.displayName) ||
+        [readString(user.firstName), readString(user.lastName)].filter(Boolean).join(' ') ||
+        readString(user.email) ||
+        emptyFallback;
+
+      return {
+        displayName,
+        firstName: firstNameFromDisplay(readString(user.firstName) || displayName) || emptyFallback,
+      };
     }
   }
 
-  return readString(loan.borrower) || 'Someone';
+  const displayName = readString(fallbackDisplayName) || emptyFallback;
+  return {
+    displayName,
+    firstName: firstNameFromDisplay(displayName) || emptyFallback,
+  };
+}
+
+async function createNotification(notification) {
+  await db.collection('notifications').add({
+    type: notification.type,
+    title: notification.title,
+    message: notification.message,
+    actorUserId: notification.actorUserId,
+    actorFirstName: notification.actorFirstName,
+    recipientId: notification.recipientId,
+    createdAt: FieldValue.serverTimestamp(),
+  });
 }
 
 async function notifyUsersOfToolRequest(toolRequest) {
@@ -140,6 +174,18 @@ async function notifyUsersOfToolRequest(toolRequest) {
     logger.warn('Tool request missing message.', { toolRequest });
     return;
   }
+
+  const requesterId = readString(toolRequest.requesterId);
+  const requesterSummary = await resolveUserSummary(requesterId, '', 'Someone');
+
+  await createNotification({
+    type: 'tool-request',
+    title: 'Tool Request',
+    message,
+    actorUserId: requesterId,
+    actorFirstName: requesterSummary.firstName,
+    recipientId: '',
+  });
 
   const usersSnapshot = await db.collection('users').get();
   const tokenOwners = new Map();
@@ -156,17 +202,16 @@ async function notifyUsersOfToolRequest(toolRequest) {
     return;
   }
 
-  const body = message;
   const response = await messaging.sendEachForMulticast({
     tokens,
     notification: {
       title: 'Tool Request',
-      body,
+      body: message,
     },
     webpush: {
       notification: {
         title: 'Tool Request',
-        body,
+        body: message,
         icon: APP_ICON,
       },
       fcmOptions: {
@@ -199,7 +244,7 @@ async function notifyUsersOfToolRequest(toolRequest) {
   );
 }
 
-function buildMessage(tokens, toolName, borrowerName, eventType) {
+function buildNotificationPayload(toolName, borrowerName, eventType) {
   const title = eventType === 'returned' ? `${toolName} returned` : `${toolName} borrowed`;
   const body =
     eventType === 'returned'
@@ -207,7 +252,6 @@ function buildMessage(tokens, toolName, borrowerName, eventType) {
       : `${borrowerName} borrowed your item.`;
 
   return {
-    tokens,
     notification: {
       title,
       body,
@@ -223,6 +267,15 @@ function buildMessage(tokens, toolName, borrowerName, eventType) {
       },
     },
   };
+}
+
+function firstNameFromDisplay(value) {
+  const displayName = readString(value);
+  if (!displayName) {
+    return '';
+  }
+
+  return displayName.split(/\s+/)[0] || '';
 }
 
 function readString(value) {

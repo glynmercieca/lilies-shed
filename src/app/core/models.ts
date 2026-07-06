@@ -34,6 +34,17 @@ export interface LoanRecord {
   returnDate: string;
 }
 
+export interface AppNotificationRecord {
+  id: string;
+  type: 'borrow' | 'tool-request';
+  title: string;
+  message: string;
+  actorUserId: string;
+  actorFirstName: string;
+  recipientId: string;
+  createdAt: string;
+}
+
 export interface ToolWithStatus extends ToolRecord {
   available: boolean;
   activeLoan?: LoanRecord;
@@ -51,4 +62,5 @@ export interface ToolFormValue {
 export interface SheetsSnapshot {
   tools: ToolRecord[];
   loans: LoanRecord[];
+  notifications: AppNotificationRecord[];
 }

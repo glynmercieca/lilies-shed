@@ -31,7 +31,7 @@ export class ToolboxStateService {
   readonly loading = signal(false);
   readonly searchTerm = signal('');
   readonly savingToolId = signal<string | null>(null);
-  private readonly snapshot = signal<SheetsSnapshot>({ tools: [], loans: [] });
+  private readonly snapshot = signal<SheetsSnapshot>({ tools: [], loans: [], notifications: [] });
   private readonly loadedUserEmail = signal<string | null>(null);
 
   readonly tools = computed(() => decorateTools(this.snapshot()));
@@ -56,6 +56,11 @@ export class ToolboxStateService {
     ),
   );
   readonly ownedTools = computed(() => this.visibleTools().filter((tool) => matchesUserId(this.auth.currentUser(), tool.ownerId)));
+  readonly recentNotifications = computed(() =>
+    this.snapshot()
+      .notifications.filter((notification) => !notification.recipientId || matchesUserId(this.auth.currentUser(), notification.recipientId))
+      .slice(0, 10),
+  );
 
   constructor() {
     effect(() => {
@@ -64,7 +69,7 @@ export class ToolboxStateService {
 
       if (!user) {
         if (loadedUserEmail) {
-          this.snapshot.set({ tools: [], loans: [] });
+          this.snapshot.set({ tools: [], loans: [], notifications: [] });
           this.loadedUserEmail.set(null);
         }
         return;
@@ -106,7 +111,7 @@ export class ToolboxStateService {
       await this.messaging.clearCurrentUserToken(user.id);
     }
     await this.auth.signOut();
-    this.snapshot.set({ tools: [], loans: [] });
+    this.snapshot.set({ tools: [], loans: [], notifications: [] });
     this.searchTerm.set('');
     this.loadedUserEmail.set(null);
     await this.router.navigate(['/']);

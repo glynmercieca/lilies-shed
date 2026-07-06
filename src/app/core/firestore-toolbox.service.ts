@@ -1,11 +1,13 @@
 import { Injectable, inject } from '@angular/core';
 import {
+  QueryDocumentSnapshot,
   DocumentData,
   Timestamp,
   collection,
   doc,
   getDoc,
   getDocs,
+  limit,
   orderBy,
   query,
   runTransaction,
@@ -16,7 +18,7 @@ import {
 
 import { FirebaseClientService } from './firebase-client.service';
 import { formatOwnerDisplay, splitUserName } from './identity.util';
-import { LoanRecord, SheetsSnapshot, ToolFormValue, ToolRecord, UserProfile } from './models';
+import { AppNotificationRecord, LoanRecord, SheetsSnapshot, ToolFormValue, ToolRecord, UserProfile } from './models';
 import { ToolRequestFormValue } from '../request-tool-dialog';
 
 interface FirestoreUserRecord {
@@ -32,10 +34,11 @@ export class FirestoreToolboxService {
   private readonly firebase = inject(FirebaseClientService);
 
   async loadSnapshot(): Promise<SheetsSnapshot> {
-    const [usersSnapshot, toolsSnapshot, loansSnapshot] = await Promise.all([
+    const [usersSnapshot, toolsSnapshot, loansSnapshot, notificationsSnapshot] = await Promise.all([
       getDocs(collection(this.firebase.firestore, 'users')),
       getDocs(collection(this.firebase.firestore, 'tools')),
       getDocs(collection(this.firebase.firestore, 'loan')),
+      getDocs(query(collection(this.firebase.firestore, 'notifications'), orderBy('createdAt', 'desc'), limit(50))),
     ]);
 
     const usersById = new Map<string, UserProfile>(
@@ -66,8 +69,11 @@ export class FirestoreToolboxService {
     const loans = loansSnapshot.docs
       .map((documentSnapshot) => this.parseLoan(documentSnapshot.id, documentSnapshot.data(), usersById))
       .filter((loan): loan is LoanRecord => Boolean(loan));
+    const notifications = notificationsSnapshot.docs
+      .map((documentSnapshot) => this.parseNotification(documentSnapshot))
+      .filter((notification): notification is AppNotificationRecord => Boolean(notification));
 
-    return { tools, loans };
+    return { tools, loans, notifications };
   }
 
   async addBorrowRequest(toolId: string, borrower: UserProfile): Promise<void> {
@@ -189,6 +195,27 @@ export class FirestoreToolboxService {
     };
   }
 
+  private parseNotification(documentSnapshot: QueryDocumentSnapshot<DocumentData>): AppNotificationRecord | null {
+    const data = documentSnapshot.data();
+    const title = this.readString(data['title']);
+    const message = this.readString(data['message']);
+    const type = this.readString(data['type']);
+    if (!title || !message || !this.isNotificationType(type)) {
+      return null;
+    }
+
+    return {
+      id: documentSnapshot.id,
+      type,
+      title,
+      message,
+      actorUserId: this.readString(data['actorUserId']),
+      actorFirstName: this.readString(data['actorFirstName']) || 'Someone',
+      recipientId: this.readString(data['recipientId']),
+      createdAt: this.readDateTimeString(data['createdAt']),
+    };
+  }
+
   private async allocateNextToolId(): Promise<string> {
     const counterRef = doc(this.firebase.firestore, 'meta', 'counters');
     const existingMaxToolId = await this.fetchMaxToolId();
@@ -236,6 +263,28 @@ export class FirestoreToolboxService {
     }
 
     return parsedDate.toISOString().slice(0, 10);
+  }
+
+  private readDateTimeString(value: unknown): string {
+    if (value instanceof Timestamp) {
+      return value.toDate().toISOString();
+    }
+
+    const rawValue = this.readString(value);
+    if (!rawValue) {
+      return '';
+    }
+
+    const parsedDate = new Date(rawValue);
+    if (Number.isNaN(parsedDate.getTime())) {
+      return rawValue;
+    }
+
+    return parsedDate.toISOString();
+  }
+
+  private isNotificationType(value: string): value is AppNotificationRecord['type'] {
+    return value === 'borrow' || value === 'tool-request';
   }
 
   private today(): string {

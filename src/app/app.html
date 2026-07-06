@@ -19,10 +19,52 @@
   </div>
 }
 
-<mat-drawer-container class="app-shell" [class.menu-open]="menuOpen()" [hasBackdrop]="isSignedIn()">
+<mat-drawer-container
+  class="app-shell"
+  [class.menu-open]="menuOpen()"
+  [class.notifications-open]="notificationsOpen()"
+  [hasBackdrop]="isSignedIn()"
+  (backdropClick)="closeDrawers()"
+>
   @if (isSignedIn()) {
     <mat-drawer
-      class="app-drawer"
+      class="app-drawer app-drawer-start"
+      position="start"
+      mode="over"
+      [opened]="notificationsOpen()"
+      (closedStart)="closeNotifications()"
+    >
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="m-0 fs-5">Notifications</h2>
+        <button mat-icon-button type="button" (click)="closeNotifications()" aria-label="Close notifications">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      @if (state.recentNotifications().length) {
+        <div class="notification-feed d-grid gap-2">
+          @for (notification of state.recentNotifications(); track notification.id) {
+            <mat-card appearance="outlined" class="notification-card">
+              <div class="fw-semibold">{{ notification.title }}</div>
+              <p class="m-0 notification-message">{{ notification.message }}</p>
+              <div class="notification-meta">
+                <span>{{ notification.actorFirstName }}</span>
+                <span>{{ notification.createdAt | date: 'short' }}</span>
+              </div>
+            </mat-card>
+          }
+        </div>
+      } @else {
+        <div class="empty-drawer-state text-body-secondary">
+          No notifications yet.
+        </div>
+      }
+    </mat-drawer>
+  }
+
+  @if (isSignedIn()) {
+    <mat-drawer
+      class="app-drawer app-drawer-end"
       position="end"
       mode="over"
       [opened]="menuOpen()"
@@ -70,78 +112,88 @@
     </mat-drawer>
   }
 
-  <main class="page-shell container-fluid px-3 px-md-4 pt-3">
-    <div class="d-flex flex-wrap justify-content-end gap-2 mb-2">
-      @if (!isSignedIn()) {
-        <a
-          mat-button
-          routerLink="/home"
-          routerLinkActive="active-link"
-          [routerLinkActiveOptions]="{ exact: true }"
-        >Home</a>
-        <a
-          mat-button
-          routerLink="/about"
-          routerLinkActive="active-link"
-          [routerLinkActiveOptions]="{ exact: true }"
-        >About</a>
-        <a
-          mat-button
-          routerLink="/privacy"
-          routerLinkActive="active-link"
-          [routerLinkActiveOptions]="{ exact: true }"
-        >Privacy</a>
-      }
-    </div>
-    <section class="content-shell d-grid gap-3 mx-auto">
-      <router-outlet></router-outlet>
-    </section>
-  </main>
+  <mat-drawer-content class="app-content">
+    <main class="page-shell container-fluid px-3 px-md-4 pt-3">
+      <div class="d-flex flex-wrap justify-content-end gap-2 mb-2">
+        @if (!isSignedIn()) {
+          <a
+            mat-button
+            routerLink="/home"
+            routerLinkActive="active-link"
+            [routerLinkActiveOptions]="{ exact: true }"
+          >Home</a>
+          <a
+            mat-button
+            routerLink="/about"
+            routerLinkActive="active-link"
+            [routerLinkActiveOptions]="{ exact: true }"
+          >About</a>
+          <a
+            mat-button
+            routerLink="/privacy"
+            routerLinkActive="active-link"
+            [routerLinkActiveOptions]="{ exact: true }"
+          >Privacy</a>
+        }
+      </div>
+      <section class="content-shell d-grid gap-3 mx-auto">
+        <router-outlet></router-outlet>
+      </section>
+    </main>
 
-  @if (isSignedIn()) {
-    <button
-      mat-mini-fab
-      type="button"
-      class="menu-fab"
-      (click)="openMenu()"
-      aria-label="Open menu"
-    >
-      <mat-icon>menu</mat-icon>
-    </button>
-  }
+    @if (isSignedIn()) {
+      <nav class="bottom-nav">
+        <a
+          mat-button
+          class="text-decoration-none rounded-4"
+          routerLink="/shed"
+          routerLinkActive="active-nav"
+          [routerLinkActiveOptions]="{ exact: true }"
+        >
+          <mat-icon>construction</mat-icon>
+          Shed
+        </a>
+        <a
+          mat-button
+          class="text-decoration-none rounded-4"
+          routerLink="/borrowed"
+          routerLinkActive="active-nav"
+          [routerLinkActiveOptions]="{ exact: true }"
+        >
+          <mat-icon>assignment_returned</mat-icon>
+          Borrowed
+        </a>
+        <a
+          mat-button
+          class="text-decoration-none rounded-4"
+          routerLink="/my-tools"
+          routerLinkActive="active-nav"
+          [routerLinkActiveOptions]="{ exact: true }"
+        >
+          <mat-icon>inventory_2</mat-icon>
+          My Tools
+        </a>
+      </nav>
+
+      <button
+        mat-mini-fab
+        type="button"
+        class="shell-fab notifications-fab"
+        (click)="openNotifications()"
+        aria-label="Open notifications"
+      >
+        <mat-icon>notifications</mat-icon>
+      </button>
+
+      <button
+        mat-mini-fab
+        type="button"
+        class="shell-fab menu-fab"
+        (click)="openMenu()"
+        aria-label="Open menu"
+      >
+        <mat-icon>menu</mat-icon>
+      </button>
+    }
+  </mat-drawer-content>
 </mat-drawer-container>
-
-@if (isSignedIn()) {
-  <nav class="bottom-nav">
-    <a
-      mat-button
-      class="text-decoration-none rounded-4"
-      routerLink="/shed"
-      routerLinkActive="active-nav"
-      [routerLinkActiveOptions]="{ exact: true }"
-    >
-      <mat-icon>construction</mat-icon>
-      Shed
-    </a>
-    <a
-      mat-button
-      class="text-decoration-none rounded-4"
-      routerLink="/borrowed"
-      routerLinkActive="active-nav"
-      [routerLinkActiveOptions]="{ exact: true }"
-    >
-      <mat-icon>assignment_returned</mat-icon>
-      Borrowed
-    </a>
-    <a
-      mat-button
-      class="text-decoration-none rounded-4"
-      routerLink="/my-tools"
-      routerLinkActive="active-nav"
-      [routerLinkActiveOptions]="{ exact: true }"
-    >
-      <mat-icon>inventory_2</mat-icon>
-      My Tools
-    </a>
-  </nav>
-}

@@ -1,3 +1,4 @@
+import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -15,6 +16,7 @@ import { ToolboxStateService } from './core/toolbox-state.service';
 @Component({
   selector: 'app-root',
   imports: [
+    DatePipe,
     MatButtonModule,
     MatCardModule,
     MatIconModule,
@@ -38,6 +40,7 @@ export class App {
   private readonly router = inject(Router);
   readonly isPublicRoute = signal(true);
   readonly menuOpen = signal(false);
+  readonly notificationsOpen = signal(false);
 
   get title(): string {
     return APP_SETTINGS.appName;
@@ -50,7 +53,7 @@ export class App {
   constructor() {
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
       this.isPublicRoute.set(this.checkIsPublicRoute(this.router.url));
-      this.menuOpen.set(false);
+      this.closeDrawers();
     });
     this.isPublicRoute.set(this.checkIsPublicRoute(this.router.url));
     this.lockPortraitOrientation();
@@ -62,16 +65,16 @@ export class App {
 
   async refresh(): Promise<void> {
     await this.state.refresh();
-    this.menuOpen.set(false);
+    this.closeDrawers();
   }
 
   async requestTool(): Promise<void> {
-    this.menuOpen.set(false);
+    this.closeDrawers();
     await this.state.requestTool();
   }
 
   async requestNotificationPermission(): Promise<void> {
-    this.menuOpen.set(false);
+    this.closeDrawers();
     await this.state.requestNotificationPermission();
   }
 
@@ -80,11 +83,26 @@ export class App {
   }
 
   openMenu(): void {
+    this.notificationsOpen.set(false);
     this.menuOpen.set(true);
   }
 
   closeMenu(): void {
     this.menuOpen.set(false);
+  }
+
+  openNotifications(): void {
+    this.menuOpen.set(false);
+    this.notificationsOpen.set(true);
+  }
+
+  closeNotifications(): void {
+    this.notificationsOpen.set(false);
+  }
+
+  closeDrawers(): void {
+    this.menuOpen.set(false);
+    this.notificationsOpen.set(false);
   }
 
   toggleTheme(): void {

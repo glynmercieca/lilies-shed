@@ -41,6 +41,11 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    match /notifications/{notificationId} {
+      allow read: if signedIn();
+      allow create, update, delete: if false;
+    }
+
     match /meta/{docId} {
       allow read, write: if signedIn();
     }
