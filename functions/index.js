@@ -135,10 +135,9 @@ async function resolveBorrowerName(borrowerId, loan) {
 }
 
 async function notifyUsersOfToolRequest(toolRequest) {
-  const title = readString(toolRequest.title);
   const message = readString(toolRequest.message);
-  if (!title || !message) {
-    logger.warn('Tool request missing title or message.', { toolRequest });
+  if (!message) {
+    logger.warn('Tool request missing message.', { toolRequest });
     return;
   }
 
@@ -157,7 +156,7 @@ async function notifyUsersOfToolRequest(toolRequest) {
     return;
   }
 
-  const body = `${title}: ${message}`;
+  const body = message;
   const response = await messaging.sendEachForMulticast({
     tokens,
     notification: {

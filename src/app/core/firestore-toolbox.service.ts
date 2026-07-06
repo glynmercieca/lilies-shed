@@ -124,7 +124,7 @@ export class FirestoreToolboxService {
   async addToolRequest(request: ToolRequestFormValue, requester: UserProfile): Promise<void> {
     const requestRef = doc(collection(this.firebase.firestore, 'toolRequests'));
     await setDoc(requestRef, {
-      title: request.title,
+      title: 'Tool Request',
       message: request.message,
       requesterId: requester.id,
       createdAt: serverTimestamp(),

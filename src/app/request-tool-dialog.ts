@@ -14,7 +14,6 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 export interface ToolRequestFormValue {
-  title: string;
   message: string;
 }
 
@@ -42,7 +41,6 @@ export class RequestToolDialogComponent {
   readonly saving = signal(false);
   readonly submitRequested = new Subject<ToolRequestFormValue>();
   readonly form = this.fb.nonNullable.group({
-    title: ['', [Validators.required, Validators.maxLength(120)]],
     message: ['', [Validators.required, Validators.maxLength(1000)]],
   });
 
@@ -56,9 +54,8 @@ export class RequestToolDialogComponent {
       return;
     }
 
-    const { title, message } = this.form.getRawValue();
+    const { message } = this.form.getRawValue();
     this.submitRequested.next({
-      title: title.trim(),
       message: message.trim(),
     });
   }
