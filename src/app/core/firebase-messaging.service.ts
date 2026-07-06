@@ -8,7 +8,6 @@ import { FirebaseClientService } from './firebase-client.service';
 import { UserProfile } from './models';
 
 const TOKEN_STORAGE_KEY = 'lilies-shed.fcm-token';
-const MESSAGING_SCOPE = '/firebase-cloud-messaging-push-scope';
 const MESSAGING_SW_URL = '/firebase-messaging-sw.js';
 const FOREGROUND_MESSAGE_DURATION_MS = 8000;
 
@@ -192,7 +191,7 @@ export class FirebaseMessagingService {
     if (!this.serviceWorkerRegistrationPromise) {
       this.serviceWorkerRegistrationPromise = navigator.serviceWorker
         .register(MESSAGING_SW_URL, {
-          scope: MESSAGING_SCOPE,
+          scope: '/',
         })
         .then(async (registration) => {
           await navigator.serviceWorker.ready;
