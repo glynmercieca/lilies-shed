@@ -11,7 +11,6 @@ export interface AppSettings {
   firebaseAppId: string;
   firebaseMeasurementId: string;
   firebaseVapidKey: string;
-  imgbbApiKey: string;
 }
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {

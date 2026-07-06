@@ -2,6 +2,9 @@
   "name": "lilies-shed-functions",
   "private": true,
   "main": "index.js",
+  "scripts": {
+    "migrate:tool-images": "node scripts/migrate-tool-images.js"
+  },
   "engines": {
     "node": "20"
   },

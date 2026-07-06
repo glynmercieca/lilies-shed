@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { FirebaseApp, FirebaseOptions, getApp, getApps, initializeApp } from 'firebase/app';
 import { Auth, GoogleAuthProvider, getAuth } from 'firebase/auth';
 import { Firestore, getFirestore } from 'firebase/firestore';
+import { FirebaseStorage, getStorage } from 'firebase/storage';
 
 import { APP_SETTINGS } from './app-settings';
 
@@ -10,6 +11,7 @@ export class FirebaseClientService {
   private readonly appInstance: FirebaseApp;
   private readonly authInstance: Auth;
   private readonly firestoreInstance: Firestore;
+  private readonly storageInstance: FirebaseStorage;
   private readonly googleProviderInstance: GoogleAuthProvider;
 
   constructor() {
@@ -26,6 +28,7 @@ export class FirebaseClientService {
     this.appInstance = getApps().length ? getApp() : initializeApp(options);
     this.authInstance = getAuth(this.appInstance);
     this.firestoreInstance = getFirestore(this.appInstance);
+    this.storageInstance = getStorage(this.appInstance);
     this.googleProviderInstance = new GoogleAuthProvider();
     this.googleProviderInstance.setCustomParameters({
       prompt: 'select_account',
@@ -42,6 +45,10 @@ export class FirebaseClientService {
 
   get firestore(): Firestore {
     return this.firestoreInstance;
+  }
+
+  get storage(): FirebaseStorage {
+    return this.storageInstance;
   }
 
   get googleProvider(): GoogleAuthProvider {
