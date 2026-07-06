@@ -1,4 +1,4 @@
-<section class="options-page">
+<section class="options-page d-flex flex-column">
   <header class="d-grid gap-1 mb-3">
     <h1 class="m-0 d-flex align-items-center gap-2">
       <mat-icon class="material-symbols-outlined">action_key</mat-icon>
@@ -7,7 +7,7 @@
     <p class="m-0 text-body-secondary">App settings and quick actions.</p>
   </header>
 
-  <div class="options-grid">
+  <div class="d-grid gap-3">
     <button mat-button type="button" class="option-block" (click)="toggleTheme()">
       <mat-icon class="material-symbols-outlined">{{ themeIcon }}</mat-icon>
       <span>Theme</span>
@@ -34,7 +34,7 @@
     </button>
   </div>
 
-  <div class="options-version text-body-secondary small mx-auto">
+  <div class="options-version mt-auto pt-4 text-body-secondary small mx-auto">
     Version {{ version }}
   </div>
 </section>

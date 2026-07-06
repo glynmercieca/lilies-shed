@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 
@@ -7,8 +6,9 @@ import { ToolboxStateService } from './core/toolbox-state.service';
 
 @Component({
   selector: 'app-home-view',
-  imports: [MatButtonModule, MatIconModule, RouterLink],
+  imports: [MatButtonModule, MatIconModule],
   templateUrl: './home-view.html',
+  styleUrl: './home-view.scss',
   changeDetection: ChangeDetectionStrategy.Eager,
 })
 export class HomeViewComponent {

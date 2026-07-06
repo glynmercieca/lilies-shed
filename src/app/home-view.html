@@ -1,33 +1,32 @@
-<header class="d-grid gap-1 mb-3">
-  <h1 class="m-0">Lilies Shed</h1>
-  <p class="m-0 text-body-secondary">
-    A shared tool library for browsing, borrowing, returning, and managing community equipment.
-  </p>
-</header>
+<section class="home-hero">
+  <div class="home-hero-art" aria-hidden="true">
+    <div class="home-glow home-glow-top"></div>
+    <div class="home-glow home-glow-bottom"></div>
 
-<div class="d-grid gap-3">
-  <p class="m-0">
-    Signed-in users can browse available tools, request to borrow items, track borrowed tools,
-    and manage the tools they own.
-  </p>
-  @if (!auth.isConfigured()) {
-  <p class="m-0">
-    Firebase is not configured yet. Update <code>src/environments/environment*.ts</code> with valid
-    Firebase web app settings.
-  </p>
-  } @else if (!auth.currentUser()) {
-  <div class="d-flex flex-wrap gap-3">
-    <button mat-flat-button (click)="signIn()" [disabled]="auth.isBusy()">
+    <div class="home-line home-line-a"></div>
+    <div class="home-line home-line-b"></div>
+    <div class="home-line home-line-c"></div>
+    <div class="home-line home-line-d"></div>
+    <div class="home-line home-line-e"></div>
+
+    <div class="home-shape home-shape-square"></div>
+    <div class="home-shape home-shape-circle"></div>
+    <div class="home-shape home-shape-diamond"></div>
+    <div class="home-shape home-shape-ring"></div>
+    <div class="home-shape home-shape-pill"></div>
+    <div class="home-shape home-shape-dot"></div>
+
+    <!-- <div class="home-brand">
+      <h1 class="home-brand-title">Lilies Shed</h1>
+    </div> -->
+  </div>
+
+  @if (!auth.currentUser()) {
+  <div class="home-cta">
+    <button mat-flat-button class="home-sign-in-button" (click)="signIn()" [disabled]="auth.isBusy()">
       <mat-icon class="material-symbols-outlined">login</mat-icon>
       Sign in with Google
     </button>
   </div>
-  @if (auth.error()) {
-  <p class="m-0">{{ auth.error() }}</p>
   }
-  } @else {
-  <div class="d-flex flex-wrap gap-3">
-    <a mat-flat-button routerLink="/shed">Open shed</a>
-  </div>
-  }
-</div>
+</section>

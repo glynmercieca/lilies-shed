@@ -45,19 +45,15 @@
   right: 0;
   z-index: 1101;
   box-sizing: border-box;
-  overflow-y: auto;
+  overflow: hidden;
   padding: 16px;
   border-left: 1px solid var(--mat-sys-outline-variant);
   background: var(--mat-sys-surface-container-low);
 }
 
-.app-drawer-end {
-  right: 0;
-  left: auto;
-}
-
-.notification-feed {
-  align-content: start;
+.app-drawer ::ng-deep .mat-drawer-inner-container {
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .notification-card {
@@ -80,10 +76,6 @@
   color: var(--mat-sys-on-surface-variant);
 }
 
-.empty-drawer-state {
-  padding: 8px 0;
-}
-
 .shell-fab {
   position: fixed;
   top: max(16px, env(safe-area-inset-top));
@@ -97,6 +89,10 @@
 
 .page-shell {
   flex: 1 0 auto;
+  padding-bottom: 24px;
+}
+
+.page-shell-with-bottom-nav {
   padding-bottom: 92px;
 }
 
@@ -148,7 +144,7 @@
 }
 
 @media (min-width: 600px) {
-  .page-shell {
+  .page-shell-with-bottom-nav {
     padding-bottom: 104px;
   }
 }

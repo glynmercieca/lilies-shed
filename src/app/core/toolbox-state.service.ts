@@ -31,6 +31,7 @@ export class ToolboxStateService {
   readonly auth = inject(FirebaseAuthService);
   readonly loading = signal(false);
   readonly searchTerm = signal('');
+  readonly showUnavailableTools = signal(false);
   readonly savingToolId = signal<string | null>(null);
   private readonly snapshot = signal<SheetsSnapshot>({ tools: [], loans: [], notifications: [] });
   private readonly loadedUserEmail = signal<string | null>(null);
@@ -39,8 +40,9 @@ export class ToolboxStateService {
   readonly visibleTools = computed(() => this.tools().filter((tool) => !tool.deleted));
   readonly filteredTools = computed(() => {
     const query = this.searchTerm().trim().toLowerCase();
+    const showUnavailableTools = this.showUnavailableTools();
     return this.visibleTools().filter((tool) => {
-      if (!tool.available) {
+      if (!showUnavailableTools && !tool.available) {
         return false;
       }
 
@@ -114,12 +116,17 @@ export class ToolboxStateService {
     await this.auth.signOut();
     this.snapshot.set({ tools: [], loans: [], notifications: [] });
     this.searchTerm.set('');
+    this.showUnavailableTools.set(false);
     this.loadedUserEmail.set(null);
     await this.router.navigate(['/']);
   }
 
   setSearchTerm(value: string): void {
     this.searchTerm.set(value);
+  }
+
+  toggleUnavailableTools(): void {
+    this.showUnavailableTools.update((value) => !value);
   }
 
   async refresh(): Promise<void> {
