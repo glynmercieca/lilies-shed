@@ -18,18 +18,22 @@ Lilies Shed is an Angular Material PWA backed by a shared Google Sheet. Users si
 npm install
 ```
 
-If your global Node.js runtime is older than Angular 22 requires, the project automatically prefers a workspace-local Node runtime from `.tools/node-v22.22.3-win-x64` when it exists.
+Use `nvm use` to switch to the repo-pinned Node version from `.nvmrc` if needed.
 
-2. Update `public/app-config.json` with a Google OAuth client ID:
+2. Update `src/environments/environment.ts` and `src/environments/environment.development.ts` with your Firebase web app config:
 
 ```json
 {
   "appName": "Lilies Shed",
-  "googleClientId": "YOUR_CLIENT_ID.apps.googleusercontent.com",
-  "spreadsheetId": "1ZmAkBYhR6y5JeRD5qF_gcC6_wBQzjm3QZMOQkJml4XU",
-  "toolsSheetName": "Tools",
-  "statusSheetName": "Status",
-  "sheetsScope": "https://www.googleapis.com/auth/spreadsheets"
+  "version": "1.0.0",
+  "firebaseApiKey": "YOUR_FIREBASE_API_KEY",
+  "firebaseAuthDomain": "YOUR_PROJECT.firebaseapp.com",
+  "firebaseProjectId": "YOUR_PROJECT_ID",
+  "firebaseStorageBucket": "YOUR_PROJECT.firebasestorage.app",
+  "firebaseMessagingSenderId": "YOUR_SENDER_ID",
+  "firebaseAppId": "YOUR_FIREBASE_APP_ID",
+  "firebaseMeasurementId": "YOUR_MEASUREMENT_ID",
+  "imgbbApiKey": "YOUR_IMGBB_API_KEY"
 }
 ```
 

@@ -14,7 +14,7 @@
       </p>
       @if (!auth.isConfigured()) {
       <p class="m-0 mt-3">
-        Firebase is not configured yet. Update <code>public/app-config.json</code> with valid
+        Firebase is not configured yet. Update <code>src/environments/environment*.ts</code> with valid
         Firebase web app settings.
       </p>
       } @else if (!auth.currentUser()) {

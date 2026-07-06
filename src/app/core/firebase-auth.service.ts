@@ -45,7 +45,7 @@ export class FirebaseAuthService {
 
   async signIn(): Promise<void> {
     if (!this.isConfigured()) {
-      this.errorMessage.set('Add Firebase web config in public/app-config.json before signing in.');
+      this.errorMessage.set('Add Firebase web config in src/environments/environment*.ts before signing in.');
       return;
     }
 
