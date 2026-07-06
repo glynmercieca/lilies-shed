@@ -68,6 +68,11 @@ export class App {
     await this.state.requestTool();
   }
 
+  async requestNotificationPermission(): Promise<void> {
+    this.menuOpen.set(false);
+    await this.state.requestNotificationPermission();
+  }
+
   openMenu(): void {
     this.menuOpen.set(true);
   }

@@ -34,6 +34,10 @@
           <mat-icon>campaign</mat-icon>
           Request tool
         </button>
+        <button mat-button type="button" (click)="requestNotificationPermission()" class="justify-content-start">
+          <mat-icon>notifications</mat-icon>
+          Enable notifications
+        </button>
         <button mat-button type="button" (click)="refresh()" [disabled]="loading()" class="justify-content-start">
           <mat-icon>refresh</mat-icon>
           Reload

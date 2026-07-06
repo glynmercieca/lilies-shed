@@ -379,6 +379,35 @@ export class ToolboxStateService {
     dialogRef.afterClosed().subscribe(() => submitSubscription?.unsubscribe());
   }
 
+  async requestNotificationPermission(): Promise<void> {
+    const user = this.auth.currentUser();
+    if (!user) {
+      return;
+    }
+
+    if (!('Notification' in window)) {
+      this.notify('This browser does not support push notifications.');
+      return;
+    }
+
+    if (Notification.permission === 'denied') {
+      this.notify('Notifications are blocked in the browser. Enable them in site settings first.');
+      return;
+    }
+
+    try {
+      await this.messaging.syncCurrentUser(user, { requestPermission: true });
+
+      if (Notification.permission === 'granted') {
+        this.notify('Notifications enabled.');
+      } else {
+        this.notify('Notification permission was not granted.');
+      }
+    } catch (error) {
+      this.notify(error instanceof Error ? error.message : 'Unable to update notification permissions.');
+    }
+  }
+
   private notify(message: string): void {
     this.snackBar.open(message, 'Close', { duration: 4000 });
   }
