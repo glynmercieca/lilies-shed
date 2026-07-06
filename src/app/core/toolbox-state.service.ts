@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { Subscription, firstValueFrom } from 'rxjs';
 
 import { FirebaseAuthService } from './firebase-auth.service';
+import { FirebaseMessagingService } from './firebase-messaging.service';
 import { FirestoreToolboxService } from './firestore-toolbox.service';
 import { ImageUploadService } from './image-upload.service';
 import { matchesUserId } from './identity.util';
@@ -12,6 +13,7 @@ import { SheetsSnapshot, ToolWithStatus } from './models';
 import { decorateTools } from './tool-status.util';
 import { ToolDetailDialogComponent } from '../tool-detail-dialog';
 import { DeleteToolDialogComponent } from '../delete-tool-dialog';
+import { NotificationOptInDialogComponent } from '../notification-opt-in-dialog';
 import { ToolFormDialogComponent } from '../tool-form-dialog';
 
 @Injectable({ providedIn: 'root' })
@@ -19,6 +21,7 @@ export class ToolboxStateService {
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly toolbox = inject(FirestoreToolboxService);
+  private readonly messaging = inject(FirebaseMessagingService);
   private readonly imageUpload = inject(ImageUploadService);
   private readonly router = inject(Router);
 
@@ -71,18 +74,35 @@ export class ToolboxStateService {
 
       this.loadedUserEmail.set(user.email);
       void this.refresh();
+      void this.messaging.syncCurrentUser(user);
     });
   }
 
   async signIn(): Promise<void> {
     await this.auth.signIn();
-    if (this.auth.currentUser()) {
+    const user = this.auth.currentUser();
+    if (user) {
+      const shouldPromptForNotifications = await this.messaging.canPromptForNotifications();
+      if (shouldPromptForNotifications) {
+        const dialogRef = this.dialog.open(NotificationOptInDialogComponent, {
+          maxWidth: '480px',
+          width: 'min(92vw, 480px)',
+        });
+        const choice = await firstValueFrom(dialogRef.afterClosed());
+        await this.messaging.syncCurrentUser(user, { requestPermission: choice === 'enable' });
+      } else {
+        await this.messaging.syncCurrentUser(user);
+      }
       await this.refresh();
       await this.router.navigate(['/tools']);
     }
   }
 
   async signOut(): Promise<void> {
+    const user = this.auth.currentUser();
+    if (user) {
+      await this.messaging.clearCurrentUserToken(user.id);
+    }
     await this.auth.signOut();
     this.snapshot.set({ tools: [], loans: [] });
     this.searchTerm.set('');
@@ -119,11 +139,36 @@ export class ToolboxStateService {
       maxWidth: '640px',
       width: 'min(92vw, 640px)',
     });
-
-    const result = await firstValueFrom(dialogRef.afterClosed());
-    if (result === 'borrow') {
-      await this.borrowTool(tool);
+    const component = dialogRef.componentInstance;
+    if (!component) {
+      return;
     }
+
+    let borrowSubscription: Subscription | null = null;
+    borrowSubscription = component.borrowRequested.subscribe(async () => {
+      const user = this.auth.currentUser();
+      if (!user || !tool.available || component.saving()) {
+        return;
+      }
+
+      component.setSaving(true);
+      this.savingToolId.set(tool.id);
+
+      try {
+        await this.toolbox.addBorrowRequest(tool.documentId, user);
+        await this.refresh();
+        dialogRef.close(true);
+        await this.router.navigate(['/borrowed']);
+        this.notify(`Borrow request saved for ${tool.name}.`);
+      } catch (error) {
+        component.setSaving(false);
+        this.notify(error instanceof Error ? error.message : 'Unable to request this tool.');
+      } finally {
+        this.savingToolId.set(null);
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(() => borrowSubscription?.unsubscribe());
   }
 
   async borrowTool(tool: ToolWithStatus): Promise<void> {

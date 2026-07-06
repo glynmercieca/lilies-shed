@@ -1,0 +1,13 @@
+<h2 mat-dialog-title>Enable notifications?</h2>
+<mat-dialog-content>
+  <p class="m-0">
+    Get notified when someone borrows or returns one of your tools.
+  </p>
+  <p class="m-0 mt-3 text-body-secondary">
+    You can continue without notifications and enable them later from the browser prompt when asked again.
+  </p>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close="skip">Not now</button>
+  <button mat-flat-button [mat-dialog-close]="'enable'">Enable notifications</button>
+</mat-dialog-actions>

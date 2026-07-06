@@ -1,7 +1,9 @@
-import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { Subject } from 'rxjs';
 import {
   MAT_DIALOG_DATA,
   MatDialogActions,
+  MatDialogRef,
   MatDialogClose,
   MatDialogContent,
   MatDialogTitle,
@@ -10,6 +12,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { fallbackImage } from './core/image-url.util';
 import { ResolvedImageDirective } from './core/resolved-image.directive';
@@ -31,6 +34,7 @@ interface ToolDetailDialogData {
     MatCardModule,
     MatChipsModule,
     MatIconModule,
+    MatProgressSpinnerModule,
     ResolvedImageDirective,
   ],
   templateUrl: './tool-detail-dialog.html',
@@ -39,5 +43,21 @@ interface ToolDetailDialogData {
 })
 export class ToolDetailDialogComponent {
   readonly data = inject<ToolDetailDialogData>(MAT_DIALOG_DATA);
+  readonly dialogRef = inject(MatDialogRef<ToolDetailDialogComponent>);
+  readonly borrowRequested = new Subject<void>();
+  readonly saving = signal(false);
   protected readonly fallbackImage = fallbackImage;
+
+  requestBorrow(): void {
+    if (this.saving()) {
+      return;
+    }
+
+    this.borrowRequested.next();
+  }
+
+  setSaving(saving: boolean): void {
+    this.saving.set(saving);
+    this.dialogRef.disableClose = saving;
+  }
 }

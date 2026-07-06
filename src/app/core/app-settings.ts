@@ -10,6 +10,7 @@ export interface AppSettings {
   firebaseMessagingSenderId: string;
   firebaseAppId: string;
   firebaseMeasurementId: string;
+  firebaseVapidKey: string;
   imgbbApiKey: string;
 }
 

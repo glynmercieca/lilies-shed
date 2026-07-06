@@ -11,6 +11,7 @@ export const environment: { appSettings: AppSettings } = {
     firebaseMessagingSenderId: '391381086192',
     firebaseAppId: '1:391381086192:web:9dd4ef13664e97d76fb735',
     firebaseMeasurementId: 'G-G7V312KBDZ',
+    firebaseVapidKey: '',
     imgbbApiKey: '86d672f1de34b21c4f8c2d32ac97b76e',
   },
 };

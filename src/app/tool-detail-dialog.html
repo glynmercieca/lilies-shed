@@ -43,8 +43,14 @@
   </div>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button mat-button mat-dialog-close>Close</button>
+  <button mat-button mat-dialog-close [disabled]="saving()">Close</button>
   @if (data.canBorrow && data.tool.available) {
-  <button mat-flat-button [mat-dialog-close]="'borrow'">Borrow</button>
+  <button mat-flat-button type="button" (click)="requestBorrow()" [disabled]="saving()">
+    @if (saving()) {
+    <mat-spinner diameter="18"></mat-spinner>
+    } @else {
+    Borrow
+    }
+  </button>
   }
 </mat-dialog-actions>
