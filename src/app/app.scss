@@ -7,6 +7,27 @@
   min-height: 100vh;
 }
 
+.foreground-notification {
+  position: fixed;
+  top: max(16px, env(safe-area-inset-top) + 16px);
+  left: 50%;
+  z-index: 1400;
+  width: min(92vw, 480px);
+  transform: translateX(-50%);
+}
+
+.foreground-notification .mat-mdc-card {
+  background: var(--mat-sys-surface-container-high);
+  border-color: color-mix(in srgb, var(--mat-sys-primary) 24%, var(--mat-sys-outline-variant));
+  box-shadow: var(--mat-sys-level3);
+  padding: 12px 14px;
+}
+
+.foreground-notification-icon {
+  color: var(--mat-sys-primary);
+  margin-top: 2px;
+}
+
 .app-drawer {
   display: flex;
   flex-direction: column;

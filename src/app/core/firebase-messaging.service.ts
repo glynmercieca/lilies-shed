@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { arrayRemove, arrayUnion, doc, setDoc, updateDoc } from 'firebase/firestore';
 import { deleteToken, getMessaging, getToken, isSupported, onMessage } from 'firebase/messaging';
@@ -10,6 +10,12 @@ import { UserProfile } from './models';
 const TOKEN_STORAGE_KEY = 'lilies-shed.fcm-token';
 const MESSAGING_SCOPE = '/firebase-cloud-messaging-push-scope';
 const MESSAGING_SW_URL = '/firebase-messaging-sw.js';
+const FOREGROUND_MESSAGE_DURATION_MS = 8000;
+
+export interface ForegroundNotification {
+  title: string;
+  body: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class FirebaseMessagingService {
@@ -18,6 +24,8 @@ export class FirebaseMessagingService {
   private readonly supportPromise = isSupported().catch(() => false);
   private foregroundListenerAttached = false;
   private serviceWorkerRegistrationPromise: Promise<ServiceWorkerRegistration> | null = null;
+  readonly foregroundNotification = signal<ForegroundNotification | null>(null);
+  private foregroundNotificationTimer: ReturnType<typeof window.setTimeout> | null = null;
 
   async canPromptForNotifications(): Promise<boolean> {
     if (!(await this.supportPromise) || !APP_SETTINGS.firebaseVapidKey.trim()) {
@@ -111,10 +119,40 @@ export class FirebaseMessagingService {
     onMessage(messaging, (payload) => {
       const title = payload.notification?.title?.trim() || 'Lilies Shed';
       const body = payload.notification?.body?.trim() || 'You have a new toolbox update.';
+      this.showForegroundNotification({ title, body });
       this.snackBar.open(`${title}: ${body}`, 'Close', { duration: 6000 });
+
+      if (Notification.permission === 'granted') {
+        new Notification(title, {
+          body,
+          icon: payload.notification?.image || '/icons/icon-192x192.png',
+        });
+      }
     });
 
     this.foregroundListenerAttached = true;
+  }
+
+  dismissForegroundNotification(): void {
+    if (this.foregroundNotificationTimer) {
+      window.clearTimeout(this.foregroundNotificationTimer);
+      this.foregroundNotificationTimer = null;
+    }
+
+    this.foregroundNotification.set(null);
+  }
+
+  private showForegroundNotification(notification: ForegroundNotification): void {
+    this.foregroundNotification.set(notification);
+
+    if (this.foregroundNotificationTimer) {
+      window.clearTimeout(this.foregroundNotificationTimer);
+    }
+
+    this.foregroundNotificationTimer = window.setTimeout(() => {
+      this.foregroundNotification.set(null);
+      this.foregroundNotificationTimer = null;
+    }, FOREGROUND_MESSAGE_DURATION_MS);
   }
 
   private registerServiceWorker(): Promise<ServiceWorkerRegistration> {

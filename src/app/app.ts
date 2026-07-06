@@ -8,6 +8,7 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { filter } from 'rxjs';
 
 import { APP_SETTINGS } from './core/app-settings';
+import { FirebaseMessagingService } from './core/firebase-messaging.service';
 import { ThemeService } from './core/theme.service';
 import { ToolboxStateService } from './core/toolbox-state.service';
 
@@ -30,6 +31,7 @@ import { ToolboxStateService } from './core/toolbox-state.service';
 export class App {
   readonly state = inject(ToolboxStateService);
   readonly auth = this.state.auth;
+  readonly messaging = inject(FirebaseMessagingService);
   readonly theme = inject(ThemeService);
   readonly loading = this.state.loading;
   readonly isSignedIn = computed(() => Boolean(this.auth.currentUser()));
@@ -71,6 +73,10 @@ export class App {
   async requestNotificationPermission(): Promise<void> {
     this.menuOpen.set(false);
     await this.state.requestNotificationPermission();
+  }
+
+  dismissForegroundNotification(): void {
+    this.messaging.dismissForegroundNotification();
   }
 
   openMenu(): void {

@@ -2,6 +2,23 @@
   <mat-progress-bar mode="indeterminate"></mat-progress-bar>
 }
 
+@if (messaging.foregroundNotification(); as notification) {
+  <div class="foreground-notification">
+    <mat-card appearance="outlined">
+      <div class="d-flex align-items-start gap-3">
+        <mat-icon class="foreground-notification-icon">notifications</mat-icon>
+        <div class="flex-grow-1">
+          <div class="fw-semibold">{{ notification.title }}</div>
+          <p class="m-0 text-body-secondary">{{ notification.body }}</p>
+        </div>
+        <button mat-icon-button type="button" (click)="dismissForegroundNotification()" aria-label="Dismiss notification">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+    </mat-card>
+  </div>
+}
+
 <mat-drawer-container class="app-shell" [class.menu-open]="menuOpen()" [hasBackdrop]="isSignedIn()">
   @if (isSignedIn()) {
     <mat-drawer
