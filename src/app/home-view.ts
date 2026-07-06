@@ -1,14 +1,13 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 
 import { ToolboxStateService } from './core/toolbox-state.service';
 
 @Component({
   selector: 'app-home-view',
-  imports: [MatButtonModule, MatCardModule, MatIconModule, RouterLink],
+  imports: [MatButtonModule, MatIconModule, RouterLink],
   templateUrl: './home-view.html',
   changeDetection: ChangeDetectionStrategy.Eager,
 })

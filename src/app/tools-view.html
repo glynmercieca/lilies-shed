@@ -1,5 +1,8 @@
 <header class="d-grid gap-1 mb-3">
-  <h1 class="m-0">Shed</h1>
+  <h1 class="m-0 d-flex align-items-center gap-2">
+    <mat-icon class="material-symbols-outlined">warehouse</mat-icon>
+    <span>Shed</span>
+  </h1>
   <p class="m-0 text-body-secondary">Browse the shared inventory and request available items.</p>
 </header>
 
@@ -7,7 +10,7 @@
   <mat-form-field appearance="outline" class="flex-grow-1 mb-0">
     <mat-label>Search tools</mat-label>
     <input matInput [value]="state.searchTerm()" (input)="state.setSearchTerm($any($event.target).value)" />
-    <mat-icon matSuffix>search</mat-icon>
+    <mat-icon class="material-symbols-outlined" matSuffix>search</mat-icon>
   </mat-form-field>
 </div>
 
@@ -25,17 +28,20 @@
         <p class="m-0 mb-3">{{ tool.description }}</p>
         <mat-chip-set>
           <mat-chip [class.available-chip]="tool.available" [class.unavailable-chip]="!tool.available">
-            <mat-icon matChipAvatar>{{ tool.available ? 'check_circle' : 'cancel' }}</mat-icon>
+            <mat-icon class="material-symbols-outlined" matChipAvatar>{{ tool.available ? 'check_circle' : 'cancel' }}</mat-icon>
             {{ tool.available ? 'Available' : 'Not available' }}
           </mat-chip>
           <mat-chip>
-            <mat-icon matChipAvatar>person</mat-icon>
+            <mat-icon class="material-symbols-outlined" matChipAvatar>person</mat-icon>
             {{ tool.ownerFirstName || 'Unknown owner' }}
           </mat-chip>
         </mat-chip-set>
       </mat-card-content>
       <mat-card-actions align="end">
-        <button mat-button type="button" (click)="state.openTool(tool)">View</button>
+        <button mat-button type="button" (click)="state.openTool(tool)">
+          <mat-icon class="material-symbols-outlined">visibility</mat-icon>
+          View
+        </button>
       </mat-card-actions>
     </mat-card>
   </div>

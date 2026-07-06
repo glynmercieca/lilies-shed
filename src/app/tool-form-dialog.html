@@ -25,7 +25,7 @@
     <div class="d-grid gap-2">
       <div class="d-flex flex-wrap align-items-center gap-2">
         <button mat-stroked-button type="button" (click)="picker.click()" [disabled]="saving()">
-          <mat-icon>photo_camera</mat-icon>
+          <mat-icon class="material-symbols-outlined">photo_camera</mat-icon>
           {{ imageUrl() || selectedFile() ? 'Replace photo' : 'Add photo' }}
         </button>
         <span class="text-body-secondary small">

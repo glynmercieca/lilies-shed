@@ -16,6 +16,7 @@ import { ToolDetailDialogComponent } from '../tool-detail-dialog';
 import { DeleteToolDialogComponent } from '../delete-tool-dialog';
 import { NotificationOptInDialogComponent } from '../notification-opt-in-dialog';
 import { RequestToolDialogComponent } from '../request-tool-dialog';
+import { ReturnToolDialogComponent } from '../return-tool-dialog';
 import { ToolFormDialogComponent } from '../tool-form-dialog';
 
 @Injectable({ providedIn: 'root' })
@@ -199,6 +200,18 @@ export class ToolboxStateService {
 
   async returnTool(tool: ToolWithStatus): Promise<void> {
     if (!tool.activeLoan) {
+      return;
+    }
+
+    const dialogRef = this.dialog.open(ReturnToolDialogComponent, {
+      data: {
+        toolName: tool.name,
+      },
+      maxWidth: '420px',
+      width: 'min(92vw, 420px)',
+    });
+    const confirmed = await firstValueFrom(dialogRef.afterClosed());
+    if (!confirmed) {
       return;
     }
 

@@ -11,6 +11,7 @@ import { ToolboxStateService } from './core/toolbox-state.service';
   selector: 'app-my-tools-view',
   imports: [MatButtonModule, MatCardModule, MatChipsModule, MatIconModule, MatTooltipModule],
   templateUrl: './my-tools-view.html',
+  styleUrl: './my-tools-view.scss',
   changeDetection: ChangeDetectionStrategy.Eager,
 })
 export class MyToolsViewComponent {

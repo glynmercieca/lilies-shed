@@ -1,37 +1,40 @@
 <section class="options-page">
   <header class="d-grid gap-1 mb-3">
-    <h1 class="m-0">Options</h1>
+    <h1 class="m-0 d-flex align-items-center gap-2">
+      <mat-icon class="material-symbols-outlined">action_key</mat-icon>
+      <span>Options</span>
+    </h1>
     <p class="m-0 text-body-secondary">App settings and quick actions.</p>
   </header>
 
   <div class="options-grid">
     <button mat-button type="button" class="option-block" (click)="toggleTheme()">
-      <mat-icon>{{ themeIcon }}</mat-icon>
+      <mat-icon class="material-symbols-outlined">{{ themeIcon }}</mat-icon>
       <span>Theme</span>
     </button>
 
     <button mat-button type="button" class="option-block" (click)="requestTool()">
-      <mat-icon>tools_power_drill</mat-icon>
-      <span>Request tool</span>
+      <mat-icon class="material-symbols-outlined">tools_power_drill</mat-icon>
+      <span>Request a tool</span>
     </button>
 
     <button mat-button type="button" class="option-block" (click)="requestNotificationPermission()">
-      <mat-icon>notifications</mat-icon>
+      <mat-icon class="material-symbols-outlined">notifications</mat-icon>
       <span>Enable notifications</span>
     </button>
 
     <button mat-button type="button" class="option-block" (click)="refresh()" [disabled]="isRefreshing()">
-      <mat-icon>refresh</mat-icon>
-      <span>Reload</span>
+      <mat-icon class="material-symbols-outlined">refresh</mat-icon>
+      <span>Reload application</span>
     </button>
 
     <button mat-button type="button" class="option-block" (click)="signOut()">
-      <mat-icon>logout</mat-icon>
+      <mat-icon class="material-symbols-outlined">logout</mat-icon>
       <span>Sign out</span>
     </button>
   </div>
 
-  <div class="options-version text-body-secondary small">
+  <div class="options-version text-body-secondary small mx-auto">
     Version {{ version }}
   </div>
 </section>

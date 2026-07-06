@@ -6,32 +6,28 @@
 </header>
 
 <div class="d-grid gap-3">
-  <mat-card appearance="outlined">
-    <mat-card-content class="flex-grow-1">
-      <p class="m-0">
-        Signed-in users can browse available tools, request to borrow items, track borrowed tools,
-        and manage the tools they own.
-      </p>
-      @if (!auth.isConfigured()) {
-      <p class="m-0 mt-3">
-        Firebase is not configured yet. Update <code>src/environments/environment*.ts</code> with valid
-        Firebase web app settings.
-      </p>
-      } @else if (!auth.currentUser()) {
-      <div class="d-flex flex-wrap gap-3 mt-3">
-        <button mat-flat-button (click)="signIn()" [disabled]="auth.isBusy()">
-          <mat-icon>login</mat-icon>
-          Sign in with Google
-        </button>
-      </div>
-      @if (auth.error()) {
-      <p class="m-0 mt-3">{{ auth.error() }}</p>
-      }
-      } @else {
-      <div class="d-flex flex-wrap gap-3 mt-3">
-        <a mat-flat-button routerLink="/shed">Open shed</a>
-      </div>
-      }
-    </mat-card-content>
-  </mat-card>
+  <p class="m-0">
+    Signed-in users can browse available tools, request to borrow items, track borrowed tools,
+    and manage the tools they own.
+  </p>
+  @if (!auth.isConfigured()) {
+  <p class="m-0">
+    Firebase is not configured yet. Update <code>src/environments/environment*.ts</code> with valid
+    Firebase web app settings.
+  </p>
+  } @else if (!auth.currentUser()) {
+  <div class="d-flex flex-wrap gap-3">
+    <button mat-flat-button (click)="signIn()" [disabled]="auth.isBusy()">
+      <mat-icon class="material-symbols-outlined">login</mat-icon>
+      Sign in with Google
+    </button>
+  </div>
+  @if (auth.error()) {
+  <p class="m-0">{{ auth.error() }}</p>
+  }
+  } @else {
+  <div class="d-flex flex-wrap gap-3">
+    <a mat-flat-button routerLink="/shed">Open shed</a>
+  </div>
+  }
 </div>

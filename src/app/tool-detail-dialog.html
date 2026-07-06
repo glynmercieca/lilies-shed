@@ -8,21 +8,21 @@
   <div class="d-grid gap-3 mt-3">
     <mat-chip-set>
       <mat-chip [class.available-chip]="data.tool.available" [class.unavailable-chip]="!data.tool.available">
-        <mat-icon matChipAvatar>{{ data.tool.available ? 'check_circle' : 'cancel' }}</mat-icon>
+        <mat-icon class="material-symbols-outlined" matChipAvatar>{{ data.tool.available ? 'check_circle' : 'cancel' }}</mat-icon>
         {{ data.tool.available ? 'Available' : 'Not available' }}
       </mat-chip>
       <mat-chip>
-        <mat-icon matChipAvatar>person</mat-icon>
+        <mat-icon class="material-symbols-outlined" matChipAvatar>person</mat-icon>
         {{ data.tool.ownerFirstName || 'Unknown' }}
       </mat-chip>
       @if (data.tool.activeLoan?.borrowerFirstName) {
       <mat-chip>
-        <mat-icon matChipAvatar>assignment_ind</mat-icon>
+        <mat-icon class="material-symbols-outlined" matChipAvatar>assignment_ind</mat-icon>
         {{ data.tool.activeLoan.borrowerFirstName }}
       </mat-chip>
       }
       <mat-chip>
-        <mat-icon matChipAvatar>tag</mat-icon>
+        <mat-icon class="material-symbols-outlined" matChipAvatar>tag</mat-icon>
         {{ data.tool.id }}
       </mat-chip>
     </mat-chip-set>
@@ -33,7 +33,7 @@
     <section class="note-block">
       <mat-chip-set>
         <mat-chip>
-          <mat-icon matChipAvatar>sticky_note_2</mat-icon>
+          <mat-icon class="material-symbols-outlined" matChipAvatar>sticky_note_2</mat-icon>
           Note
         </mat-chip>
       </mat-chip-set>

@@ -51,11 +51,9 @@
   background: var(--mat-sys-surface-container-low);
 }
 
-.app-drawer-start {
-  right: auto;
-  left: 0;
-  border-left: 0;
-  border-right: 1px solid var(--mat-sys-outline-variant);
+.app-drawer-end {
+  right: 0;
+  left: auto;
 }
 
 .notification-feed {
@@ -128,6 +126,25 @@
 
 .bottom-nav a {
   min-height: 56px;
+}
+
+@media (max-width: 599.98px) {
+  .bottom-nav a {
+    min-height: 60px;
+    padding-inline: 0;
+    justify-content: center;
+  }
+
+  .bottom-nav-label {
+    display: none;
+  }
+
+  .bottom-nav a mat-icon {
+    margin: 0;
+    font-size: 1.5rem;
+    width: 1.5rem;
+    height: 1.5rem;
+  }
 }
 
 @media (min-width: 600px) {

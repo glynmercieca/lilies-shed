@@ -1,0 +1,21 @@
+:host {
+  display: block;
+}
+
+.my-tools-page {
+  position: relative;
+}
+
+.add-tool-fab {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: calc(88px + env(safe-area-inset-bottom));
+  z-index: 1040;
+  box-shadow: var(--mat-sys-level3);
+}
+
+@media (min-width: 600px) {
+  .add-tool-fab {
+    bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+}

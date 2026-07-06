@@ -1,148 +1,102 @@
 @if (loading() && isSignedIn()) {
-  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+<mat-progress-bar mode="indeterminate"></mat-progress-bar>
 }
 
 @if (messaging.foregroundNotification(); as notification) {
-  <div class="foreground-notification">
-    <mat-card appearance="outlined">
-      <div class="d-flex align-items-start gap-3">
-        <mat-icon class="foreground-notification-icon">notifications</mat-icon>
-        <div class="flex-grow-1">
-          <div class="fw-semibold">{{ notification.title }}</div>
-          <p class="m-0 text-body-secondary">{{ notification.body }}</p>
-        </div>
-        <button mat-icon-button type="button" (click)="dismissForegroundNotification()" aria-label="Dismiss notification">
-          <mat-icon>close</mat-icon>
-        </button>
+<div class="foreground-notification">
+  <mat-card appearance="outlined">
+    <div class="d-flex align-items-start gap-3">
+      <mat-icon class="material-symbols-outlined foreground-notification-icon">notifications</mat-icon>
+      <div class="flex-grow-1">
+        <div class="fw-semibold">{{ notification.title }}</div>
+        <p class="m-0 text-body-secondary">{{ notification.body }}</p>
       </div>
-    </mat-card>
-  </div>
+      <button mat-icon-button type="button" (click)="dismissForegroundNotification()" aria-label="Dismiss notification">
+        <mat-icon class="material-symbols-outlined">close</mat-icon>
+      </button>
+    </div>
+  </mat-card>
+</div>
 }
 
-<mat-drawer-container
-  class="app-shell"
-  [class.notifications-open]="notificationsOpen()"
-  [hasBackdrop]="isSignedIn()"
-  (backdropClick)="closeDrawers()"
->
+<mat-drawer-container class="app-shell" [class.notifications-open]="notificationsOpen()" [hasBackdrop]="isSignedIn()"
+  (backdropClick)="closeDrawers()">
   @if (isSignedIn()) {
-    <mat-drawer
-      class="app-drawer app-drawer-start"
-      position="start"
-      mode="over"
-      [opened]="notificationsOpen()"
-      (closedStart)="closeNotifications()"
-    >
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="m-0 fs-5">Notifications</h2>
-        <button mat-icon-button type="button" (click)="closeNotifications()" aria-label="Close notifications">
-          <mat-icon>close</mat-icon>
-        </button>
-      </div>
+  <mat-drawer class="app-drawer app-drawer-end" position="end" mode="over" [opened]="notificationsOpen()"
+    (closedStart)="closeNotifications()">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2 class="m-0 fs-5">Notifications</h2>
+      <button mat-icon-button type="button" (click)="closeNotifications()" aria-label="Close notifications">
+          <mat-icon class="material-symbols-outlined">close</mat-icon>
+      </button>
+    </div>
 
-      @if (state.recentNotifications().length) {
-        <div class="notification-feed d-grid gap-2">
-          @for (notification of state.recentNotifications(); track notification.id) {
-            <mat-card appearance="outlined" class="notification-card">
-              <div class="fw-semibold">{{ notification.title }}</div>
-              <p class="m-0 notification-message">{{ notification.message }}</p>
-              <div class="notification-meta">
-                <span>{{ notification.actorFirstName }}</span>
-                <span>{{ notification.createdAt | date: 'short' }}</span>
-              </div>
-            </mat-card>
-          }
+    @if (state.recentNotifications().length) {
+    <div class="notification-feed d-grid gap-2">
+      @for (notification of state.recentNotifications(); track notification.id) {
+      <mat-card appearance="outlined" class="notification-card">
+        <div class="fw-semibold">{{ notification.title }}</div>
+        <p class="m-0 notification-message">{{ notification.message }}</p>
+        <div class="notification-meta">
+          <span>{{ notification.actorFirstName }}</span>
+          <span>{{ notification.createdAt | date: 'short' }}</span>
         </div>
-      } @else {
-        <div class="empty-drawer-state text-body-secondary">
-          No notifications yet.
-        </div>
+      </mat-card>
       }
-    </mat-drawer>
+    </div>
+    } @else {
+    <div class="empty-drawer-state text-body-secondary">
+      No notifications yet.
+    </div>
+    }
+  </mat-drawer>
   }
 
   <mat-drawer-content class="app-content">
     <main class="page-shell container-fluid px-3 px-md-4 pt-3">
+      @if (!isSignedIn()) {
       <div class="d-flex flex-wrap justify-content-end gap-2 mb-2">
-        @if (!isSignedIn()) {
-          <a
-            mat-button
-            routerLink="/home"
-            routerLinkActive="active-link"
-            [routerLinkActiveOptions]="{ exact: true }"
-          >Home</a>
-          <a
-            mat-button
-            routerLink="/about"
-            routerLinkActive="active-link"
-            [routerLinkActiveOptions]="{ exact: true }"
-          >About</a>
-          <a
-            mat-button
-            routerLink="/privacy"
-            routerLinkActive="active-link"
-            [routerLinkActiveOptions]="{ exact: true }"
-          >Privacy</a>
-        }
+        <a mat-button routerLink="/home" routerLinkActive="active-link"
+          [routerLinkActiveOptions]="{ exact: true }">Home</a>
+        <a mat-button routerLink="/about" routerLinkActive="active-link"
+          [routerLinkActiveOptions]="{ exact: true }">About</a>
+        <a mat-button routerLink="/privacy" routerLinkActive="active-link"
+          [routerLinkActiveOptions]="{ exact: true }">Privacy</a>
       </div>
-      <section class="content-shell d-grid gap-3 mx-auto">
+      }
+      <section class="content-shell d-grid mx-auto">
         <router-outlet></router-outlet>
       </section>
     </main>
 
     @if (isSignedIn()) {
-      <nav class="bottom-nav">
-        <a
-          mat-button
-          class="text-decoration-none rounded-4"
-          routerLink="/shed"
-          routerLinkActive="active-nav"
-          [routerLinkActiveOptions]="{ exact: true }"
-        >
-          <mat-icon>construction</mat-icon>
-          Shed
-        </a>
-        <a
-          mat-button
-          class="text-decoration-none rounded-4"
-          routerLink="/borrowed"
-          routerLinkActive="active-nav"
-          [routerLinkActiveOptions]="{ exact: true }"
-        >
-          <mat-icon>assignment_returned</mat-icon>
-          Borrowed
-        </a>
-        <a
-          mat-button
-          class="text-decoration-none rounded-4"
-          routerLink="/my-tools"
-          routerLinkActive="active-nav"
-          [routerLinkActiveOptions]="{ exact: true }"
-        >
-          <mat-icon>inventory_2</mat-icon>
-          My Tools
-        </a>
-        <a
-          mat-button
-          class="text-decoration-none rounded-4"
-          routerLink="/options"
-          routerLinkActive="active-nav"
-          [routerLinkActiveOptions]="{ exact: true }"
-        >
-          <mat-icon>menu</mat-icon>
-          Options
-        </a>
-      </nav>
+    <nav class="bottom-nav">
+      <a mat-button class="text-decoration-none rounded-4" routerLink="/shed" routerLinkActive="active-nav"
+        [routerLinkActiveOptions]="{ exact: true }">
+        <mat-icon class="material-symbols-outlined">warehouse</mat-icon>
+        <span class="bottom-nav-label">Shed</span>
+      </a>
+      <a mat-button class="text-decoration-none rounded-4" routerLink="/borrowed" routerLinkActive="active-nav"
+        [routerLinkActiveOptions]="{ exact: true }">
+        <mat-icon class="material-symbols-outlined">hand_package</mat-icon>
+        <span class="bottom-nav-label">Borrowed</span>
+      </a>
+      <a mat-button class="text-decoration-none rounded-4" routerLink="/my-tools" routerLinkActive="active-nav"
+        [routerLinkActiveOptions]="{ exact: true }">
+        <mat-icon class="material-symbols-outlined">handyman</mat-icon>
+        <span class="bottom-nav-label">My Tools</span>
+      </a>
+      <a mat-button class="text-decoration-none rounded-4" routerLink="/options" routerLinkActive="active-nav"
+        [routerLinkActiveOptions]="{ exact: true }">
+        <mat-icon class="material-symbols-outlined">action_key</mat-icon>
+        <span class="bottom-nav-label">Options</span>
+      </a>
+    </nav>
 
-      <button
-        mat-mini-fab
-        type="button"
-        class="shell-fab notifications-fab"
-        (click)="openNotifications()"
-        aria-label="Open notifications"
-      >
-        <mat-icon>notifications</mat-icon>
-      </button>
+    <button mat-mini-fab type="button" class="shell-fab notifications-fab" (click)="openNotifications()"
+      aria-label="Open notifications">
+      <mat-icon class="material-symbols-outlined">notifications</mat-icon>
+    </button>
     }
   </mat-drawer-content>
 </mat-drawer-container>
