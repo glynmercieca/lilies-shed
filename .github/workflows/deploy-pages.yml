@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   bump-version:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && !startsWith(github.event.head_commit.message, 'chore: bump app version to ')
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && !startsWith(github.event.head_commit.message, 'chore: bump app version to ') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -48,7 +48,7 @@ jobs:
           git push
 
   build:
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'chore: bump app version to '))
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'chore: bump app version to ')) }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -87,7 +87,7 @@ jobs:
           path: dist/lilies-shed/browser
 
   deploy:
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'chore: bump app version to '))
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'chore: bump app version to ')) }}
     needs: build
     runs-on: ubuntu-latest
     environment:
