@@ -8,6 +8,7 @@ import { FirebaseAuthService } from './firebase-auth.service';
 import { FirebaseMessagingService } from './firebase-messaging.service';
 import { FirestoreToolboxService } from './firestore-toolbox.service';
 import { ImageUploadService } from './image-upload.service';
+import { APP_SETTINGS } from './app-settings';
 import { matchesUserId } from './identity.util';
 import { SheetsSnapshot, ToolWithStatus } from './models';
 import { decorateTools } from './tool-status.util';
@@ -390,6 +391,11 @@ export class ToolboxStateService {
       return;
     }
 
+    if (!APP_SETTINGS.firebaseVapidKey.trim()) {
+      this.notify('Notifications are not configured yet. Add the Firebase Web Push VAPID key first.');
+      return;
+    }
+
     if (Notification.permission === 'denied') {
       this.notify('Notifications are blocked in the browser. Enable them in site settings first.');
       return;
@@ -400,6 +406,8 @@ export class ToolboxStateService {
 
       if (Notification.permission === 'granted') {
         this.notify('Notifications enabled.');
+      } else if (Notification.permission === 'default') {
+        this.notify('The browser did not show or confirm the notification prompt.');
       } else {
         this.notify('Notification permission was not granted.');
       }
