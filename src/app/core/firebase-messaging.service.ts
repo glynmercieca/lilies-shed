@@ -58,29 +58,52 @@ export class FirebaseMessagingService {
       return;
     }
 
-    const messaging = getMessaging(this.firebase.app);
-    const serviceWorkerRegistration = await this.registerServiceWorker();
-    const token = await getToken(messaging, {
-      vapidKey: APP_SETTINGS.firebaseVapidKey,
-      serviceWorkerRegistration,
-    });
+    try {
+      const messaging = getMessaging(this.firebase.app);
+      const serviceWorkerRegistration = await this.registerServiceWorker();
+      const token = await getToken(messaging, {
+        vapidKey: APP_SETTINGS.firebaseVapidKey,
+        serviceWorkerRegistration,
+      });
 
-    if (!token) {
-      return;
+      if (!token) {
+        await setDoc(
+          doc(this.firebase.firestore, 'users', user.id),
+          {
+            notificationsEnabled: false,
+            lastNotificationTokenError: 'FCM did not return a registration token.',
+          },
+          { merge: true },
+        );
+        return;
+      }
+
+      window.localStorage.setItem(TOKEN_STORAGE_KEY, token);
+      await setDoc(
+        doc(this.firebase.firestore, 'users', user.id),
+        {
+          notificationsEnabled: true,
+          notificationPermission: permission,
+          notificationTokens: arrayUnion(token),
+          lastNotificationTokenAt: new Date().toISOString(),
+          lastNotificationTokenError: '',
+        },
+        { merge: true },
+      );
+
+      this.attachForegroundListener(messaging);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to register push notifications.';
+      await setDoc(
+        doc(this.firebase.firestore, 'users', user.id),
+        {
+          notificationsEnabled: false,
+          lastNotificationTokenError: message,
+        },
+        { merge: true },
+      );
+      throw error;
     }
-
-    window.localStorage.setItem(TOKEN_STORAGE_KEY, token);
-    await setDoc(
-      doc(this.firebase.firestore, 'users', user.id),
-      {
-        notificationsEnabled: true,
-        notificationPermission: permission,
-        notificationTokens: arrayUnion(token),
-      },
-      { merge: true },
-    );
-
-    this.attachForegroundListener(messaging);
   }
 
   async clearCurrentUserToken(userId: string): Promise<void> {
@@ -157,9 +180,14 @@ export class FirebaseMessagingService {
 
   private registerServiceWorker(): Promise<ServiceWorkerRegistration> {
     if (!this.serviceWorkerRegistrationPromise) {
-      this.serviceWorkerRegistrationPromise = navigator.serviceWorker.register(MESSAGING_SW_URL, {
-        scope: MESSAGING_SCOPE,
-      });
+      this.serviceWorkerRegistrationPromise = navigator.serviceWorker
+        .register(MESSAGING_SW_URL, {
+          scope: MESSAGING_SCOPE,
+        })
+        .then(async (registration) => {
+          await navigator.serviceWorker.ready;
+          return registration;
+        });
     }
 
     return this.serviceWorkerRegistrationPromise;
