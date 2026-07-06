@@ -3,7 +3,7 @@ import type { AppSettings } from '../app/core/app-settings';
 export const environment: { appSettings: AppSettings } = {
   appSettings: {
     appName: 'Lilies Shed',
-    version: '1.0.1',
+    version: '1.0.2',
     firebaseApiKey: 'AIzaSyD7CU6Omy-PuizKKjKApWxyz9jiwghoD0A',
     firebaseAuthDomain: 'shed-3fc03.firebaseapp.com',
     firebaseProjectId: 'shed-3fc03',

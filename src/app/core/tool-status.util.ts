@@ -13,8 +13,8 @@ export function decorateTools(snapshot: SheetsSnapshot): ToolWithStatus[] {
 
   return snapshot.tools.map((tool) => ({
     ...tool,
-    activeLoan: activeLoanByTool.get(tool.id),
-    latestLoan: latestLoanByTool.get(tool.id),
-    available: !activeLoanByTool.has(tool.id),
+    activeLoan: activeLoanByTool.get(tool.documentId),
+    latestLoan: latestLoanByTool.get(tool.documentId),
+    available: !activeLoanByTool.has(tool.documentId),
   }));
 }

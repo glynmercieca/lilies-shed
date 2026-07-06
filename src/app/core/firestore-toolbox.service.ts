@@ -89,7 +89,8 @@ export class FirestoreToolboxService {
 
   async addTool(formValue: ToolFormValue, owner: UserProfile): Promise<void> {
     const nextId = await this.allocateNextToolId();
-    await setDoc(doc(this.firebase.firestore, 'tools', nextId), {
+    const toolRef = doc(collection(this.firebase.firestore, 'tools'));
+    await setDoc(toolRef, {
       id: nextId,
       name: formValue.name,
       description: formValue.description,

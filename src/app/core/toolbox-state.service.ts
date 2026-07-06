@@ -134,7 +134,7 @@ export class ToolboxStateService {
 
     this.savingToolId.set(tool.id);
     try {
-      await this.toolbox.addBorrowRequest(tool.id, user);
+      await this.toolbox.addBorrowRequest(tool.documentId, user);
       await this.refresh();
       await this.router.navigate(['/borrowed']);
       this.notify(`Borrow request saved for ${tool.name}.`);
