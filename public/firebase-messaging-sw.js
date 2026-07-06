@@ -14,6 +14,12 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
+  console.info('[Lilies Shed SW] Background push received.', {
+    notification: payload.notification ?? null,
+    data: payload.data ?? null,
+    fcmOptions: payload.fcmOptions ?? null,
+  });
+
   const title = payload.notification?.title?.trim() || 'Lilies Shed';
   const body = payload.notification?.body?.trim() || 'You have a new toolbox update.';
   const link =
@@ -23,6 +29,12 @@ messaging.onBackgroundMessage((payload) => {
     payload.data?.click_action ||
     '/shed';
 
+  console.info('[Lilies Shed SW] Showing notification.', {
+    title,
+    body,
+    link,
+  });
+
   self.registration.showNotification(title, {
     body,
     icon: payload.notification?.image || '/icons/icon-192x192.png',
@@ -31,6 +43,10 @@ messaging.onBackgroundMessage((payload) => {
 });
 
 self.addEventListener('notificationclick', (event) => {
+  console.info('[Lilies Shed SW] Notification clicked.', {
+    notificationData: event.notification?.data ?? null,
+  });
+
   event.notification?.close();
 
   const fallbackUrl = '/shed';

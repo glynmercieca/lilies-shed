@@ -140,12 +140,22 @@ export class FirebaseMessagingService {
     }
 
     onMessage(messaging, (payload) => {
+      console.info('[Lilies Shed] Foreground push received.', {
+        notification: payload.notification ?? null,
+        data: payload.data ?? null,
+        fcmOptions: payload.fcmOptions ?? null,
+      });
+
       const title = payload.notification?.title?.trim() || 'Lilies Shed';
       const body = payload.notification?.body?.trim() || 'You have a new toolbox update.';
       this.showForegroundNotification({ title, body });
       this.snackBar.open(`${title}: ${body}`, 'Close', { duration: 6000 });
 
       if (Notification.permission === 'granted') {
+        console.info('[Lilies Shed] Displaying foreground Notification API banner.', {
+          title,
+          body,
+        });
         new Notification(title, {
           body,
           icon: payload.notification?.image || '/icons/icon-192x192.png',
@@ -186,6 +196,9 @@ export class FirebaseMessagingService {
         })
         .then(async (registration) => {
           await navigator.serviceWorker.ready;
+          console.info('[Lilies Shed] Firebase messaging service worker ready.', {
+            scope: registration.scope,
+          });
           return registration;
         });
     }
