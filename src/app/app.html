@@ -53,18 +53,15 @@
   }
 
   <mat-drawer-content class="app-content">
-    <main class="page-shell container-fluid px-3 px-md-4 pt-3" [class.page-shell-with-bottom-nav]="isSignedIn()">
-      @if (!isSignedIn()) {
-      <div class="d-flex flex-wrap justify-content-end gap-2 mb-2">
-        <a mat-button routerLink="/home" routerLinkActive="active-link"
-          [routerLinkActiveOptions]="{ exact: true }">Home</a>
-        <a mat-button routerLink="/about" routerLinkActive="active-link"
-          [routerLinkActiveOptions]="{ exact: true }">About</a>
-        <a mat-button routerLink="/privacy" routerLinkActive="active-link"
-          [routerLinkActiveOptions]="{ exact: true }">Privacy</a>
-      </div>
-      }
-      <section class="content-shell d-grid mx-auto">
+    <main
+      class="page-shell container-fluid"
+      [class.px-3]="!isHomeRoute()"
+      [class.px-md-4]="!isHomeRoute()"
+      [class.pt-3]="!isHomeRoute()"
+      [class.page-shell-with-bottom-nav]="isSignedIn()"
+      [class.page-shell-home]="isHomeRoute()"
+    >
+      <section class="d-grid" [class.content-shell]="!isHomeRoute()">
         <router-outlet></router-outlet>
       </section>
     </main>

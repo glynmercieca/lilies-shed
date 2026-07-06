@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:square;stroke-linejoin:round;">
+    <g transform="matrix(1,0,0,1,-112.640488,-112.771484)">
+        <path d="M501,570L501,494L627,425L753,494L753,638" style="fill:none;fill-rule:nonzero;stroke:rgb(82,46,107);stroke-width:20px;"/>
+    </g>
+    <g transform="matrix(1,0,0,1,512.499512,673.228516)">
+        <g>
+            <g transform="matrix(1,0,0,1,-359.318,0)">
+                <text x="0px" y="0px" style="font-family:'Georgia', serif;font-size:186px;fill:rgb(82,46,107);">t</text>
+            </g>
+            <g transform="matrix(1,0,0,1,-291.388,0)">
+                <text x="0px" y="0px" style="font-family:'Georgia', serif;font-size:186px;fill:rgb(82,46,107);">h<tspan x="111.978px 205.61px 254.195px 338.291px 450.269px 543.901px " y="0px 0px 0px 0px 0px 0px ">e shed</tspan></text>
+            </g>
+        </g>
+    </g>
+</svg>

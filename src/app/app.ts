@@ -36,14 +36,17 @@ export class App {
   readonly isSignedIn = computed(() => Boolean(this.auth.currentUser()));
   private readonly router = inject(Router);
   readonly isPublicRoute = signal(true);
+  readonly isHomeRoute = signal(false);
   readonly notificationsOpen = signal(false);
 
   constructor() {
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
       this.isPublicRoute.set(this.checkIsPublicRoute(this.router.url));
+      this.isHomeRoute.set(this.checkIsHomeRoute(this.router.url));
       this.closeDrawers();
     });
     this.isPublicRoute.set(this.checkIsPublicRoute(this.router.url));
+    this.isHomeRoute.set(this.checkIsHomeRoute(this.router.url));
     this.lockPortraitOrientation();
   }
 
@@ -70,6 +73,11 @@ export class App {
   private checkIsPublicRoute(url: string): boolean {
     const [path] = url.split('?');
     return ['/home', '/about', '/privacy', '/'].includes(path || '/');
+  }
+
+  private checkIsHomeRoute(url: string): boolean {
+    const [path] = url.split('?');
+    return ['/home', '/'].includes(path || '/');
   }
 
   private async lockPortraitOrientation(): Promise<void> {

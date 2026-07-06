@@ -100,9 +100,15 @@
   width: min(100%, 920px);
 }
 
-.active-link,
 .active-nav {
   background: var(--mat-sys-secondary-container);
+}
+
+.page-shell-home {
+  min-height: 100dvh;
+  padding-bottom: 0;
+  padding-inline: 0;
+  --bs-gutter-x: 0;
 }
 
 .bottom-nav {

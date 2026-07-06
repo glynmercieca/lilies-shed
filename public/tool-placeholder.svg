@@ -1,13 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img" aria-labelledby="title desc">
-  <title id="title">Tool placeholder</title>
-  <desc id="desc">Placeholder illustration for a tool without an image.</desc>
-  <rect width="400" height="300" fill="#ead8fb"/>
-  <path
-    d="M102 134 200 58l98 76v108c0 9-7 16-16 16H118c-9 0-16-7-16-16V134Z"
-    fill="#522e6b"
-  />
-  <path d="M130 126h140l-70-55-70 55Z" fill="#522e6b"/>
-  <rect x="178" y="184" width="44" height="74" rx="10" fill="#ead8fb" opacity="0.22"/>
-  <rect x="142" y="156" width="28" height="28" rx="6" fill="#ead8fb" opacity="0.22"/>
-  <rect x="230" y="156" width="28" height="28" rx="6" fill="#ead8fb" opacity="0.22"/>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 400 300" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:square;stroke-linejoin:round;">
+    <rect x="0" y="0" width="400" height="300" style="fill:rgb(234,216,251);"/>
+    <g transform="matrix(0.789683,0,0,0.789683,-295.130952,-261.71627)">
+        <path d="M501,570L501,494L627,425L753,494L753,638" style="fill:none;fill-rule:nonzero;stroke:rgb(82,46,107);stroke-width:20px;"/>
+    </g>
+    <path d="M222,194L222,248C222,253.519 217.519,258 212,258L188,258C182.481,258 178,253.519 178,248L178,194C178,188.481 182.481,184 188,184L212,184C217.519,184 222,188.481 222,194Z" style="fill:rgb(234,216,251);fill-opacity:0.22;"/>
+    <path d="M170,162L170,178C170,181.311 167.311,184 164,184L148,184C144.689,184 142,181.311 142,178L142,162C142,158.689 144.689,156 148,156L164,156C167.311,156 170,158.689 170,162Z" style="fill:rgb(234,216,251);fill-opacity:0.22;"/>
+    <path d="M258,162L258,178C258,181.311 255.311,184 252,184L236,184C232.689,184 230,181.311 230,178L230,162C230,158.689 232.689,156 236,156L252,156C255.311,156 258,158.689 258,162Z" style="fill:rgb(234,216,251);fill-opacity:0.22;"/>
 </svg>
