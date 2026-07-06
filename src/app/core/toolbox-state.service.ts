@@ -95,7 +95,7 @@ export class ToolboxStateService {
         await this.messaging.syncCurrentUser(user);
       }
       await this.refresh();
-      await this.router.navigate(['/tools']);
+      await this.router.navigate(['/shed']);
     }
   }
 
