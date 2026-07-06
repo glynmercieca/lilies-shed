@@ -98,6 +98,9 @@ jobs:
           node-version: 22.22.3
           cache: npm
 
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
       - name: Install dependencies
         run: npm i
 
@@ -118,6 +121,10 @@ jobs:
 
       - name: Build Angular app
         run: npm run build -- --base-href "${{ steps.base-href.outputs.value }}"
+
+      - name: Add SPA fallback for GitHub Pages
+        shell: bash
+        run: cp dist/lilies-shed/browser/index.html dist/lilies-shed/browser/404.html
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
