@@ -236,6 +236,9 @@ async function notifyUsersOfToolRequest(toolRequest) {
 
   const response = await messaging.sendEachForMulticast({
     tokens,
+    data: {
+      link: APP_LINK,
+    },
     notification: {
       title: 'Tool Request',
       body: message,
@@ -300,6 +303,9 @@ function buildNotificationPayload(toolName, borrowerName, eventType) {
       : `${borrowerName} borrowed your item.`;
 
   return {
+    data: {
+      link: APP_LINK,
+    },
     notification: {
       title,
       body,

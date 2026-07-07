@@ -20,6 +20,11 @@ messaging.onBackgroundMessage((payload) => {
     fcmOptions: payload.fcmOptions ?? null,
   });
 
+  if (payload.notification) {
+    console.info('[Lilies Shed SW] Skipping manual notification display because payload already includes a notification block.');
+    return;
+  }
+
   const title = payload.notification?.title?.trim() || 'Lilies Shed';
   const body = payload.notification?.body?.trim() || 'You have a new toolbox update.';
   const link =
