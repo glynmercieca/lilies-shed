@@ -1,0 +1,6 @@
+[     585ms] [LOG] Angular is running in development mode. @ http://localhost:4200/@fs/Users/glyn/Git/lilies-shed/.angular/cache/22.0.5/lilies-shed/vite/deps/chunk-IIKBN4FC.js?v=7570b9c2:14943
+[   50699ms] [ERROR] Cross-Origin-Opener-Policy policy would block the window.closed call. @ http://localhost:4200/@fs/Users/glyn/Git/lilies-shed/.angular/cache/22.0.5/lilies-shed/vite/deps/firebase_auth.js?v=7570b9c2:7075
+[   50699ms] [ERROR] Cross-Origin-Opener-Policy policy would block the window.closed call. @ http://localhost:4200/@fs/Users/glyn/Git/lilies-shed/.angular/cache/22.0.5/lilies-shed/vite/deps/firebase_auth.js?v=7570b9c2:7075
+[   96724ms] [ERROR] Cross-Origin-Opener-Policy policy would block the window.closed call. @ http://localhost:4200/@fs/Users/glyn/Git/lilies-shed/.angular/cache/22.0.5/lilies-shed/vite/deps/firebase_auth.js?v=7570b9c2:7075
+[   96724ms] [ERROR] Cross-Origin-Opener-Policy policy would block the window.closed call. @ http://localhost:4200/@fs/Users/glyn/Git/lilies-shed/.angular/cache/22.0.5/lilies-shed/vite/deps/firebase_auth.js?v=7570b9c2:7075
+[  100838ms] [INFO] [Lilies Shed] Firebase messaging service worker ready. {scope: http://localhost:4200/} @ http://localhost:4200/main.js:499

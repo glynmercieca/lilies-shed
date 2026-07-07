@@ -3,6 +3,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { Subscription, firstValueFrom } from 'rxjs';
+import { Unsubscribe } from 'firebase/firestore';
 
 import { FirebaseAuthService } from './firebase-auth.service';
 import { FirebaseMessagingService } from './firebase-messaging.service';
@@ -35,6 +36,7 @@ export class ToolboxStateService {
   readonly savingToolId = signal<string | null>(null);
   private readonly snapshot = signal<SheetsSnapshot>({ tools: [], loans: [], notifications: [] });
   private readonly loadedUserEmail = signal<string | null>(null);
+  private notificationsSubscription: Unsubscribe | null = null;
 
   readonly tools = computed(() => decorateTools(this.snapshot()));
   readonly visibleTools = computed(() => this.tools().filter((tool) => !tool.deleted));
@@ -75,6 +77,7 @@ export class ToolboxStateService {
           this.snapshot.set({ tools: [], loans: [], notifications: [] });
           this.loadedUserEmail.set(null);
         }
+        this.stopNotificationsLiveRefresh();
         return;
       }
 
@@ -117,6 +120,7 @@ export class ToolboxStateService {
     this.searchTerm.set('');
     this.showUnavailableTools.set(false);
     this.loadedUserEmail.set(null);
+    this.stopNotificationsLiveRefresh();
     await this.router.navigate(['/']);
   }
 
@@ -142,6 +146,26 @@ export class ToolboxStateService {
     } finally {
       this.loading.set(false);
     }
+  }
+
+  startNotificationsLiveRefresh(): void {
+    if (this.notificationsSubscription || !this.auth.currentUser()) {
+      return;
+    }
+
+    this.notificationsSubscription = this.toolbox.watchNotifications(
+      (notifications) => {
+        this.snapshot.update((snapshot) => ({ ...snapshot, notifications }));
+      },
+      (error) => {
+        this.notify(error.message || 'Unable to refresh notifications.');
+      },
+    );
+  }
+
+  stopNotificationsLiveRefresh(): void {
+    this.notificationsSubscription?.();
+    this.notificationsSubscription = null;
   }
 
   async openTool(tool: ToolWithStatus): Promise<void> {

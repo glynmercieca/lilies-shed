@@ -67,14 +67,17 @@ export class App {
 
   openNotifications(): void {
     this.notificationsOpen.set(true);
+    this.state.startNotificationsLiveRefresh();
   }
 
   closeNotifications(): void {
     this.notificationsOpen.set(false);
+    this.state.stopNotificationsLiveRefresh();
   }
 
   closeDrawers(): void {
     this.notificationsOpen.set(false);
+    this.state.stopNotificationsLiveRefresh();
   }
 
   onShellTouchStart(event: TouchEvent): void {
