@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "scripts": {
     "bump:app-version": "node scripts/bump-app-version.cjs",
+    "prestart": "node scripts/write-app-version-file.cjs",
+    "prebuild": "node scripts/write-app-version-file.cjs",
+    "prewatch": "node scripts/write-app-version-file.cjs",
     "ng": "node scripts/run-ng.cjs",
     "start": "node scripts/run-ng.cjs serve",
     "build": "node scripts/run-ng.cjs build",

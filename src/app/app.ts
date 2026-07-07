@@ -10,6 +10,7 @@ import { filter } from 'rxjs';
 
 import { FirebaseMessagingService } from './core/firebase-messaging.service';
 import { ToolboxStateService } from './core/toolbox-state.service';
+import { VersionCheckService } from './core/version-check.service';
 
 @Component({
   selector: 'app-root',
@@ -39,6 +40,7 @@ export class App {
   readonly loading = this.state.loading;
   readonly isSignedIn = computed(() => Boolean(this.auth.currentUser()));
   private readonly router = inject(Router);
+  private readonly versionCheck = inject(VersionCheckService);
   readonly isPublicRoute = signal(true);
   readonly isHomeRoute = signal(false);
   readonly notificationsOpen = signal(false);
@@ -55,6 +57,7 @@ export class App {
     this.isPublicRoute.set(this.checkIsPublicRoute(this.router.url));
     this.isHomeRoute.set(this.checkIsHomeRoute(this.router.url));
     this.lockPortraitOrientation();
+    this.versionCheck.start();
   }
 
   async signOut(): Promise<void> {

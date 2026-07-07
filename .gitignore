@@ -40,6 +40,7 @@ yarn-error.log
 testem.log
 /typings
 __screenshots__/
+/public/app-version.json
 
 # System files
 .DS_Store
