@@ -51,7 +51,7 @@ exports.notifyOwnerOnReturn = onDocumentUpdated(
 
 exports.notifyUsersOnToolRequest = onDocumentCreated(
   {
-    document: 'toolRequests/{requestId}',
+    document: 'requests/{requestId}',
     region: FUNCTION_REGION,
   },
   async (event) => {
