@@ -29,6 +29,10 @@ import { ToolboxStateService } from './core/toolbox-state.service';
   styleUrl: './app.scss',
 })
 export class App {
+  private static readonly swipeRoutes = ['/shed', '/borrowed', '/my-tools', '/options'] as const;
+  private static readonly swipeThresholdPx = 72;
+  private static readonly swipeVerticalLimitPx = 48;
+
   readonly state = inject(ToolboxStateService);
   readonly auth = this.state.auth;
   readonly messaging = inject(FirebaseMessagingService);
@@ -38,6 +42,9 @@ export class App {
   readonly isPublicRoute = signal(true);
   readonly isHomeRoute = signal(false);
   readonly notificationsOpen = signal(false);
+  private touchStartX: number | null = null;
+  private touchStartY: number | null = null;
+  private swipeBlocked = false;
 
   constructor() {
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
@@ -70,6 +77,53 @@ export class App {
     this.notificationsOpen.set(false);
   }
 
+  onShellTouchStart(event: TouchEvent): void {
+    if (!this.isSignedIn() || this.isPublicRoute() || this.notificationsOpen()) {
+      this.resetSwipeGesture();
+      return;
+    }
+
+    const touch = event.touches.item(0);
+    if (!touch) {
+      this.resetSwipeGesture();
+      return;
+    }
+
+    this.touchStartX = touch.clientX;
+    this.touchStartY = touch.clientY;
+    this.swipeBlocked = this.isInteractiveTarget(event.target);
+  }
+
+  onShellTouchEnd(event: TouchEvent): void {
+    if (
+      this.swipeBlocked ||
+      this.touchStartX === null ||
+      this.touchStartY === null ||
+      !this.isSignedIn() ||
+      this.isPublicRoute() ||
+      this.notificationsOpen()
+    ) {
+      this.resetSwipeGesture();
+      return;
+    }
+
+    const touch = event.changedTouches.item(0);
+    if (!touch) {
+      this.resetSwipeGesture();
+      return;
+    }
+
+    const deltaX = touch.clientX - this.touchStartX;
+    const deltaY = touch.clientY - this.touchStartY;
+    this.resetSwipeGesture();
+
+    if (Math.abs(deltaY) > App.swipeVerticalLimitPx || Math.abs(deltaX) < App.swipeThresholdPx) {
+      return;
+    }
+
+    void this.navigateBySwipe(deltaX < 0 ? 1 : -1);
+  }
+
   private checkIsPublicRoute(url: string): boolean {
     const [path] = url.split('?');
     return ['/home', '/about', '/privacy', '/'].includes(path || '/');
@@ -93,5 +147,33 @@ export class App {
     } catch {
       // Browsers may block orientation locking outside installed app contexts.
     }
+  }
+
+  private resetSwipeGesture(): void {
+    this.touchStartX = null;
+    this.touchStartY = null;
+    this.swipeBlocked = false;
+  }
+
+  private isInteractiveTarget(target: EventTarget | null): boolean {
+    return target instanceof Element
+      && Boolean(target.closest('button, a, input, textarea, select, option, label, [role="button"]'));
+  }
+
+  private async navigateBySwipe(direction: -1 | 1): Promise<void> {
+    const [currentPath] = this.router.url.split('?');
+    const currentIndex = App.swipeRoutes.indexOf(
+      (currentPath || '/shed') as (typeof App.swipeRoutes)[number],
+    );
+    if (currentIndex === -1) {
+      return;
+    }
+
+    const nextIndex = currentIndex + direction;
+    if (nextIndex < 0 || nextIndex >= App.swipeRoutes.length) {
+      return;
+    }
+
+    await this.router.navigate([App.swipeRoutes[nextIndex]]);
   }
 }

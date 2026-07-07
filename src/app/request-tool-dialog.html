@@ -1,4 +1,4 @@
-<h2 mat-dialog-title>Request tool</h2>
+<h2 mat-dialog-title>Request a tool</h2>
 <mat-dialog-content>
   <form [formGroup]="form" class="d-grid gap-3 pt-1">
     <p class="m-0 text-body-secondary">
@@ -14,9 +14,9 @@
   <button mat-button mat-dialog-close [disabled]="saving()">Cancel</button>
   <button mat-flat-button type="button" (click)="submit()" [disabled]="saving()">
     @if (saving()) {
-      <mat-spinner diameter="18"></mat-spinner>
+    <mat-spinner diameter="18"></mat-spinner>
     } @else {
-      Send
+    Send
     }
   </button>
 </mat-dialog-actions>
