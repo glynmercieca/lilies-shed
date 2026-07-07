@@ -96,16 +96,14 @@ async function notifyOwner(loan, eventType) {
   const toolName = readString(tool.name) || readString(tool.id) || 'An item';
   const notification = buildNotificationPayload(toolName, borrowerSummary.displayName, eventType);
 
-  if (eventType === 'borrowed') {
-    await createNotification({
-      type: 'borrow',
-      title: notification.notification.title,
-      message: notification.notification.body,
-      actorUserId: borrowerId,
-      actorFirstName: borrowerSummary.firstName,
-      recipientId: ownerId,
-    });
-  }
+  await createNotification({
+    type: 'borrow',
+    title: notification.notification.title,
+    message: notification.notification.body,
+    actorUserId: borrowerId,
+    actorFirstName: borrowerSummary.firstName,
+    recipientId: ownerId,
+  });
 
   const tokens = readStringArray(owner.notificationTokens);
   if (!tokens.length) {
@@ -190,6 +188,10 @@ async function notifyUsersOfToolRequest(toolRequest) {
   const tokenOwners = new Map();
 
   usersSnapshot.forEach((documentSnapshot) => {
+    if (documentSnapshot.id === requesterId) {
+      return;
+    }
+
     const user = documentSnapshot.data() || {};
     const tokens = readStringArray(user.notificationTokens);
     tokens.forEach((token) => tokenOwners.set(token, documentSnapshot.id));
