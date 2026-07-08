@@ -4,6 +4,12 @@
   <p class="text-body-secondary">This will update the item status and notify the owner.</p>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button mat-button mat-dialog-close>Cancel</button>
-  <button mat-flat-button (click)="confirm()">Returned</button>
+  <button mat-button mat-dialog-close>
+    <mat-icon class="material-symbols-outlined">close</mat-icon>
+    Cancel
+  </button>
+  <button mat-flat-button (click)="confirm()">
+    <mat-icon class="material-symbols-outlined">assignment_return</mat-icon>
+    Returned
+  </button>
 </mat-dialog-actions>

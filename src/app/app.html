@@ -39,7 +39,7 @@
         <p class="m-0 notification-message">{{ notification.message }}</p>
         <div class="notification-meta">
           <span>{{ notification.actorFirstName }}</span>
-          <span>{{ notification.createdAt | date: 'short' }}</span>
+          <span>{{ formatNotificationTime(notification.createdAt) }}</span>
         </div>
       </mat-card>
       }
@@ -52,10 +52,25 @@
   </mat-drawer>
   }
 
-  <mat-drawer-content class="app-content">
-    <main class="page-shell" [class.pt-3]="!isHomeRoute()" [class.page-shell-with-bottom-nav]="isSignedIn()"
-      [class.page-shell-home]="isHomeRoute()" (touchstart)="onShellTouchStart($event)"
-      (touchend)="onShellTouchEnd($event)">
+  <mat-drawer-content class="app-content" (scroll)="onContentScroll($event)">
+    @if (isSignedIn()) {
+    <header class="app-header" [class.app-header-raised]="headerRaised()" aria-label="App header">
+      <div class="app-header-brand">
+        <img class="app-header-logo" src="/logo-minimal.svg" alt="" aria-hidden="true" />
+        <span class="app-header-title">Lilies Shed</span>
+      </div>
+
+      <button mat-icon-button type="button" class="app-header-notifications" (click)="openNotifications()"
+        [matBadge]="state.recentNotifications().length" [matBadgeHidden]="state.recentNotifications().length === 0"
+        matBadgeColor="primary" matBadgeSize="small" aria-label="Open notifications">
+        <mat-icon class="material-symbols-outlined">notifications</mat-icon>
+      </button>
+    </header>
+    }
+
+    <main class="page-shell" [class.pt-3]="!isHomeRoute() && !isSignedIn()"
+      [class.page-shell-with-bottom-nav]="isSignedIn()" [class.page-shell-with-header]="isSignedIn()"
+      [class.page-shell-home]="isHomeRoute()">
       <section class="d-grid" [class.container]="isSignedIn() && !isHomeRoute()" [class.content-shell]="!isHomeRoute()">
         <router-outlet></router-outlet>
       </section>
@@ -63,32 +78,36 @@
 
     @if (isSignedIn()) {
     <nav class="bottom-nav">
-      <a mat-button class="text-decoration-none rounded-4" routerLink="/shed" routerLinkActive="active-nav"
-        [routerLinkActiveOptions]="{ exact: true }">
-        <mat-icon class="material-symbols-outlined">warehouse</mat-icon>
-        <span class="bottom-nav-label">Shed</span>
+      <a mat-button class="bottom-nav-item text-decoration-none rounded-4" routerLink="/shed"
+        routerLinkActive="active-nav" [routerLinkActiveOptions]="{ exact: true }">
+        <span class="bottom-nav-item-inner">
+          <mat-icon class="material-symbols-outlined">warehouse</mat-icon>
+          <span class="bottom-nav-label">Shed</span>
+        </span>
       </a>
-      <a mat-button class="text-decoration-none rounded-4" routerLink="/borrowed" routerLinkActive="active-nav"
-        [routerLinkActiveOptions]="{ exact: true }">
-        <mat-icon class="material-symbols-outlined">hand_package</mat-icon>
-        <span class="bottom-nav-label">Borrowed</span>
+      <a mat-button class="bottom-nav-item text-decoration-none rounded-4" routerLink="/borrowed"
+        routerLinkActive="active-nav" [routerLinkActiveOptions]="{ exact: true }">
+        <span class="bottom-nav-item-inner">
+          <mat-icon class="material-symbols-outlined">hand_package</mat-icon>
+          <span class="bottom-nav-label">Borrowed</span>
+        </span>
       </a>
-      <a mat-button class="text-decoration-none rounded-4" routerLink="/my-tools" routerLinkActive="active-nav"
-        [routerLinkActiveOptions]="{ exact: true }">
-        <mat-icon class="material-symbols-outlined">handyman</mat-icon>
-        <span class="bottom-nav-label">My Tools</span>
+      <a mat-button class="bottom-nav-item text-decoration-none rounded-4" routerLink="/my-tools"
+        routerLinkActive="active-nav" [routerLinkActiveOptions]="{ exact: true }">
+        <span class="bottom-nav-item-inner">
+          <mat-icon class="material-symbols-outlined">handyman</mat-icon>
+          <span class="bottom-nav-label">My Tools</span>
+        </span>
       </a>
-      <a mat-button class="text-decoration-none rounded-4" routerLink="/options" routerLinkActive="active-nav"
-        [routerLinkActiveOptions]="{ exact: true }">
-        <mat-icon class="material-symbols-outlined">action_key</mat-icon>
-        <span class="bottom-nav-label">Options</span>
+      <a mat-button class="bottom-nav-item text-decoration-none rounded-4" routerLink="/options"
+        routerLinkActive="active-nav" [routerLinkActiveOptions]="{ exact: true }">
+        <span class="bottom-nav-item-inner">
+          <mat-icon class="material-symbols-outlined">action_key</mat-icon>
+          <span class="bottom-nav-label">Options</span>
+        </span>
       </a>
     </nav>
 
-    <button mat-mini-fab type="button" class="shell-fab notifications-fab" (click)="openNotifications()"
-      aria-label="Open notifications">
-      <mat-icon class="material-symbols-outlined">notifications</mat-icon>
-    </button>
     }
   </mat-drawer-content>
 </mat-drawer-container>

@@ -1,46 +1,34 @@
-<header class="d-grid gap-1 mb-3">
-  <h1 class="m-0 d-flex align-items-center gap-2">
-    <mat-icon class="material-symbols-outlined">hand_package</mat-icon>
-    <span>Borrowed</span>
-  </h1>
-  <p class="m-0 text-body-secondary">Track the items you currently have from other people.</p>
-</header>
-
-<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
-  @for (tool of state.borrowedTools(); track tool.id) {
-  <div class="col d-flex">
-    <mat-card appearance="outlined" class="w-100 d-flex flex-column h-100">
-      <mat-card-header>
-        <mat-card-title>{{ tool.name }}</mat-card-title>
-        <mat-card-subtitle>{{ tool.id }}</mat-card-subtitle>
-      </mat-card-header>
-      <mat-card-content class="d-grid gap-3 flex-grow-1">
-        <p class="m-0">{{ tool.description }}</p>
-        <mat-chip-set>
-          <mat-chip>
-            <mat-icon class="material-symbols-outlined" matChipAvatar>person</mat-icon>
-            {{ tool.ownerFirstName || 'Unknown' }}
-          </mat-chip>
-        </mat-chip-set>
-      </mat-card-content>
-      <mat-card-actions align="end">
-        <button mat-button type="button" (click)="state.returnTool(tool)" [disabled]="state.savingToolId() === tool.id">
-          <mat-icon class="material-symbols-outlined">assignment_return</mat-icon>
-          Returned
+<section class="tool-section d-grid gap-3">
+  <mat-card appearance="outlined" class="tool-section-summary-card">
+    <mat-card-content class="tool-section-summary-content">
+      <div class="tool-section-summary-top">
+        <div>
+          <div class="tool-section-summary-label">Currently with you</div>
+          <div class="tool-section-summary-value">{{ borrowedToolsSummary }}</div>
+        </div>
+        <button mat-icon-button type="button" (click)="openStats()" aria-label="Open borrowed tools statistics">
+          <mat-icon class="material-symbols-outlined">pie_chart</mat-icon>
         </button>
-      </mat-card-actions>
-    </mat-card>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <div class="row row-cols-2 row-cols-lg-3 g-3 tool-section-grid">
+    @for (tool of state.borrowedTools(); track tool.id) {
+    <div class="col d-flex">
+      <app-tool-card class="w-100" mode="borrowed" [tool]="tool" (view)="state.openTool($event, 'borrowed')" />
+    </div>
+    } @empty {
+    <div class="col-12">
+      <mat-card appearance="outlined">
+        <mat-card-content class="flex-grow-1">
+          <p class="m-0 fs-5">No borrowed tools right now.</p>
+          <p class="m-0 mt-3 text-body-secondary">
+            Borrowed items will appear here while they are checked out to you.
+          </p>
+        </mat-card-content>
+      </mat-card>
+    </div>
+    }
   </div>
-  } @empty {
-  <div class="col-12">
-    <mat-card appearance="outlined">
-      <mat-card-content class="flex-grow-1">
-        <p class="m-0 fs-5">No borrowed tools right now.</p>
-        <p class="m-0 mt-3 text-body-secondary">
-          Borrowed items will appear here while they are checked out to you.
-        </p>
-      </mat-card-content>
-    </mat-card>
-  </div>
-  }
-</div>
+</section>

@@ -16,6 +16,8 @@ export interface ForegroundNotification {
   body: string;
 }
 
+export const OPEN_NOTIFICATIONS_MESSAGE = 'lilies-shed:open-notifications';
+
 @Injectable({ providedIn: 'root' })
 export class FirebaseMessagingService {
   private readonly firebase = inject(FirebaseClientService);
@@ -24,6 +26,7 @@ export class FirebaseMessagingService {
   private foregroundListenerAttached = false;
   private serviceWorkerRegistrationPromise: Promise<ServiceWorkerRegistration> | null = null;
   readonly foregroundNotification = signal<ForegroundNotification | null>(null);
+  readonly notificationOpenRequests = signal(0);
   private foregroundNotificationTimer: ReturnType<typeof window.setTimeout> | null = null;
 
   async canPromptForNotifications(): Promise<boolean> {
@@ -145,10 +148,15 @@ export class FirebaseMessagingService {
       this.snackBar.open(`${title}: ${body}`, 'Close', { duration: 6000 });
 
       if (Notification.permission === 'granted') {
-        new Notification(title, {
+        const notification = new Notification(title, {
           body,
           icon: payload.notification?.image || '/icons/icon-192x192.png',
         });
+        notification.onclick = () => {
+          window.focus();
+          this.requestNotificationsOpen();
+          notification.close();
+        };
       }
     });
 
@@ -162,6 +170,10 @@ export class FirebaseMessagingService {
     }
 
     this.foregroundNotification.set(null);
+  }
+
+  requestNotificationsOpen(): void {
+    this.notificationOpenRequests.update((value) => value + 1);
   }
 
   private showForegroundNotification(notification: ForegroundNotification): void {

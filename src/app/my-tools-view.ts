@@ -1,37 +1,30 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { MatBottomSheet, MatBottomSheetModule } from '@angular/material/bottom-sheet';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
-import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { ToolboxStateService } from './core/toolbox-state.service';
+import { MyToolsStatSheetComponent } from './my-tools-stat-sheet';
+import { ToolCardComponent } from './tool-card';
 
 @Component({
   selector: 'app-my-tools-view',
-  imports: [MatButtonModule, MatCardModule, MatChipsModule, MatIconModule, MatTooltipModule],
+  imports: [MatBottomSheetModule, MatButtonModule, MatCardModule, MatIconModule, ToolCardComponent],
   templateUrl: './my-tools-view.html',
   styleUrl: './my-tools-view.scss',
   changeDetection: ChangeDetectionStrategy.Eager,
 })
-export class MyToolsViewComponent {
+export class MyToolsView {
   readonly state = inject(ToolboxStateService);
+  private readonly bottomSheet = inject(MatBottomSheet);
 
-  private readonly longDateFormatter = new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'long',
-  });
-
-  formatLoanDate(value: string): string {
-    const normalizedValue = value.trim();
-    if (!normalizedValue) {
-      return 'Borrow date unavailable';
-    }
-
-    const parsedDate = new Date(`${normalizedValue}T00:00:00`);
-    if (Number.isNaN(parsedDate.getTime())) {
-      return normalizedValue;
-    }
-
-    return this.longDateFormatter.format(parsedDate);
+  openStats(): void {
+    this.bottomSheet.open(MyToolsStatSheetComponent, {
+      data: {
+        tools: this.state.ownedTools(),
+      },
+      panelClass: 'rounded-bottom-sheet-panel',
+    });
   }
 }

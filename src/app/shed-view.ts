@@ -1,36 +1,28 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
+import { MatMenuModule } from '@angular/material/menu';
 
-import { fallbackImage, resolveToolImageUrl } from './core/image-url.util';
-import { ResolvedImageDirective } from './core/resolved-image.directive';
 import { ToolboxStateService } from './core/toolbox-state.service';
-import { MatTooltipModule } from '@angular/material/tooltip';
+import { ToolCardComponent } from './tool-card';
 
 @Component({
-  selector: 'app-tools-view',
+  selector: 'app-shed-view',
   imports: [
     MatButtonModule,
     MatCardModule,
-    MatChipsModule,
-    MatFormFieldModule,
-    MatTooltipModule,
     MatIconModule,
-    MatInputModule,
-    ResolvedImageDirective,
+    MatMenuModule,
+    ToolCardComponent,
   ],
-  templateUrl: './tools-view.html',
+  templateUrl: './shed-view.html',
+  styleUrl: './shed-view.scss',
   changeDetection: ChangeDetectionStrategy.Eager,
 })
-export class ToolsViewComponent {
+export class ShedViewComponent {
   readonly state = inject(ToolboxStateService);
   readonly searchFocused = signal(false);
-  protected readonly fallbackImage = fallbackImage;
-  protected readonly resolveToolImageUrl = resolveToolImageUrl;
 
   onSearchFocusIn(): void {
     this.searchFocused.set(true);

@@ -12,6 +12,21 @@ firebase.initializeApp({
 });
 
 const messaging = firebase.messaging();
+const OPEN_NOTIFICATIONS_MESSAGE = 'lilies-shed:open-notifications';
+
+function withNotificationsOpenParam(value) {
+  try {
+    const url = new URL(value, self.location.origin);
+    if (url.origin !== self.location.origin) {
+      return value;
+    }
+
+    url.searchParams.set('notifications', 'open');
+    return url.href;
+  } catch {
+    return value;
+  }
+}
 
 messaging.onBackgroundMessage((payload) => {
   if (payload.notification) {
@@ -44,18 +59,19 @@ self.addEventListener('notificationclick', (event) => {
     notificationData.FCM_MSG?.notification?.click_action ||
     notificationData.FCM_MSG?.fcmOptions?.link ||
     fallbackUrl;
+  const targetUrlWithNotificationState = withNotificationsOpenParam(targetUrl);
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
         if ('focus' in client && client.url.startsWith(self.location.origin)) {
-          client.navigate?.(targetUrl);
+          client.postMessage?.({ type: OPEN_NOTIFICATIONS_MESSAGE });
           return client.focus();
         }
       }
 
       if (self.clients.openWindow) {
-        return self.clients.openWindow(targetUrl);
+        return self.clients.openWindow(targetUrlWithNotificationState);
       }
 
       return Promise.resolve();

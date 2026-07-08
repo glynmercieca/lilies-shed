@@ -1,0 +1,58 @@
+<section class="borrowed-stat-sheet" aria-label="Borrowed tools statistics">
+  <header class="borrowed-stat-sheet-header">
+    <div>
+      <h2 class="borrowed-stat-sheet-title">Borrowed tools</h2>
+      <p class="borrowed-stat-sheet-subtitle">{{ totalTools() }} currently with you</p>
+    </div>
+    <button mat-icon-button type="button" (click)="close()" aria-label="Close borrowed tools statistics">
+      <mat-icon class="material-symbols-outlined">close</mat-icon>
+    </button>
+  </header>
+
+  <div class="borrowed-stat-sheet-metrics">
+    <div>
+      <span>Total</span>
+      <strong>{{ totalTools() }}</strong>
+    </div>
+    <div>
+      <span>Owners</span>
+      <strong>{{ uniqueOwnerCount() }}</strong>
+    </div>
+    <div>
+      <span>Avg days</span>
+      <strong>{{ averageDaysBorrowed() }}</strong>
+    </div>
+  </div>
+
+  @if (ownerStats().length) {
+  <section class="borrowed-stat-sheet-chart">
+    <h3>By owner</h3>
+    <div class="borrowed-stat-sheet-bars">
+      @for (owner of ownerStats(); track owner.name) {
+      <div class="borrowed-stat-sheet-bar-row">
+        <div class="borrowed-stat-sheet-bar-label">
+          <span>{{ owner.name }}</span>
+          <strong>{{ owner.count }}</strong>
+        </div>
+        <div class="borrowed-stat-sheet-bar-track">
+          <span [style.width.%]="owner.percent"></span>
+        </div>
+      </div>
+      }
+    </div>
+  </section>
+  }
+
+  @if (newestBorrowedTool(); as tool) {
+  <section class="borrowed-stat-sheet-latest">
+    <h3>Most recent</h3>
+    <div class="borrowed-stat-sheet-latest-row">
+      <span>{{ tool.name }}</span>
+      <mat-chip>
+        <mat-icon class="material-symbols-outlined" matChipAvatar>event</mat-icon>
+        {{ formatBorrowedDate(tool.activeLoan?.loanDate ?? '') }}
+      </mat-chip>
+    </div>
+  </section>
+  }
+</section>

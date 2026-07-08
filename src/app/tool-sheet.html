@@ -1,0 +1,83 @@
+<section class="tool-sheet" aria-label="Tool details">
+  <div class="tool-sheet-header">
+    <div class="tool-sheet-title-group">
+      <h2 class="tool-sheet-title">{{ data.tool.name }}</h2>
+      <div class="tool-sheet-subtitle">#{{ data.tool.id }}</div>
+    </div>
+    <button mat-icon-button type="button" (click)="close()" aria-label="Close tool details">
+      <mat-icon class="material-symbols-outlined">close</mat-icon>
+    </button>
+  </div>
+
+  <div class="tool-sheet-image-frame" [class.is-previewable]="canPreviewImage()" (click)="openImagePreview()"
+    (keydown.enter)="onPreviewKeyboard($event)" (keydown.space)="onPreviewKeyboard($event)"
+    [attr.role]="canPreviewImage() ? 'button' : null" [attr.tabindex]="canPreviewImage() ? 0 : null"
+    [attr.aria-label]="canPreviewImage() ? 'Open full screen image preview' : null">
+    <img class="tool-sheet-image" [appResolvedSrc]="data.tool.image || ''" [alt]="data.tool.name"
+      (error)="fallbackImage($event)" />
+    <div class="tool-availability" [class.unavailable]="!data.tool.available">
+      {{ data.tool.available ? 'Available' : 'Not available' }}
+    </div>
+  </div>
+
+  <mat-chip-set class="tool-sheet-chips">
+    <mat-chip>
+      <mat-icon class="material-symbols-outlined" matChipAvatar>person</mat-icon>
+      {{ data.tool.ownerFirstName || 'Unknown owner' }}
+    </mat-chip>
+    @if (data.tool.activeLoan?.borrowerFirstName) {
+    <mat-chip>
+      <mat-icon class="material-symbols-outlined" matChipAvatar>assignment_ind</mat-icon>
+      {{ data.tool.activeLoan?.borrowerFirstName }}
+    </mat-chip>
+    }
+    @if (showBorrowedDateChip()) {
+    <mat-chip>
+      <mat-icon class="material-symbols-outlined" matChipAvatar>event</mat-icon>
+      {{ formatBorrowedDate(data.tool.activeLoan?.loanDate ?? '') }}
+    </mat-chip>
+    }
+  </mat-chip-set>
+
+  <div class="tool-sheet-details">
+    <section>
+      <div class="tool-sheet-label">Description</div>
+      <p>{{ data.tool.description || 'No description provided.' }}</p>
+    </section>
+
+    @if (data.tool.notes) {
+    <section>
+      <div class="tool-sheet-label">Notes</div>
+      <p>{{ data.tool.notes }}</p>
+    </section>
+    }
+  </div>
+
+  <div class="tool-sheet-actions">
+    @if (data.mode === 'shed' && data.canBorrow && data.tool.available) {
+    <button mat-flat-button type="button" (click)="selectAction('borrow')" [disabled]="data.saving">
+      <mat-icon class="material-symbols-outlined">hand_package</mat-icon>
+      Borrow
+    </button>
+    }
+
+    @if (data.mode === 'borrowed') {
+    <button mat-flat-button type="button" (click)="selectAction('return')" [disabled]="data.saving">
+      <mat-icon class="material-symbols-outlined">assignment_return</mat-icon>
+      Return
+    </button>
+    }
+
+    @if (data.mode === 'my-tools') {
+    <button mat-button type="button" (click)="selectAction('delete')"
+      [disabled]="!data.tool.available || data.saving">
+      <mat-icon class="material-symbols-outlined">delete</mat-icon>
+      Delete
+    </button>
+    <button mat-flat-button type="button" (click)="selectAction('edit')" [disabled]="!data.tool.available || data.saving">
+      <mat-icon class="material-symbols-outlined">edit</mat-icon>
+      Edit
+    </button>
+    }
+  </div>
+</section>

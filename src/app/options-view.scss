@@ -7,22 +7,78 @@
   min-height: calc(100vh - 180px);
 }
 
-.option-block {
-  justify-content: flex-start;
-  gap: 12px;
-  min-height: 68px;
-  padding: 0 20px;
-  border-radius: 24px;
-  background: var(--mat-sys-surface-container);
+.options-group-title {
+  font: var(--mat-sys-title-large);
+  color: var(--mat-sys-primary);
+}
+
+.options-panel-content {
+  padding: 18px 20px !important;
+}
+
+.options-theme-toggle {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 4px;
+  border-radius: 20px;
   border: 1px solid var(--mat-sys-outline-variant);
+  background: var(--mat-sys-surface);
 }
 
-.option-block:hover {
-  background: var(--mat-sys-surface-container-high);
+.options-theme-toggle .mat-button-toggle {
+  border: 0;
+  border-radius: 16px;
 }
 
-.option-block mat-icon {
-  font-size: 1.4rem;
-  width: 1.4rem;
-  height: 1.4rem;
+.options-theme-toggle .mat-button-toggle-checked {
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-primary);
+}
+
+.options-action-list {
+  border-radius: inherit;
+}
+
+.options-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  background: transparent;
+  border-color: var(--mat-sys-outline-variant);
+}
+
+.options-row.list-group-item-action:not(.active):hover,
+.options-row.list-group-item-action:not(.active):focus {
+  color: inherit;
+  background: color-mix(in srgb, var(--mat-sys-secondary-container) 48%, var(--mat-sys-surface));
+}
+
+.options-row.list-group-item-action:not(.active):active {
+  color: inherit;
+  background: color-mix(in srgb, var(--mat-sys-secondary-container) 72%, var(--mat-sys-surface));
+}
+
+.options-row:first-child {
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
+}
+
+.options-row:last-child {
+  border-bottom-left-radius: inherit;
+  border-bottom-right-radius: inherit;
+}
+
+.options-row-static {
+  cursor: default;
+}
+
+.options-row mat-icon {
+  color: var(--bs-secondary-color);
+  flex: 0 0 auto;
+}
+
+.options-row-danger .fw-semibold {
+  color: var(--mat-sys-error);
 }

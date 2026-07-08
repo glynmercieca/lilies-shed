@@ -1,40 +1,99 @@
-<section class="options-page d-flex flex-column">
-  <header class="d-grid gap-1 mb-3">
-    <h1 class="m-0 d-flex align-items-center gap-2">
-      <mat-icon class="material-symbols-outlined">action_key</mat-icon>
-      <span>Options</span>
-    </h1>
-    <p class="m-0 text-body-secondary">App settings and quick actions.</p>
-  </header>
+<section class="options-page d-grid gap-4">
+  <div class="d-grid gap-4">
+    <section class="d-grid gap-2">
+      <h2 class="options-group-title m-0">Appearance</h2>
+      <mat-card appearance="outlined">
+        <mat-card-content class="options-panel-content">
+          <div class="d-grid gap-1 mb-3">
+            <div class="fw-semibold">Theme</div>
+            <div class="text-body-secondary">Choose your preferred theme</div>
+          </div>
 
-  <div class="d-grid gap-3">
-    <button mat-button type="button" class="option-block" (click)="toggleTheme()">
-      <mat-icon class="material-symbols-outlined">{{ themeIcon }}</mat-icon>
-      <span>Theme</span>
-    </button>
+          <mat-button-toggle-group class="w-100 options-theme-toggle" [value]="themeMode"
+            (change)="setTheme($event.value)">
+            <mat-button-toggle class="flex-fill" value="light">
+              <span class="d-inline-flex align-items-center gap-2">
+                <mat-icon class="material-symbols-outlined">light_mode</mat-icon>
+                <span>Light</span>
+              </span>
+            </mat-button-toggle>
+            <mat-button-toggle class="flex-fill" value="dark">
+              <span class="d-inline-flex align-items-center gap-2">
+                <mat-icon class="material-symbols-outlined">dark_mode</mat-icon>
+                <span>Dark</span>
+              </span>
+            </mat-button-toggle>
+          </mat-button-toggle-group>
+        </mat-card-content>
+      </mat-card>
+    </section>
 
-    <button mat-button type="button" class="option-block" (click)="requestTool()">
-      <mat-icon class="material-symbols-outlined">tools_power_drill</mat-icon>
-      <span>Request a tool</span>
-    </button>
+    <section class="d-grid gap-2">
+      <h2 class="options-group-title m-0">Notifications</h2>
+      <mat-card appearance="outlined">
+        <mat-card-content class="options-panel-content">
+          <div class="d-flex align-items-center justify-content-between gap-3">
+            <div class="d-grid gap-1">
+              <div class="fw-semibold">Enable notifications</div>
+              <div class="text-body-secondary">Receive updates about requests and returns</div>
+            </div>
 
-    <button mat-button type="button" class="option-block" (click)="requestNotificationPermission()">
-      <mat-icon class="material-symbols-outlined">notifications</mat-icon>
-      <span>Enable notifications</span>
-    </button>
+            <mat-slide-toggle [checked]="notificationsEnabled()" (change)="onNotificationsToggle()"
+              aria-label="Enable notifications" />
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </section>
 
-    <button mat-button type="button" class="option-block" (click)="refresh()" [disabled]="isRefreshing()">
-      <mat-icon class="material-symbols-outlined">refresh</mat-icon>
-      <span>Reload application</span>
-    </button>
+    <section class="d-grid gap-2">
+      <h2 class="options-group-title m-0">Actions</h2>
+      <mat-card appearance="outlined">
+        <div class="list-group list-group-flush options-action-list">
+          <button type="button" class="list-group-item list-group-item-action options-row"
+            (click)="requestTool()">
+            <span class="d-grid gap-1">
+              <span class="fw-semibold text-start">Request a tool</span>
+              <span class="text-body-secondary text-start">Browse and request tools</span>
+            </span>
+            <mat-icon class="material-symbols-outlined">chevron_right</mat-icon>
+          </button>
 
-    <button mat-button type="button" class="option-block" (click)="signOut()">
-      <mat-icon class="material-symbols-outlined">logout</mat-icon>
-      <span>Sign out</span>
-    </button>
-  </div>
+          <button type="button" class="list-group-item list-group-item-action options-row" (click)="refresh()"
+            [disabled]="isRefreshing()">
+            <span class="d-grid gap-1">
+              <span class="fw-semibold text-start">Reload app</span>
+              <span class="text-body-secondary text-start">Refresh data and sync</span>
+            </span>
+            <mat-icon class="material-symbols-outlined">chevron_right</mat-icon>
+          </button>
 
-  <div class="options-version mt-auto pt-4 text-body-secondary small mx-auto">
-    Version {{ version }}
+          <button type="button" class="list-group-item list-group-item-action options-row options-row-danger"
+            (click)="signOut()">
+            <span class="d-grid gap-1">
+              <span class="fw-semibold text-start">Sign out</span>
+              <span class="text-body-secondary text-start">Sign out of your account</span>
+            </span>
+            <mat-icon class="material-symbols-outlined">chevron_right</mat-icon>
+          </button>
+        </div>
+      </mat-card>
+    </section>
+
+    <section class="d-grid gap-2">
+      <h2 class="options-group-title m-0">About</h2>
+      <mat-card appearance="outlined">
+        <div class="list-group list-group-flush options-action-list">
+          <div class="list-group-item options-row options-row-static">
+            <span class="fw-semibold">Version</span>
+            <span class="text-body-secondary">{{ version }}</span>
+          </div>
+
+          <a routerLink="/privacy" class="list-group-item list-group-item-action options-row text-decoration-none">
+            <span class="fw-semibold">Privacy policy</span>
+            <mat-icon class="material-symbols-outlined">chevron_right</mat-icon>
+          </a>
+        </div>
+      </mat-card>
+    </section>
   </div>
 </section>

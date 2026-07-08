@@ -1,0 +1,124 @@
+.my-tools-stat-sheet {
+  display: grid;
+  gap: 18px;
+  padding: 12px 18px calc(18px + env(safe-area-inset-bottom));
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  background: var(--mat-sys-surface-container-low);
+}
+
+.my-tools-stat-sheet-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.my-tools-stat-sheet-title {
+  margin: 0;
+  font: var(--mat-sys-title-large);
+}
+
+.my-tools-stat-sheet-subtitle {
+  margin: 4px 0 0;
+  color: var(--bs-secondary-color);
+}
+
+.my-tools-stat-sheet-chart-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 22px;
+}
+
+.my-tools-stat-sheet-donut {
+  display: grid;
+  width: 132px;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 50%;
+}
+
+.my-tools-stat-sheet-donut-center {
+  display: grid;
+  width: 82px;
+  aspect-ratio: 1;
+  place-items: center;
+  align-content: center;
+  border-radius: 50%;
+  background: var(--mat-sys-surface-container-low);
+}
+
+.my-tools-stat-sheet-donut-center strong {
+  font: var(--mat-sys-title-large);
+}
+
+.my-tools-stat-sheet-donut-center span {
+  color: var(--bs-secondary-color);
+  font-size: 0.78rem;
+}
+
+.my-tools-stat-sheet-metrics {
+  display: grid;
+  gap: 10px;
+}
+
+.my-tools-stat-sheet-metrics div {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.my-tools-stat-sheet-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.my-tools-stat-sheet-dot.borrowed {
+  background: var(--mat-sys-primary);
+}
+
+.my-tools-stat-sheet-dot.available {
+  background: var(--mat-sys-primary-container);
+}
+
+.my-tools-stat-sheet-dot.total {
+  background: var(--mat-sys-outline-variant);
+}
+
+.my-tools-stat-sheet-borrowed h3 {
+  margin: 0 0 10px;
+  font: var(--mat-sys-title-medium);
+}
+
+.my-tools-stat-sheet-list {
+  display: grid;
+  gap: 8px;
+}
+
+.my-tools-stat-sheet-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.my-tools-stat-sheet-list-item > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 420px) {
+  .my-tools-stat-sheet-chart-row {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  .my-tools-stat-sheet-metrics {
+    width: 100%;
+  }
+}

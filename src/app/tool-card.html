@@ -1,0 +1,38 @@
+<mat-card appearance="outlined" class="w-100 d-flex flex-column h-100 tool-card" role="button" tabindex="0"
+  (click)="onView()" (keydown.enter)="onView()" (keydown.space)="onViewFromKeyboard($event)">
+  <div class="tool-image-wrap">
+    <img class="w-100 tool-card-image" mat-card-image [appResolvedSrc]="tool().image || ''" [alt]="tool().name"
+      (error)="fallbackImage($event)" />
+    @if (showAvailabilityBadge()) {
+    <div class="tool-availability" [class.unavailable]="!tool().available">
+      {{ tool().available ? 'Available' : 'Not available' }}
+    </div>
+    }
+  </div>
+
+  <mat-card-header class="tool-header">
+    <mat-card-title>{{ tool().name }}</mat-card-title>
+    <!-- <mat-card-subtitle>{{ tool().id }}</mat-card-subtitle> -->
+  </mat-card-header>
+
+  <mat-card-content class="flex-grow-1 tool-content pb-2">
+    <mat-chip-set class="tool-chip-set">
+      @if (showOwnerChip()) {
+      <mat-chip class="tool-owner-chip">
+        <mat-icon class="material-symbols-outlined" matChipAvatar>person</mat-icon>
+        {{ tool().ownerFirstName || 'Unknown owner' }}
+      </mat-chip>
+      }
+
+      @if (showBorrowerChip()) {
+      <mat-chip #borrowerTooltip="matTooltip" class="tool-owner-chip"
+        [matTooltip]="formatBorrowerLoanDate(tool().activeLoan?.loanDate ?? '')" matTooltipPosition="above"
+        [attr.title]="formatBorrowerLoanDate(tool().activeLoan?.loanDate ?? '')"
+        (click)="$event.stopPropagation(); borrowerTooltip.toggle()">
+        <mat-icon class="material-symbols-outlined" matChipAvatar>assignment_ind</mat-icon>
+        {{ tool().activeLoan?.borrowerFirstName }}
+      </mat-chip>
+      }
+    </mat-chip-set>
+  </mat-card-content>
+</mat-card>

@@ -1,0 +1,55 @@
+<section class="my-tools-stat-sheet" aria-label="My tools statistics">
+  <header class="my-tools-stat-sheet-header">
+    <div>
+      <h2 class="my-tools-stat-sheet-title">My tools</h2>
+      <p class="my-tools-stat-sheet-subtitle">{{ borrowedCount() }} of {{ totalTools() }} borrowed</p>
+    </div>
+    <button mat-icon-button type="button" (click)="close()" aria-label="Close my tools statistics">
+      <mat-icon class="material-symbols-outlined">close</mat-icon>
+    </button>
+  </header>
+
+  <div class="my-tools-stat-sheet-chart-row">
+    <div class="my-tools-stat-sheet-donut" [style.background]="donutBackground()">
+      <div class="my-tools-stat-sheet-donut-center">
+        <strong>{{ borrowedPercent() }}%</strong>
+        <span>borrowed</span>
+      </div>
+    </div>
+
+    <div class="my-tools-stat-sheet-metrics">
+      <div>
+        <span class="my-tools-stat-sheet-dot borrowed"></span>
+        <span>Borrowed out</span>
+        <strong>{{ borrowedCount() }}</strong>
+      </div>
+      <div>
+        <span class="my-tools-stat-sheet-dot available"></span>
+        <span>Available</span>
+        <strong>{{ availableCount() }}</strong>
+      </div>
+      <div>
+        <span class="my-tools-stat-sheet-dot total"></span>
+        <span>Total listed</span>
+        <strong>{{ totalTools() }}</strong>
+      </div>
+    </div>
+  </div>
+
+  @if (borrowedTools().length) {
+  <section class="my-tools-stat-sheet-borrowed">
+    <h3>Borrowed tools</h3>
+    <div class="my-tools-stat-sheet-list">
+      @for (tool of borrowedTools(); track tool.id) {
+      <div class="my-tools-stat-sheet-list-item">
+        <span>{{ tool.name }}</span>
+        <mat-chip>
+          <mat-icon class="material-symbols-outlined" matChipAvatar>assignment_ind</mat-icon>
+          {{ tool.activeLoan?.borrowerFirstName || 'Borrowed' }}
+        </mat-chip>
+      </div>
+      }
+    </div>
+  </section>
+  }
+</section>

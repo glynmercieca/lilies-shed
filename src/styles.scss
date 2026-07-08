@@ -142,24 +142,80 @@ mat-chip mat-icon {
   background: rgba(198, 40, 40, 0.12) !important;
 }
 
-.danger-button:not(:disabled) {
-  color: var(--mat-sys-error) !important;
+.tool-image-preview-dialog-panel {
+  max-width: 100vw !important;
 }
 
-.danger-button:not(:disabled) mat-icon {
-  color: var(--mat-sys-error) !important;
+.tool-image-preview-dialog-panel .mat-mdc-dialog-surface {
+  overflow: hidden;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
-.danger-button:not(:disabled):hover {
-  background: rgba(198, 40, 40, 0.12) !important;
+.rounded-bottom-sheet-panel,
+.rounded-bottom-sheet-panel .mat-bottom-sheet-container,
+.rounded-bottom-sheet-panel.mat-bottom-sheet-container {
+  overflow: hidden !important;
+  border-top-left-radius: 20px !important;
+  border-top-right-radius: 20px !important;
 }
 
-.danger-flat-button:not(:disabled) {
-  background: var(--mat-sys-error) !important;
-  color: var(--mat-sys-on-error) !important;
+.tool-section {
+  min-width: 0;
 }
 
-.danger-flat-button:not(:disabled) mat-icon {
-  color: var(--mat-sys-on-error) !important;
+.tool-section-header h1 {
+  font: var(--mat-sys-headline-medium);
+  letter-spacing: -0.03em;
+}
+
+.tool-section-summary-card {
+  border-radius: 20px !important;
+  border-color: color-mix(in srgb, var(--mat-sys-outline-variant) 84%, transparent) !important;
+  background: color-mix(in srgb, var(--mat-sys-surface-container-low) 82%, transparent);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--mat-sys-shadow) 8%, transparent);
+}
+
+.tool-section-summary-content {
+  padding: 16px !important;
+}
+
+.tool-section-summary-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.tool-section-summary-label {
+  color: var(--bs-secondary-color);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tool-section-summary-value {
+  margin-top: 4px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.tool-section-grid {
+  --bs-gutter-x: 0.875rem;
+  --bs-gutter-y: 0.875rem;
+}
+
+@media (max-width: 599.98px) {
+  .tool-section-grid {
+    --bs-gutter-x: 0.65rem;
+    --bs-gutter-y: 0.65rem;
+  }
+
+  .tool-section-header h1 {
+    font: var(--mat-sys-headline-small);
+  }
 }
 /* You can add global styles to this file, and also import other style files */

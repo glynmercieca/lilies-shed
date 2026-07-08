@@ -1,0 +1,102 @@
+.borrowed-stat-sheet {
+  display: grid;
+  gap: 18px;
+  padding: 12px 18px calc(18px + env(safe-area-inset-bottom));
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  background: var(--mat-sys-surface-container-low);
+}
+
+.borrowed-stat-sheet-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.borrowed-stat-sheet-title {
+  margin: 0;
+  font: var(--mat-sys-title-large);
+}
+
+.borrowed-stat-sheet-subtitle {
+  margin: 4px 0 0;
+  color: var(--bs-secondary-color);
+}
+
+.borrowed-stat-sheet-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.borrowed-stat-sheet-metrics div {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--mat-sys-surface-container-low) 78%, var(--mat-sys-surface));
+}
+
+.borrowed-stat-sheet-metrics span {
+  color: var(--bs-secondary-color);
+  font-size: 0.78rem;
+}
+
+.borrowed-stat-sheet-metrics strong {
+  font: var(--mat-sys-title-large);
+}
+
+.borrowed-stat-sheet-chart h3,
+.borrowed-stat-sheet-latest h3 {
+  margin: 0 0 10px;
+  font: var(--mat-sys-title-medium);
+}
+
+.borrowed-stat-sheet-bars {
+  display: grid;
+  gap: 12px;
+}
+
+.borrowed-stat-sheet-bar-row {
+  display: grid;
+  gap: 6px;
+}
+
+.borrowed-stat-sheet-bar-label,
+.borrowed-stat-sheet-latest-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.borrowed-stat-sheet-bar-label span,
+.borrowed-stat-sheet-latest-row > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.borrowed-stat-sheet-bar-track {
+  overflow: hidden;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--mat-sys-primary-container);
+}
+
+.borrowed-stat-sheet-bar-track span {
+  display: block;
+  height: 100%;
+  min-width: 8px;
+  border-radius: inherit;
+  background: var(--mat-sys-primary);
+}
+
+@media (max-width: 420px) {
+  .borrowed-stat-sheet-metrics {
+    grid-template-columns: 1fr;
+  }
+}

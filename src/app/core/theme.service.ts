@@ -30,6 +30,10 @@ export class ThemeService {
     this.mode.update((mode) => (mode === 'dark' ? 'light' : 'dark'));
   }
 
+  setMode(mode: ThemeMode): void {
+    this.mode.set(mode);
+  }
+
   private resolveInitialMode(): ThemeMode {
     const storedMode = window.localStorage.getItem(THEME_STORAGE_KEY);
     if (storedMode === 'light' || storedMode === 'dark') {

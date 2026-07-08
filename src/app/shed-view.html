@@ -1,0 +1,37 @@
+<section class="tool-section d-grid gap-3">
+  <div class="tool-search-shell" [class.is-focused]="searchFocused()" (focusin)="onSearchFocusIn()"
+    (focusout)="onSearchFocusOut($event)">
+    <mat-icon class="material-symbols-outlined tool-search-icon">search</mat-icon>
+    <input class="tool-search-input" type="search" placeholder="Search tools" [value]="state.searchTerm()"
+      (input)="state.setSearchTerm($any($event.target).value)" />
+    <button mat-icon-button type="button" class="tool-search-settings" [matMenuTriggerFor]="toolSearchMenu"
+      aria-label="Tool search settings">
+      <mat-icon class="material-symbols-outlined">tune</mat-icon>
+    </button>
+  </div>
+
+  <mat-menu #toolSearchMenu="matMenu" xPosition="before">
+    <button mat-menu-item type="button" (click)="state.toggleUnavailableTools()">
+      <mat-icon class="material-symbols-outlined">
+        {{ state.showUnavailableTools() ? 'check_box' : 'check_box_outline_blank' }}
+      </mat-icon>
+      <span>Show unavailable tools</span>
+    </button>
+  </mat-menu>
+
+  <div class="row row-cols-2 row-cols-lg-3 g-3 tool-section-grid">
+    @for (tool of state.filteredTools(); track tool.id) {
+    <div class="col d-flex">
+      <app-tool-card class="w-100" mode="shed" [tool]="tool" (view)="state.openTool($event, 'shed')" />
+    </div>
+    } @empty {
+    <div class="col-12">
+      <mat-card appearance="outlined">
+        <mat-card-content class="flex-grow-1">
+          <p class="m-0">No tools match your current filters right now.</p>
+        </mat-card-content>
+      </mat-card>
+    </div>
+    }
+  </div>
+</section>

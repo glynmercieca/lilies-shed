@@ -1,0 +1,14 @@
+<section class="image-preview" role="dialog" aria-modal="true" aria-label="Image preview"
+  (wheel)="onPreviewWheel($event)">
+  <button mat-icon-button type="button" class="image-preview-close" (click)="close()"
+    aria-label="Close image preview">
+    <mat-icon class="material-symbols-outlined">close</mat-icon>
+  </button>
+  <div class="image-preview-stage" (pointerdown)="onPreviewPointerDown($event)"
+    (pointermove)="onPreviewPointerMove($event)" (pointerup)="onPreviewPointerEnd($event)"
+    (pointercancel)="onPreviewPointerEnd($event)">
+    <img class="image-preview-image" [appResolvedSrc]="data.image" [alt]="data.alt"
+      [style.transform]="'translate3d(' + previewTranslateX() + 'px, ' + previewTranslateY() + 'px, 0) scale(' + previewScale() + ')'"
+      draggable="false" />
+  </div>
+</section>

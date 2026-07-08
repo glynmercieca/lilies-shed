@@ -9,6 +9,7 @@ import {
   MatDialogTitle,
 } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 
@@ -26,6 +27,7 @@ interface DeleteToolDialogData {
     MatDialogContent,
     MatDialogTitle,
     MatButtonModule,
+    MatIconModule,
     MatFormFieldModule,
     MatInputModule,
   ],

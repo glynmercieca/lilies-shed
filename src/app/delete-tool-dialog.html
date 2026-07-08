@@ -1,19 +1,25 @@
 <h2 mat-dialog-title>Delete Tool</h2>
 <mat-dialog-content>
   <p>Delete <strong>{{ data.toolName }}</strong> from the shed.</p>
-  <p class="text-body-secondary">Enter item ID <strong>{{ data.toolId }}</strong> to confirm.</p>
+  <p class="text-body-secondary">Enter tool ID <strong>{{ data.toolId }}</strong> to confirm.</p>
 
   <form [formGroup]="form">
     <mat-form-field appearance="outline" class="w-100">
-      <mat-label>Item ID</mat-label>
+      <mat-label>Tool ID</mat-label>
       <input matInput formControlName="toolId" />
       @if (form.controls.toolId.invalid && form.controls.toolId.touched) {
-        <mat-error>Enter the exact item ID to confirm deletion.</mat-error>
+      <mat-error>Enter the exact tool ID to confirm deletion.</mat-error>
       }
     </mat-form-field>
   </form>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button mat-button mat-dialog-close>Cancel</button>
-  <button mat-flat-button class="danger-flat-button" (click)="confirm()">Delete</button>
+  <button mat-button mat-dialog-close>
+    <mat-icon class="material-symbols-outlined">close</mat-icon>
+    Cancel
+  </button>
+  <button mat-flat-button (click)="confirm()">
+    <mat-icon class="material-symbols-outlined">delete</mat-icon>
+    Delete
+  </button>
 </mat-dialog-actions>
