@@ -24,6 +24,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
     ResolvedImageDirective,
   ],
   templateUrl: './tools-view.html',
+  styleUrl: './tools-view.scss',
   changeDetection: ChangeDetectionStrategy.Eager,
 })
 export class ToolsViewComponent {
