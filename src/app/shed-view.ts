@@ -8,7 +8,7 @@ import { ToolboxStateService } from './core/toolbox-state.service';
 import { ToolCardComponent } from './tool-card';
 
 @Component({
-  selector: 'app-tools-view',
+  selector: 'app-shed-view',
   imports: [
     MatButtonModule,
     MatCardModule,
@@ -20,7 +20,7 @@ import { ToolCardComponent } from './tool-card';
   styleUrl: './shed-view.scss',
   changeDetection: ChangeDetectionStrategy.Eager,
 })
-export class ToolsViewComponent {
+export class ShedViewComponent {
   readonly state = inject(ToolboxStateService);
   readonly searchFocused = signal(false);
 

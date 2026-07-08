@@ -6,12 +6,12 @@ import { ToolboxStateService } from './core/toolbox-state.service';
 import { ToolCardComponent } from './tool-card';
 
 @Component({
-  selector: 'app-my-shed-view',
+  selector: 'app-my-tools-view',
   imports: [MatCardModule, MatIconModule, ToolCardComponent],
-  templateUrl: './my-shed-view.html',
-  styleUrl: './my-shed-view.scss',
+  templateUrl: './my-tools-view.html',
+  styleUrl: './my-tools-view.scss',
   changeDetection: ChangeDetectionStrategy.Eager,
 })
-export class MyShedViewComponent {
+export class MyToolsView {
   readonly state = inject(ToolboxStateService);
 }
