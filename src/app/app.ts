@@ -1,6 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -16,6 +17,7 @@ import { VersionCheckService } from './core/version-check.service';
   selector: 'app-root',
   imports: [
     DatePipe,
+    MatBadgeModule,
     MatButtonModule,
     MatCardModule,
     MatIconModule,
@@ -44,6 +46,7 @@ export class App {
   readonly isPublicRoute = signal(true);
   readonly isHomeRoute = signal(false);
   readonly notificationsOpen = signal(false);
+  readonly headerRaised = signal(false);
   private touchStartX: number | null = null;
   private touchStartY: number | null = null;
   private swipeBlocked = false;
@@ -52,6 +55,7 @@ export class App {
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
       this.isPublicRoute.set(this.checkIsPublicRoute(this.router.url));
       this.isHomeRoute.set(this.checkIsHomeRoute(this.router.url));
+      this.headerRaised.set(false);
       this.closeDrawers();
     });
     this.isPublicRoute.set(this.checkIsPublicRoute(this.router.url));
@@ -81,6 +85,13 @@ export class App {
   closeDrawers(): void {
     this.notificationsOpen.set(false);
     this.state.stopNotificationsLiveRefresh();
+  }
+
+  onContentScroll(event: Event): void {
+    const element = event.target;
+    if (element instanceof HTMLElement) {
+      this.headerRaised.set(element.scrollTop > 0);
+    }
   }
 
   onShellTouchStart(event: TouchEvent): void {

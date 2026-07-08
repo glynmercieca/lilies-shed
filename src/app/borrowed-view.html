@@ -1,12 +1,4 @@
 <section class="tool-section d-grid gap-3">
-  <header class="tool-section-header d-grid gap-1">
-    <h1 class="m-0 d-flex align-items-center gap-2">
-      <mat-icon class="material-symbols-outlined">hand_package</mat-icon>
-      <span>Borrowed</span>
-    </h1>
-    <p class="m-0 text-body-secondary">Track the items you currently have from other people.</p>
-  </header>
-
   <mat-card appearance="outlined" class="tool-section-summary-card">
     <mat-card-content class="tool-section-summary-content">
       <div class="tool-section-summary-top">
@@ -18,23 +10,23 @@
     </mat-card-content>
   </mat-card>
 
-<div class="row row-cols-2 row-cols-lg-3 g-3 tool-section-grid">
-  @for (tool of state.borrowedTools(); track tool.id) {
-  <div class="col d-flex">
-    <app-tool-card class="w-100" mode="borrowed" [tool]="tool" [saving]="state.savingToolId() === tool.id"
-      (return)="state.returnTool($event)" />
+  <div class="row row-cols-2 row-cols-lg-3 g-3 tool-section-grid">
+    @for (tool of state.borrowedTools(); track tool.id) {
+    <div class="col d-flex">
+      <app-tool-card class="w-100" mode="borrowed" [tool]="tool" [saving]="state.savingToolId() === tool.id"
+        (return)="state.returnTool($event)" />
+    </div>
+    } @empty {
+    <div class="col-12">
+      <mat-card appearance="outlined">
+        <mat-card-content class="flex-grow-1">
+          <p class="m-0 fs-5">No borrowed tools right now.</p>
+          <p class="m-0 mt-3 text-body-secondary">
+            Borrowed items will appear here while they are checked out to you.
+          </p>
+        </mat-card-content>
+      </mat-card>
+    </div>
+    }
   </div>
-  } @empty {
-  <div class="col-12">
-    <mat-card appearance="outlined">
-      <mat-card-content class="flex-grow-1">
-        <p class="m-0 fs-5">No borrowed tools right now.</p>
-        <p class="m-0 mt-3 text-body-secondary">
-          Borrowed items will appear here while they are checked out to you.
-        </p>
-      </mat-card-content>
-    </mat-card>
-  </div>
-  }
-</div>
 </section>

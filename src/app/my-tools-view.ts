@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 
@@ -7,7 +8,7 @@ import { ToolCardComponent } from './tool-card';
 
 @Component({
   selector: 'app-my-tools-view',
-  imports: [MatCardModule, MatIconModule, ToolCardComponent],
+  imports: [MatButtonModule, MatCardModule, MatIconModule, ToolCardComponent],
   templateUrl: './my-tools-view.html',
   styleUrl: './my-tools-view.scss',
   changeDetection: ChangeDetectionStrategy.Eager,
