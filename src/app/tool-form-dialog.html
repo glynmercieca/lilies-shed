@@ -37,7 +37,7 @@
       <div class="small text-danger">{{ imageSelectionError() }}</div>
       }
 
-      <input #picker hidden type="file" accept="image/*" capture="environment" (change)="onFilesSelected($event)" />
+      <input #picker hidden type="file" accept="image/*" (change)="onFilesSelected($event)" />
 
       @if (imageUrl() || selectedFile()) {
       <div class="row row-cols-1 row-cols-sm-2 g-2">

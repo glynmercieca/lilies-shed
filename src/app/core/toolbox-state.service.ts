@@ -180,7 +180,7 @@ export class ToolboxStateService {
         tool,
         canBorrow: !matchesUserId(this.auth.currentUser(), tool.ownerId),
       },
-      panelClass: 'tool-bottom-sheet-panel',
+      panelClass: 'rounded-bottom-sheet-panel',
     },
     );
 

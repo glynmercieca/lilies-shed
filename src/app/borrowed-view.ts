@@ -28,7 +28,7 @@ export class BorrowedViewComponent {
       data: {
         tools: this.state.borrowedTools(),
       },
-      panelClass: 'borrowed-stat-bottom-sheet-panel',
+      panelClass: 'rounded-bottom-sheet-panel',
     });
   }
 }

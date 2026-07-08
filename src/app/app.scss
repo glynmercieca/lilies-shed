@@ -37,7 +37,7 @@
 .app-drawer {
   display: flex;
   flex-direction: column;
-  width: min(280px, 84vw);
+  width: min(280px, 80vw);
   height: 100vh;
   position: fixed;
   top: 0;
@@ -198,6 +198,10 @@
 }
 
 @media (max-width: 599.98px) {
+  .app-drawer {
+    width: 80vw;
+  }
+
   .app-header {
     top: max(8px, env(safe-area-inset-top) + 8px);
     width: min(100% - 16px, 520px);

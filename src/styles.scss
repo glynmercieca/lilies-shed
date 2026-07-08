@@ -153,41 +153,12 @@ mat-chip mat-icon {
   box-shadow: none;
 }
 
-.tool-bottom-sheet-panel {
-  overflow: visible !important;
-  padding: 0 !important;
-  border-top-left-radius: 20px !important;
-  border-top-right-radius: 20px !important;
-  background: transparent !important;
-}
-
-.tool-bottom-sheet-panel .mat-bottom-sheet-container,
-.tool-bottom-sheet-panel.mat-bottom-sheet-container {
-  overflow: visible !important;
-  padding: 0 !important;
-  border-top-left-radius: 20px !important;
-  border-top-right-radius: 20px !important;
-  background: transparent !important;
-}
-
-.my-tools-stat-bottom-sheet-panel,
-.my-tools-stat-bottom-sheet-panel .mat-bottom-sheet-container,
-.my-tools-stat-bottom-sheet-panel.mat-bottom-sheet-container {
+.rounded-bottom-sheet-panel,
+.rounded-bottom-sheet-panel .mat-bottom-sheet-container,
+.rounded-bottom-sheet-panel.mat-bottom-sheet-container {
   overflow: hidden !important;
-  padding: 0 !important;
   border-top-left-radius: 20px !important;
   border-top-right-radius: 20px !important;
-  background: transparent !important;
-}
-
-.borrowed-stat-bottom-sheet-panel,
-.borrowed-stat-bottom-sheet-panel .mat-bottom-sheet-container,
-.borrowed-stat-bottom-sheet-panel.mat-bottom-sheet-container {
-  overflow: hidden !important;
-  padding: 0 !important;
-  border-top-left-radius: 20px !important;
-  border-top-right-radius: 20px !important;
-  background: transparent !important;
 }
 
 .tool-section {

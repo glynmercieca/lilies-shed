@@ -1,14 +1,7 @@
 .tool-sheet {
   display: grid;
   gap: 16px;
-  padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
-  border-top-left-radius: 20px;
-  border-top-right-radius: 20px;
-  background: var(--mat-sys-surface-container-low);
-}
-
-.tool-sheet:not(.is-dragging) {
-  transition: transform 140ms ease;
+  padding: 8px 4px calc(12px + env(safe-area-inset-bottom));
 }
 
 .tool-sheet-header {
@@ -23,29 +16,6 @@
   align-items: center;
   justify-content: flex-end;
   gap: 12px;
-}
-
-.tool-sheet-handle {
-  justify-self: center;
-  width: 42px;
-  height: 5px;
-  padding: 0;
-  border: 0;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--mat-sys-on-surface) 28%, transparent);
-  cursor: grab;
-  touch-action: none;
-  transition: transform 140ms ease, background-color 140ms ease;
-}
-
-.tool-sheet-handle:active {
-  cursor: grabbing;
-  background: color-mix(in srgb, var(--mat-sys-on-surface) 38%, transparent);
-}
-
-.tool-sheet-handle:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--mat-sys-primary) 44%, transparent);
-  outline-offset: 6px;
 }
 
 .tool-sheet-title-group {
@@ -127,8 +97,7 @@
 .tool-sheet-actions {
   position: sticky;
   bottom: 0;
-  margin-inline: -18px;
-  padding: 4px 18px 0;
+  padding-top: 4px;
   background: var(--mat-sys-surface-container-low);
 }
 

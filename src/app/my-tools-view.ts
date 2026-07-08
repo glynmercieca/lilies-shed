@@ -24,7 +24,7 @@ export class MyToolsView {
       data: {
         tools: this.state.ownedTools(),
       },
-      panelClass: 'my-tools-stat-bottom-sheet-panel',
+      panelClass: 'rounded-bottom-sheet-panel',
     });
   }
 }

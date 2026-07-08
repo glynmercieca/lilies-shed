@@ -7,14 +7,6 @@
   background: var(--mat-sys-surface-container-low);
 }
 
-.borrowed-stat-sheet-handle {
-  justify-self: center;
-  width: 42px;
-  height: 5px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--mat-sys-on-surface) 28%, transparent);
-}
-
 .borrowed-stat-sheet-header {
   display: flex;
   align-items: flex-start;
