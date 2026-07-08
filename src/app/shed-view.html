@@ -6,7 +6,7 @@
       [matAutocomplete]="toolSearchAutocomplete" (input)="state.setSearchTerm($any($event.target).value)" />
     <mat-autocomplete #toolSearchAutocomplete="matAutocomplete" (optionSelected)="state.setSearchTerm($event.option.value)">
       @for (toolName of state.searchAutocompleteOptions(); track toolName) {
-      <mat-option [value]="toolName">{{ toolName }}</mat-option>
+      <mat-option [value]="toolName">{{ toolName | titlecase }}</mat-option>
       }
     </mat-autocomplete>
     <button mat-icon-button type="button" class="tool-search-settings" [matMenuTriggerFor]="toolSearchMenu"

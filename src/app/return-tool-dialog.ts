@@ -1,3 +1,4 @@
+import { TitleCasePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import {
   MAT_DIALOG_DATA,
@@ -16,7 +17,7 @@ interface ReturnToolDialogData {
 
 @Component({
   selector: 'app-return-tool-dialog',
-  imports: [MatDialogActions, MatDialogClose, MatDialogContent, MatDialogTitle, MatButtonModule, MatIconModule],
+  imports: [MatDialogActions, MatDialogClose, MatDialogContent, MatDialogTitle, MatButtonModule, MatIconModule, TitleCasePipe],
   templateUrl: './return-tool-dialog.html',
   changeDetection: ChangeDetectionStrategy.Eager,
 })

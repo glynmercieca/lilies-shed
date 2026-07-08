@@ -39,7 +39,7 @@ export class ToolboxStateService {
   readonly searchTerm = signal('');
   readonly selectedCategoryId = signal('');
   readonly showUnavailableTools = signal(false);
-  readonly toolSortMode = signal<ToolSortMode>('name');
+  readonly toolSortMode = signal<ToolSortMode>('date-added');
   readonly savingToolId = signal<string | null>(null);
   readonly shedVisibleCount = signal(this.listPageSize);
   readonly borrowedVisibleCount = signal(this.listPageSize);
@@ -166,7 +166,7 @@ export class ToolboxStateService {
     this.searchTerm.set('');
     this.selectedCategoryId.set('');
     this.showUnavailableTools.set(false);
-    this.toolSortMode.set('name');
+    this.toolSortMode.set('date-added');
     this.loadedUserEmail.set(null);
     this.stopNotificationsLiveRefresh();
     await this.router.navigate(['/']);
@@ -305,7 +305,7 @@ export class ToolboxStateService {
       await this.toolbox.addBorrowRequest(tool.documentId, user);
       await this.refresh();
       await this.router.navigate(['/borrowed']);
-      this.notify(`Borrow request saved for ${tool.name}.`);
+      this.notify(`Borrow request saved for ${this.formatToolTitle(tool.name)}.`);
       return true;
     } catch (error) {
       this.notify(error instanceof Error ? error.message : 'Unable to request this tool.');
@@ -336,7 +336,7 @@ export class ToolboxStateService {
     try {
       await this.toolbox.markReturned(tool.activeLoan);
       await this.refresh();
-      this.notify(`${tool.name} marked as returned.`);
+      this.notify(`${this.formatToolTitle(tool.name)} marked as returned.`);
       return true;
     } catch (error) {
       this.notify(error instanceof Error ? error.message : 'Unable to mark this tool as returned.');
@@ -437,7 +437,7 @@ export class ToolboxStateService {
         });
         await this.refresh();
         dialogRef.close(true);
-        this.notify(`${tool.name} updated.`);
+        this.notify(`${this.formatToolTitle(tool.name)} updated.`);
       } catch (error) {
         component.setSaving(false);
         this.notify(error instanceof Error ? error.message : 'Unable to update this tool.');
@@ -473,7 +473,7 @@ export class ToolboxStateService {
     try {
       await this.toolbox.markToolDeleted(tool);
       await this.refresh();
-      this.notify(`${tool.name} deleted.`);
+      this.notify(`${this.formatToolTitle(tool.name)} deleted.`);
       return true;
     } catch (error) {
       this.notify(error instanceof Error ? error.message : 'Unable to delete this tool.');
@@ -570,6 +570,10 @@ export class ToolboxStateService {
     this.resetShedPaging();
     this.borrowedVisibleCount.set(this.listPageSize);
     this.ownedVisibleCount.set(this.listPageSize);
+  }
+
+  private formatToolTitle(value: string): string {
+    return value.toLowerCase().replace(/\b\p{L}/gu, (letter) => letter.toUpperCase());
   }
 
   private compareToolIds(firstId: string, secondId: string): number {

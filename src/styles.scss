@@ -170,6 +170,7 @@ mat-chip mat-icon {
 .rounded-bottom-sheet-panel,
 .rounded-bottom-sheet-panel .mat-bottom-sheet-container,
 .rounded-bottom-sheet-panel.mat-bottom-sheet-container {
+  max-height: calc(100dvh - 16px) !important;
   overflow: hidden !important;
   border-top-left-radius: 20px !important;
   border-top-right-radius: 20px !important;

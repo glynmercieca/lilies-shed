@@ -1,3 +1,4 @@
+import { TitleCasePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import {
   MAT_BOTTOM_SHEET_DATA,
@@ -34,6 +35,7 @@ export interface ToolSheetData {
     MatChipsModule,
     MatIconModule,
     ResolvedImageDirective,
+    TitleCasePipe,
   ],
   templateUrl: './tool-sheet.html',
   styleUrl: './tool-sheet.scss',

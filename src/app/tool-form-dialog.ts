@@ -30,12 +30,28 @@ interface ToolFormDialogData {
 const MAX_IMAGE_FILE_SIZE_BYTES = 32 * 1024 * 1024;
 const CATEGORY_NAME_MATCHERS: ReadonlyArray<{ categoryId: string; terms: readonly string[] }> = [
   {
-    categoryId: 'power-tools',
-    terms: ['drill', 'driver', 'saw', 'sander', 'grinder', 'jigsaw', 'router', 'multitool', 'heat gun', 'nail gun'],
+    categoryId: 'automotive',
+    terms: ['obd', 'odb', 'jump starter', 'battery charger', 'torque wrench', 'axle stand', 'car jack'],
+  },
+  {
+    categoryId: 'measuring-layout',
+    terms: ['tape measure', 'vernier', 'caliper', 'calliper', 'level', 'laser', 'square', 'ruler', 'measure'],
+  },
+  {
+    categoryId: 'electrical',
+    terms: ['ethernet', 'network', 'multimeter', 'clamp meter', 'tester', 'test kit', 'extension lead', 'cable', 'wire stripper', 'crimper', 'soldering', 'solder', 'welder', 'flood light'],
+  },
+  {
+    categoryId: 'plumbing',
+    terms: ['pipe', 'plunger', 'basin', 'tap', 'drain', 'pipe cutter', 'spring bender'],
   },
   {
     categoryId: 'hand-tools',
-    terms: ['hammer', 'screwdriver', 'spanner', 'wrench', 'pliers', 'clamp', 'chisel', 'file', 'socket', 'ratchet'],
+    terms: ['threading', 'screwdriver', 'hammer', 'spanner', 'wrench', 'pliers', 'clamp', 'chisel', 'file', 'socket', 'ratchet', 'miter box', 'mitre box', 'mither box'],
+  },
+  {
+    categoryId: 'power-tools',
+    terms: ['drill', 'impact driver', 'saw', 'sander', 'grinder', 'jigsaw', 'router', 'multitool', 'heat gun', 'nail gun'],
   },
   {
     categoryId: 'garden-outdoor',
@@ -46,20 +62,8 @@ const CATEGORY_NAME_MATCHERS: ReadonlyArray<{ categoryId: string; terms: readonl
     terms: ['ladder', 'steps', 'step ladder', 'scaffold', 'platform'],
   },
   {
-    categoryId: 'electrical',
-    terms: ['multimeter', 'tester', 'extension lead', 'cable', 'wire stripper', 'crimper', 'soldering'],
-  },
-  {
-    categoryId: 'plumbing',
-    terms: ['pipe', 'plunger', 'wrench', 'basin', 'tap', 'drain', 'cutter'],
-  },
-  {
     categoryId: 'painting-decorating',
     terms: ['paint', 'brush', 'roller', 'tray', 'scraper', 'wallpaper', 'decorating'],
-  },
-  {
-    categoryId: 'measuring-layout',
-    terms: ['tape measure', 'level', 'laser', 'square', 'ruler', 'caliper', 'measure'],
   },
   {
     categoryId: 'safety',
@@ -67,11 +71,7 @@ const CATEGORY_NAME_MATCHERS: ReadonlyArray<{ categoryId: string; terms: readonl
   },
   {
     categoryId: 'cleaning',
-    terms: ['vacuum', 'washer', 'pressure washer', 'mop', 'bucket', 'broom', 'cleaner'],
-  },
-  {
-    categoryId: 'automotive',
-    terms: ['jack', 'jump starter', 'battery charger', 'torque wrench', 'axle stand', 'car'],
+    terms: ['vacuum', 'washer', 'pressure washer', 'mop', 'bucket', 'broom', 'cleaner', 'air duster'],
   },
 ];
 

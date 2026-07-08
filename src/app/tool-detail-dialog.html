@@ -1,4 +1,4 @@
-<h2 mat-dialog-title>{{ data.tool.name }}</h2>
+<h2 mat-dialog-title>{{ data.tool.name | titlecase }}</h2>
 <mat-dialog-content>
   <mat-card appearance="outlined">
     <img class="w-100" mat-card-image [appResolvedSrc]="data.tool.image" [alt]="data.tool.name"

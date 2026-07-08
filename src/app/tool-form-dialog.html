@@ -26,7 +26,7 @@
 
     <mat-form-field appearance="outline" class="w-100">
       <mat-label>Description</mat-label>
-      <textarea matInput rows="4" formControlName="description"></textarea>
+      <textarea matInput rows="2" formControlName="description"></textarea>
       @if (form.controls.description.invalid && form.controls.description.touched) {
       <mat-error>Description is required.</mat-error>
       }
@@ -34,7 +34,7 @@
 
     <mat-form-field appearance="outline" class="w-100">
       <mat-label>Notes</mat-label>
-      <textarea matInput rows="3" formControlName="notes"></textarea>
+      <textarea matInput rows="2" formControlName="notes"></textarea>
     </mat-form-field>
 
     <div class="d-grid gap-2">
@@ -44,7 +44,7 @@
           {{ imageUrl() || selectedFile() ? 'Replace photo' : 'Add photo' }}
         </button>
         <span class="text-body-secondary small">
-          Open the camera or gallery on mobile to attach one tool image. Max file size up to {{ maxImageSizeMb }} MB.
+          Max file size up to {{ maxImageSizeMb }} MB.
         </span>
       </div>
 

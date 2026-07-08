@@ -1,3 +1,4 @@
+import { TitleCasePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
@@ -18,6 +19,7 @@ type ToolCardMode = 'shed' | 'borrowed' | 'my-tools';
     MatIconModule,
     MatTooltipModule,
     ResolvedImageDirective,
+    TitleCasePipe,
   ],
   templateUrl: './tool-card.html',
   styleUrl: './tool-card.scss',

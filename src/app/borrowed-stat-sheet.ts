@@ -1,3 +1,4 @@
+import { TitleCasePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import {
   MAT_BOTTOM_SHEET_DATA,
@@ -27,6 +28,7 @@ interface OwnerStat {
     MatButtonModule,
     MatChipsModule,
     MatIconModule,
+    TitleCasePipe,
   ],
   templateUrl: './borrowed-stat-sheet.html',
   styleUrl: './borrowed-stat-sheet.scss',
