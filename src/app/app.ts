@@ -105,6 +105,7 @@ export class App implements OnDestroy {
       return;
     }
 
+    this.now.set(Date.now());
     this.notificationsOpen.set(true);
     this.state.startNotificationsLiveRefresh();
   }
