@@ -1,4 +1,5 @@
-<mat-card appearance="outlined" class="w-100 d-flex flex-column h-100 tool-card">
+<mat-card appearance="outlined" class="w-100 d-flex flex-column h-100 tool-card" role="button" tabindex="0"
+  (click)="onView()" (keydown.enter)="onView()" (keydown.space)="onViewFromKeyboard($event)">
   <div class="tool-image-wrap">
     <img class="w-100 tool-card-image" mat-card-image [appResolvedSrc]="tool().image || ''" [alt]="tool().name"
       (error)="fallbackImage($event)" />
@@ -33,7 +34,8 @@
       @if (showBorrowerChip()) {
       <mat-chip #borrowerTooltip="matTooltip" class="tool-owner-chip"
         [matTooltip]="formatBorrowerLoanDate(tool().activeLoan?.loanDate ?? '')" matTooltipPosition="above"
-        [attr.title]="formatBorrowerLoanDate(tool().activeLoan?.loanDate ?? '')" (click)="borrowerTooltip.toggle()">
+        [attr.title]="formatBorrowerLoanDate(tool().activeLoan?.loanDate ?? '')"
+        (click)="$event.stopPropagation(); borrowerTooltip.toggle()">
         <mat-icon class="material-symbols-outlined" matChipAvatar>assignment_ind</mat-icon>
         {{ tool().activeLoan?.borrowerFirstName }}
       </mat-chip>
@@ -48,31 +50,4 @@
     </mat-chip-set>
   </mat-card-content>
 
-  <mat-card-actions align="end" class="tool-actions">
-    @if (mode() === 'shed') {
-    <button mat-button type="button" class="tool-view-button" (click)="onView()">
-      View
-      <mat-icon class="material-symbols-outlined">arrow_outward</mat-icon>
-    </button>
-    }
-
-    @if (mode() === 'borrowed') {
-    <button mat-button type="button" class="tool-view-button" (click)="onReturn()" [disabled]="saving()">
-      Return
-      <mat-icon class="material-symbols-outlined">assignment_return</mat-icon>
-    </button>
-    }
-
-    @if (mode() === 'my-tools') {
-    <button mat-button class="danger-button tool-action-button" type="button" (click)="onDelete()"
-      [disabled]="isDeleteDisabled()">
-      <mat-icon class="material-symbols-outlined">delete</mat-icon>
-      Delete
-    </button>
-    <button mat-button type="button" class="tool-action-button" (click)="onEdit()" [disabled]="isEditDisabled()">
-      <mat-icon class="material-symbols-outlined">edit</mat-icon>
-      Edit
-    </button>
-    }
-  </mat-card-actions>
 </mat-card>

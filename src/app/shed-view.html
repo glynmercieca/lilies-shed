@@ -22,7 +22,7 @@
   <div class="row row-cols-2 row-cols-lg-3 g-3 tool-section-grid">
     @for (tool of state.filteredTools(); track tool.id) {
     <div class="col d-flex">
-      <app-tool-card class="w-100" mode="shed" [tool]="tool" (view)="state.openTool($event)" />
+      <app-tool-card class="w-100" mode="shed" [tool]="tool" (view)="state.openTool($event, 'shed')" />
     </div>
     } @empty {
     <div class="col-12">

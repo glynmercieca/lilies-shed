@@ -1,0 +1,83 @@
+.tool-sheet {
+  display: grid;
+  gap: 16px;
+  padding: 8px 4px calc(12px + env(safe-area-inset-bottom));
+}
+
+.tool-sheet-header,
+.tool-sheet-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tool-sheet-title-group {
+  min-width: 0;
+}
+
+.tool-sheet-title {
+  margin: 0;
+  overflow: hidden;
+  font-size: 1.35rem;
+  font-weight: 500;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tool-sheet-subtitle,
+.tool-sheet-label {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.86rem;
+}
+
+.tool-sheet-image-frame {
+  overflow: hidden;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 8px;
+  background: var(--mat-sys-surface-container-low);
+}
+
+.tool-sheet-image {
+  display: block;
+  width: 100%;
+  max-height: min(42vh, 360px);
+  object-fit: contain;
+}
+
+.tool-sheet-chips {
+  row-gap: 8px;
+}
+
+.tool-sheet-details {
+  display: grid;
+  gap: 12px;
+}
+
+.tool-sheet-details p {
+  margin: 4px 0 0;
+}
+
+.tool-sheet-actions {
+  position: sticky;
+  bottom: 0;
+  padding-top: 4px;
+  background: var(--mat-sys-surface-container-low);
+}
+
+.tool-sheet-actions:empty {
+  display: none;
+}
+
+.danger-button {
+  color: var(--mat-sys-error);
+}
+
+.available-chip {
+  --mdc-chip-label-text-color: var(--mat-sys-primary);
+}
+
+.unavailable-chip {
+  --mdc-chip-label-text-color: var(--mat-sys-error);
+}

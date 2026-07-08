@@ -13,8 +13,7 @@
   <div class="row row-cols-2 row-cols-lg-3 g-3 tool-section-grid">
     @for (tool of state.ownedTools(); track tool.id) {
     <div class="col d-flex">
-      <app-tool-card class="w-100" mode="my-tools" [tool]="tool" [saving]="state.savingToolId() === tool.id"
-        (delete)="state.deleteTool($event)" (edit)="state.editTool($event)" />
+      <app-tool-card class="w-100" mode="my-tools" [tool]="tool" (view)="state.openTool($event, 'my-tools')" />
     </div>
     } @empty {
     <div class="col-12">

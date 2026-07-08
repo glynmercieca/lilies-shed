@@ -7,6 +7,22 @@
   overflow: hidden;
   border-radius: 18px;
   box-shadow: 0 10px 24px color-mix(in srgb, var(--mat-sys-shadow) 10%, transparent);
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.tool-card:hover {
+  border-color: color-mix(in srgb, var(--mat-sys-primary) 38%, var(--mat-sys-outline-variant));
+  box-shadow: 0 14px 30px color-mix(in srgb, var(--mat-sys-shadow) 14%, transparent);
+  transform: translateY(-1px);
+}
+
+.tool-card:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--mat-sys-primary) 44%, transparent);
+  outline-offset: 3px;
 }
 
 .tool-image-wrap {
@@ -67,32 +83,6 @@
 .tool-owner-chip {
   min-height: 28px;
   font-size: 0.78rem;
-}
-
-.tool-actions {
-  padding: 4px 6px 8px 12px;
-}
-
-.tool-view-button,
-.tool-action-button {
-  min-height: 34px;
-  font-weight: 600;
-}
-
-.tool-view-button {
-  padding-inline: 10px 6px;
-  color: var(--mat-sys-primary);
-}
-
-.tool-view-button mat-icon {
-  margin-left: 2px;
-  font-size: 1.1rem;
-  width: 1.1rem;
-  height: 1.1rem;
-}
-
-.tool-action-button {
-  padding-inline: 10px;
 }
 
 @media (max-width: 599.98px) {

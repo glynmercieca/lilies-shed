@@ -13,8 +13,7 @@
   <div class="row row-cols-2 row-cols-lg-3 g-3 tool-section-grid">
     @for (tool of state.borrowedTools(); track tool.id) {
     <div class="col d-flex">
-      <app-tool-card class="w-100" mode="borrowed" [tool]="tool" [saving]="state.savingToolId() === tool.id"
-        (return)="state.returnTool($event)" />
+      <app-tool-card class="w-100" mode="borrowed" [tool]="tool" (view)="state.openTool($event, 'borrowed')" />
     </div>
     } @empty {
     <div class="col-12">

@@ -1,4 +1,5 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
@@ -13,15 +14,16 @@ import { APP_SETTINGS } from './app-settings';
 import { matchesUserId } from './identity.util';
 import { SheetsSnapshot, ToolWithStatus } from './models';
 import { decorateTools } from './tool-status.util';
-import { ToolDetailDialogComponent } from '../tool-detail-dialog';
 import { DeleteToolDialogComponent } from '../delete-tool-dialog';
 import { NotificationOptInDialogComponent } from '../notification-opt-in-dialog';
 import { RequestToolDialogComponent } from '../request-tool-dialog';
 import { ReturnToolDialogComponent } from '../return-tool-dialog';
+import { ToolSheetAction, ToolSheetComponent, ToolSheetMode } from '../tool-sheet';
 import { ToolFormDialogComponent } from '../tool-form-dialog';
 
 @Injectable({ providedIn: 'root' })
 export class ToolboxStateService {
+  private readonly bottomSheet = inject(MatBottomSheet);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly toolbox = inject(FirestoreToolboxService);
@@ -168,45 +170,45 @@ export class ToolboxStateService {
     this.notificationsSubscription = null;
   }
 
-  async openTool(tool: ToolWithStatus): Promise<void> {
-    const dialogRef = this.dialog.open(ToolDetailDialogComponent, {
+  async openTool(tool: ToolWithStatus, mode: ToolSheetMode = 'shed'): Promise<void> {
+    const sheetRef = this.bottomSheet.open<ToolSheetComponent, unknown, ToolSheetAction>(
+      ToolSheetComponent,
+      {
       data: {
+        mode,
+        saving: this.savingToolId() === tool.id,
         tool,
         canBorrow: !matchesUserId(this.auth.currentUser(), tool.ownerId),
       },
-      maxWidth: '640px',
-      width: 'min(92vw, 640px)',
-    });
-    const component = dialogRef.componentInstance;
-    if (!component) {
+      panelClass: 'tool-bottom-sheet-panel',
+    },
+    );
+
+    const action = await firstValueFrom(sheetRef.afterDismissed());
+    if (!action) {
       return;
     }
 
-    let borrowSubscription: Subscription | null = null;
-    borrowSubscription = component.borrowRequested.subscribe(async () => {
-      const user = this.auth.currentUser();
-      if (!user || !tool.available || component.saving()) {
-        return;
-      }
+    await this.handleToolSheetAction(action, tool);
+  }
 
-      component.setSaving(true);
-      this.savingToolId.set(tool.id);
+  private async handleToolSheetAction(action: ToolSheetAction, tool: ToolWithStatus): Promise<void> {
+    if (action === 'borrow') {
+      await this.borrowTool(tool);
+      return;
+    }
 
-      try {
-        await this.toolbox.addBorrowRequest(tool.documentId, user);
-        await this.refresh();
-        dialogRef.close(true);
-        await this.router.navigate(['/borrowed']);
-        this.notify(`Borrow request saved for ${tool.name}.`);
-      } catch (error) {
-        component.setSaving(false);
-        this.notify(error instanceof Error ? error.message : 'Unable to request this tool.');
-      } finally {
-        this.savingToolId.set(null);
-      }
-    });
+    if (action === 'return') {
+      await this.returnTool(tool);
+      return;
+    }
 
-    dialogRef.afterClosed().subscribe(() => borrowSubscription?.unsubscribe());
+    if (action === 'edit') {
+      await this.editTool(tool);
+      return;
+    }
+
+    await this.deleteTool(tool);
   }
 
   async borrowTool(tool: ToolWithStatus): Promise<void> {

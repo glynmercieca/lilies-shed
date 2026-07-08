@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
@@ -14,7 +13,6 @@ type ToolCardMode = 'shed' | 'borrowed' | 'my-tools';
 @Component({
   selector: 'app-tool-card',
   imports: [
-    MatButtonModule,
     MatCardModule,
     MatChipsModule,
     MatIconModule,
@@ -28,12 +26,8 @@ type ToolCardMode = 'shed' | 'borrowed' | 'my-tools';
 export class ToolCardComponent {
   readonly mode = input.required<ToolCardMode>();
   readonly tool = input.required<ToolWithStatus>();
-  readonly saving = input(false);
 
   readonly view = output<ToolWithStatus>();
-  readonly return = output<ToolWithStatus>();
-  readonly edit = output<ToolWithStatus>();
-  readonly delete = output<ToolWithStatus>();
 
   protected readonly fallbackImage = fallbackImage;
   protected readonly showAvailabilityBadge = computed(() => this.mode() !== 'borrowed');
@@ -45,9 +39,6 @@ export class ToolCardComponent {
   protected readonly showAvailabilityChip = computed(
     () => this.mode() === 'my-tools' && !this.tool().activeLoan?.borrowerFirstName,
   );
-  protected readonly isDeleteDisabled = computed(() => !this.tool().available || this.saving());
-  protected readonly isEditDisabled = computed(() => !this.tool().available || this.saving());
-
   private readonly longDateFormatter = new Intl.DateTimeFormat(undefined, {
     dateStyle: 'long',
   });
@@ -60,16 +51,9 @@ export class ToolCardComponent {
     this.view.emit(this.tool());
   }
 
-  onReturn(): void {
-    this.return.emit(this.tool());
-  }
-
-  onEdit(): void {
-    this.edit.emit(this.tool());
-  }
-
-  onDelete(): void {
-    this.delete.emit(this.tool());
+  onViewFromKeyboard(event: Event): void {
+    event.preventDefault();
+    this.onView();
   }
 
   formatBorrowedDate(value: string): string {
