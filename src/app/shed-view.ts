@@ -1,29 +1,23 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
+import { MatMenuModule } from '@angular/material/menu';
 
-import { ToolCardComponent } from './shed-tool-card';
 import { ToolboxStateService } from './core/toolbox-state.service';
-import { MatTooltipModule } from '@angular/material/tooltip';
+import { ToolCardComponent } from './tool-card';
 
 @Component({
   selector: 'app-tools-view',
   imports: [
     MatButtonModule,
     MatCardModule,
-    MatChipsModule,
-    MatFormFieldModule,
-    MatTooltipModule,
     MatIconModule,
-    MatInputModule,
+    MatMenuModule,
     ToolCardComponent,
   ],
-  templateUrl: './tools-view.html',
-  styleUrl: './tools-view.scss',
+  templateUrl: './shed-view.html',
+  styleUrl: './shed-view.scss',
   changeDetection: ChangeDetectionStrategy.Eager,
 })
 export class ToolsViewComponent {

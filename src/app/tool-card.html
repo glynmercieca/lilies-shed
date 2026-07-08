@@ -1,37 +1,37 @@
-<mat-card appearance="outlined" class="w-100 d-flex flex-column h-100 shed-tool-card">
-  <div class="shed-tool-image-wrap">
+<mat-card appearance="outlined" class="w-100 d-flex flex-column h-100 tool-card">
+  <div class="tool-image-wrap">
     <img class="w-100 tool-card-image" mat-card-image [appResolvedSrc]="tool().image || ''" [alt]="tool().name"
       (error)="fallbackImage($event)" />
     @if (showAvailabilityBadge()) {
-    <div class="shed-tool-availability" [class.unavailable]="!tool().available">
+    <div class="tool-availability" [class.unavailable]="!tool().available">
       {{ tool().available ? 'Available' : 'Not available' }}
     </div>
     }
   </div>
 
-  <mat-card-header class="shed-tool-header">
+  <mat-card-header class="tool-header">
     <mat-card-title>{{ tool().name }}</mat-card-title>
     <mat-card-subtitle>{{ tool().id }}</mat-card-subtitle>
   </mat-card-header>
 
-  <mat-card-content class="flex-grow-1 shed-tool-content">
-    <mat-chip-set class="shed-tool-chip-set">
+  <mat-card-content class="flex-grow-1 tool-content">
+    <mat-chip-set class="tool-chip-set">
       @if (showOwnerChip()) {
-      <mat-chip class="shed-owner-chip">
+      <mat-chip class="tool-owner-chip">
         <mat-icon class="material-symbols-outlined" matChipAvatar>person</mat-icon>
         {{ tool().ownerFirstName || 'Unknown owner' }}
       </mat-chip>
       }
 
       @if (showBorrowedDateChip() && tool().activeLoan?.loanDate) {
-      <mat-chip class="shed-owner-chip">
+      <mat-chip class="tool-owner-chip">
         <mat-icon class="material-symbols-outlined" matChipAvatar>event</mat-icon>
         {{ formatBorrowedDate(tool().activeLoan?.loanDate ?? '') }}
       </mat-chip>
       }
 
       @if (showBorrowerChip()) {
-      <mat-chip #borrowerTooltip="matTooltip" class="shed-owner-chip"
+      <mat-chip #borrowerTooltip="matTooltip" class="tool-owner-chip"
         [matTooltip]="formatBorrowerLoanDate(tool().activeLoan?.loanDate ?? '')" matTooltipPosition="above"
         [attr.title]="formatBorrowerLoanDate(tool().activeLoan?.loanDate ?? '')" (click)="borrowerTooltip.toggle()">
         <mat-icon class="material-symbols-outlined" matChipAvatar>assignment_ind</mat-icon>
@@ -40,7 +40,7 @@
       }
 
       @if (showAvailabilityChip()) {
-      <mat-chip class="shed-owner-chip available-chip">
+      <mat-chip class="tool-owner-chip available-chip">
         <mat-icon class="material-symbols-outlined" matChipAvatar>check_circle</mat-icon>
         Available
       </mat-chip>
@@ -48,28 +48,28 @@
     </mat-chip-set>
   </mat-card-content>
 
-  <mat-card-actions align="end" class="shed-tool-actions">
+  <mat-card-actions align="end" class="tool-actions">
     @if (mode() === 'shed') {
-    <button mat-button type="button" class="shed-view-button" (click)="onView()">
+    <button mat-button type="button" class="tool-view-button" (click)="onView()">
       View
       <mat-icon class="material-symbols-outlined">arrow_outward</mat-icon>
     </button>
     }
 
     @if (mode() === 'borrowed') {
-    <button mat-button type="button" class="shed-view-button" (click)="onReturn()" [disabled]="saving()">
+    <button mat-button type="button" class="tool-view-button" (click)="onReturn()" [disabled]="saving()">
       Return
       <mat-icon class="material-symbols-outlined">assignment_return</mat-icon>
     </button>
     }
 
     @if (mode() === 'my-tools') {
-    <button mat-button class="danger-button shed-action-button" type="button" (click)="onDelete()"
+    <button mat-button class="danger-button tool-action-button" type="button" (click)="onDelete()"
       [disabled]="isDeleteDisabled()">
       <mat-icon class="material-symbols-outlined">delete</mat-icon>
       Delete
     </button>
-    <button mat-button type="button" class="shed-action-button" (click)="onEdit()" [disabled]="isEditDisabled()">
+    <button mat-button type="button" class="tool-action-button" (click)="onEdit()" [disabled]="isEditDisabled()">
       <mat-icon class="material-symbols-outlined">edit</mat-icon>
       Edit
     </button>

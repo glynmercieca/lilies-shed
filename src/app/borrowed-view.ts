@@ -2,8 +2,8 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 
-import { ToolCardComponent } from './shed-tool-card';
 import { ToolboxStateService } from './core/toolbox-state.service';
+import { ToolCardComponent } from './tool-card';
 
 @Component({
   selector: 'app-borrowed-view',

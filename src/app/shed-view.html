@@ -16,26 +16,27 @@
         </div>
       </div>
 
-      <mat-form-field appearance="outline" class="flex-grow-1 mb-0" (focusin)="onSearchFocusIn()"
+      <div class="tool-search-shell" [class.is-focused]="searchFocused()" (focusin)="onSearchFocusIn()"
         (focusout)="onSearchFocusOut($event)">
-        <mat-label>Search tools</mat-label>
-        <input matInput [value]="state.searchTerm()" (input)="state.setSearchTerm($any($event.target).value)" />
-        @if (searchFocused()) {
-        <button mat-icon-button matSuffix type="button"
-          [attr.aria-label]="state.showUnavailableTools() ? 'Hide unavailable tools' : 'Show unavailable tools'"
-          (click)="state.toggleUnavailableTools()">
-          <mat-icon class="material-symbols-outlined"
-            matTooltip="{{ state.showUnavailableTools() ? 'Hide unavailable tools' : 'Show unavailable tools' }}">
-            {{ state.showUnavailableTools() ? 'visibility_off' : 'visibility' }}
-          </mat-icon>
+        <mat-icon class="material-symbols-outlined tool-search-icon">search</mat-icon>
+        <input class="tool-search-input" type="search" placeholder="Search tools" [value]="state.searchTerm()"
+          (input)="state.setSearchTerm($any($event.target).value)" />
+        <button mat-icon-button type="button" class="tool-search-settings" [matMenuTriggerFor]="toolSearchMenu"
+          aria-label="Tool search settings">
+          <mat-icon class="material-symbols-outlined">tune</mat-icon>
         </button>
-        }
-        <button mat-icon-button matSuffix type="button" aria-label="Search tools">
-          <mat-icon class="material-symbols-outlined">search</mat-icon>
-        </button>
-      </mat-form-field>
+      </div>
     </mat-card-content>
   </mat-card>
+
+  <mat-menu #toolSearchMenu="matMenu" xPosition="before">
+    <button mat-menu-item type="button" (click)="state.toggleUnavailableTools()">
+      <mat-icon class="material-symbols-outlined">
+        {{ state.showUnavailableTools() ? 'check_box' : 'check_box_outline_blank' }}
+      </mat-icon>
+      <span>Show unavailable tools</span>
+    </button>
+  </mat-menu>
 
 <div class="row row-cols-2 row-cols-lg-3 g-3 tool-section-grid">
   @for (tool of state.filteredTools(); track tool.id) {

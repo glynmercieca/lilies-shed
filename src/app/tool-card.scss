@@ -3,25 +3,25 @@
   min-width: 0;
 }
 
-.shed-tool-card {
+.tool-card {
   overflow: hidden;
   border-radius: 18px;
   box-shadow: 0 10px 24px color-mix(in srgb, var(--mat-sys-shadow) 10%, transparent);
 }
 
-.shed-tool-image-wrap {
+.tool-image-wrap {
   position: relative;
   overflow: hidden;
   aspect-ratio: 6 / 5;
   background: color-mix(in srgb, var(--mat-sys-surface-container) 78%, transparent);
 }
 
-.shed-tool-image-wrap .tool-card-image {
+.tool-image-wrap .tool-card-image {
   height: 100%;
   margin: 0;
 }
 
-.shed-tool-availability {
+.tool-availability {
   position: absolute;
   left: 10px;
   bottom: 10px;
@@ -35,72 +35,72 @@
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
 }
 
-.shed-tool-availability.unavailable {
+.tool-availability.unavailable {
   background: color-mix(in srgb, #fde0e0 88%, white);
   color: #a13636;
 }
 
-.shed-tool-header {
+.tool-header {
   padding: 12px 12px 0;
 }
 
-.shed-tool-header .mat-mdc-card-title {
+.tool-header .mat-mdc-card-title {
   font-size: 1.02rem;
   line-height: 1.18;
   font-weight: 500;
 }
 
-.shed-tool-header .mat-mdc-card-subtitle {
+.tool-header .mat-mdc-card-subtitle {
   margin-top: 3px;
   font-size: 0.8rem;
   font-weight: 600;
 }
 
-.shed-tool-content {
+.tool-content {
   padding: 8px 12px 0;
 }
 
-.shed-tool-chip-set {
+.tool-chip-set {
   margin-bottom: 0;
 }
 
-.shed-owner-chip {
+.tool-owner-chip {
   min-height: 28px;
   font-size: 0.78rem;
 }
 
-.shed-tool-actions {
+.tool-actions {
   padding: 4px 6px 8px 12px;
 }
 
-.shed-view-button,
-.shed-action-button {
+.tool-view-button,
+.tool-action-button {
   min-height: 34px;
   font-weight: 600;
 }
 
-.shed-view-button {
+.tool-view-button {
   padding-inline: 10px 6px;
   color: var(--mat-sys-primary);
 }
 
-.shed-view-button mat-icon {
+.tool-view-button mat-icon {
   margin-left: 2px;
   font-size: 1.1rem;
   width: 1.1rem;
   height: 1.1rem;
 }
 
-.shed-action-button {
+.tool-action-button {
   padding-inline: 10px;
 }
 
 @media (max-width: 599.98px) {
-  .shed-tool-header .mat-mdc-card-title {
+  .tool-header .mat-mdc-card-title {
     font-size: 0.96rem;
   }
 
-  .shed-owner-chip {
+  .tool-owner-chip {
     font-size: 0.74rem;
   }
 }

@@ -9,7 +9,7 @@ import { ToolWithStatus } from './core/models';
 import { fallbackImage } from './core/image-url.util';
 import { ResolvedImageDirective } from './core/resolved-image.directive';
 
-type ShedToolCardMode = 'shed' | 'borrowed' | 'my-tools';
+type ToolCardMode = 'shed' | 'borrowed' | 'my-tools';
 
 @Component({
   selector: 'app-tool-card',
@@ -21,12 +21,12 @@ type ShedToolCardMode = 'shed' | 'borrowed' | 'my-tools';
     MatTooltipModule,
     ResolvedImageDirective,
   ],
-  templateUrl: './shed-tool-card.html',
-  styleUrl: './shed-tool-card.scss',
+  templateUrl: './tool-card.html',
+  styleUrl: './tool-card.scss',
   changeDetection: ChangeDetectionStrategy.Eager,
 })
 export class ToolCardComponent {
-  readonly mode = input.required<ShedToolCardMode>();
+  readonly mode = input.required<ToolCardMode>();
   readonly tool = input.required<ToolWithStatus>();
   readonly saving = input(false);
 
