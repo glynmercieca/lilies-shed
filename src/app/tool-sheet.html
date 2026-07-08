@@ -1,12 +1,19 @@
-<section class="tool-sheet" aria-label="Tool details">
+<section class="tool-sheet" [class.is-dragging]="isDragging()" [style.transform]="'translateY(' + dragOffset() + 'px)'"
+  aria-label="Tool details">
+  <button class="tool-sheet-handle" type="button" aria-label="Drag down to close tool details"
+    (click)="onHandleClick($event)"
+    (keydown.enter)="close()"
+    (keydown.space)="close()"
+    (pointerdown)="onHandlePointerDown($event)"
+    (pointermove)="onHandlePointerMove($event)"
+    (pointerup)="onHandlePointerEnd($event)"
+    (pointercancel)="onHandlePointerEnd($event)">
+  </button>
   <div class="tool-sheet-header">
     <div class="tool-sheet-title-group">
       <h2 class="tool-sheet-title">{{ data.tool.name }}</h2>
-      <div class="tool-sheet-subtitle">{{ data.tool.id }}</div>
+      <div class="tool-sheet-subtitle">#{{ data.tool.id }}</div>
     </div>
-    <button mat-icon-button type="button" (click)="close()" aria-label="Close tool details">
-      <mat-icon class="material-symbols-outlined">close</mat-icon>
-    </button>
   </div>
 
   <div class="tool-sheet-image-frame" [class.is-previewable]="canPreviewImage()" (click)="openImagePreview()"
@@ -31,10 +38,12 @@
       {{ data.tool.activeLoan?.borrowerFirstName }}
     </mat-chip>
     }
+    @if (showBorrowedDateChip()) {
     <mat-chip>
-      <mat-icon class="material-symbols-outlined" matChipAvatar>tag</mat-icon>
-      {{ data.tool.id }}
+      <mat-icon class="material-symbols-outlined" matChipAvatar>event</mat-icon>
+      {{ formatBorrowedDate(data.tool.activeLoan?.loanDate ?? '') }}
     </mat-chip>
+    }
   </mat-chip-set>
 
   <div class="tool-sheet-details">
@@ -54,7 +63,7 @@
   <div class="tool-sheet-actions">
     @if (data.mode === 'shed' && data.canBorrow && data.tool.available) {
     <button mat-flat-button type="button" (click)="selectAction('borrow')" [disabled]="data.saving">
-      <mat-icon class="material-symbols-outlined">add_shopping_cart</mat-icon>
+      <mat-icon class="material-symbols-outlined">hand_package</mat-icon>
       Borrow
     </button>
     }
@@ -67,7 +76,7 @@
     }
 
     @if (data.mode === 'my-tools') {
-    <button mat-button class="danger-button" type="button" (click)="selectAction('delete')"
+    <button mat-button type="button" (click)="selectAction('delete')"
       [disabled]="!data.tool.available || data.saving">
       <mat-icon class="material-symbols-outlined">delete</mat-icon>
       Delete

@@ -142,18 +142,6 @@ mat-chip mat-icon {
   background: rgba(198, 40, 40, 0.12) !important;
 }
 
-.danger-button:not(:disabled) {
-  color: var(--mat-sys-error) !important;
-}
-
-.danger-button:not(:disabled) mat-icon {
-  color: var(--mat-sys-error) !important;
-}
-
-.danger-button:not(:disabled):hover {
-  background: rgba(198, 40, 40, 0.12) !important;
-}
-
 .tool-image-preview-dialog-panel {
   max-width: 100vw !important;
 }
@@ -165,13 +153,21 @@ mat-chip mat-icon {
   box-shadow: none;
 }
 
-.danger-flat-button:not(:disabled) {
-  background: var(--mat-sys-error) !important;
-  color: var(--mat-sys-on-error) !important;
+.tool-bottom-sheet-panel {
+  overflow: visible !important;
+  padding: 0 !important;
+  border-top-left-radius: 20px !important;
+  border-top-right-radius: 20px !important;
+  background: transparent !important;
 }
 
-.danger-flat-button:not(:disabled) mat-icon {
-  color: var(--mat-sys-on-error) !important;
+.tool-bottom-sheet-panel .mat-bottom-sheet-container,
+.tool-bottom-sheet-panel.mat-bottom-sheet-container {
+  overflow: visible !important;
+  padding: 0 !important;
+  border-top-left-radius: 20px !important;
+  border-top-right-radius: 20px !important;
+  background: transparent !important;
 }
 
 .tool-section {

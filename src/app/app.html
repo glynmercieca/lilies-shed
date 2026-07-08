@@ -70,8 +70,7 @@
 
     <main class="page-shell" [class.pt-3]="!isHomeRoute() && !isSignedIn()"
       [class.page-shell-with-bottom-nav]="isSignedIn()" [class.page-shell-with-header]="isSignedIn()"
-      [class.page-shell-home]="isHomeRoute()" (touchstart)="onShellTouchStart($event)"
-      (touchend)="onShellTouchEnd($event)">
+      [class.page-shell-home]="isHomeRoute()">
       <section class="d-grid" [class.container]="isSignedIn() && !isHomeRoute()" [class.content-shell]="!isHomeRoute()">
         <router-outlet></router-outlet>
       </section>
