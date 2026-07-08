@@ -14,18 +14,66 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { Subject } from 'rxjs';
+import { MatSelectModule } from '@angular/material/select';
+import { Subject, Subscription } from 'rxjs';
 
 import { fallbackImage } from './core/image-url.util';
 import { ResolvedImageDirective } from './core/resolved-image.directive';
-import { ToolFormValue } from './core/models';
+import { ToolCategoryRecord, ToolFormValue } from './core/models';
 
 interface ToolFormDialogData {
+  categories: ToolCategoryRecord[];
   mode: 'add' | 'edit';
   value?: ToolFormValue;
 }
 
 const MAX_IMAGE_FILE_SIZE_BYTES = 32 * 1024 * 1024;
+const CATEGORY_NAME_MATCHERS: ReadonlyArray<{ categoryId: string; terms: readonly string[] }> = [
+  {
+    categoryId: 'automotive',
+    terms: ['obd', 'odb', 'jump starter', 'battery charger', 'torque wrench', 'axle stand', 'car jack'],
+  },
+  {
+    categoryId: 'measuring-layout',
+    terms: ['tape measure', 'vernier', 'caliper', 'calliper', 'level', 'laser', 'square', 'ruler', 'measure'],
+  },
+  {
+    categoryId: 'electrical',
+    terms: ['ethernet', 'network', 'multimeter', 'clamp meter', 'tester', 'test kit', 'extension lead', 'cable', 'wire stripper', 'crimper', 'soldering', 'solder', 'welder', 'flood light'],
+  },
+  {
+    categoryId: 'plumbing',
+    terms: ['pipe', 'plunger', 'basin', 'tap', 'drain', 'pipe cutter', 'spring bender'],
+  },
+  {
+    categoryId: 'hand-tools',
+    terms: ['threading', 'screwdriver', 'hammer', 'spanner', 'wrench', 'pliers', 'clamp', 'chisel', 'file', 'socket', 'ratchet', 'miter box', 'mitre box', 'mither box'],
+  },
+  {
+    categoryId: 'power-tools',
+    terms: ['drill', 'impact driver', 'saw', 'sander', 'grinder', 'jigsaw', 'router', 'multitool', 'heat gun', 'nail gun'],
+  },
+  {
+    categoryId: 'garden-outdoor',
+    terms: ['mower', 'trimmer', 'strimmer', 'rake', 'shovel', 'spade', 'hoe', 'shears', 'hose', 'sprayer'],
+  },
+  {
+    categoryId: 'ladders-access',
+    terms: ['ladder', 'steps', 'step ladder', 'scaffold', 'platform'],
+  },
+  {
+    categoryId: 'painting-decorating',
+    terms: ['paint', 'brush', 'roller', 'tray', 'scraper', 'wallpaper', 'decorating'],
+  },
+  {
+    categoryId: 'safety',
+    terms: ['gloves', 'goggles', 'mask', 'respirator', 'helmet', 'ear defenders', 'knee pads'],
+  },
+  {
+    categoryId: 'cleaning',
+    terms: ['vacuum', 'washer', 'pressure washer', 'mop', 'bucket', 'broom', 'cleaner', 'air duster'],
+  },
+];
 
 @Component({
   selector: 'app-tool-form-dialog',
@@ -41,6 +89,7 @@ const MAX_IMAGE_FILE_SIZE_BYTES = 32 * 1024 * 1024;
     MatIconModule,
     MatInputModule,
     MatProgressSpinnerModule,
+    MatSelectModule,
     ResolvedImageDirective,
   ],
   templateUrl: './tool-form-dialog.html',
@@ -56,14 +105,32 @@ export class ToolFormDialogComponent implements OnDestroy {
   readonly imageSelectionError = signal<string | null>(null);
   readonly saving = signal(false);
   readonly submitRequested = new Subject<ToolFormValue>();
+  private categoryEditedByUser = false;
+  private nameChangesSubscription: Subscription;
+  protected readonly categories = this.data.categories;
   protected readonly fallbackImage = fallbackImage;
   protected readonly maxImageSizeMb = 32;
 
   readonly form = this.formBuilder.nonNullable.group({
     name: [this.data.value?.name ?? '', Validators.required],
+    categoryId: [this.data.value?.categoryId ?? '', Validators.required],
     description: [this.data.value?.description ?? '', Validators.required],
     notes: [this.data.value?.notes ?? ''],
   });
+
+  constructor() {
+    this.nameChangesSubscription = this.form.controls.name.valueChanges.subscribe((name) => {
+      this.applyDetectedCategory(name);
+    });
+
+    this.applyDetectedCategory(this.form.controls.name.value);
+  }
+
+  onCategoryOpenedChange(opened: boolean): void {
+    if (opened) {
+      this.categoryEditedByUser = true;
+    }
+  }
 
   onFilesSelected(event: Event): void {
     const input = event.target as HTMLInputElement | null;
@@ -161,10 +228,40 @@ export class ToolFormDialogComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.submitRequested.complete();
+    this.nameChangesSubscription.unsubscribe();
 
     const selectedFile = this.selectedFile();
     if (selectedFile) {
       URL.revokeObjectURL(selectedFile.previewUrl);
     }
+  }
+
+  private applyDetectedCategory(name: string): void {
+    if (this.data.mode !== 'add' || this.categoryEditedByUser) {
+      return;
+    }
+
+    const categoryId = this.detectCategoryId(name);
+    if (!categoryId) {
+      return;
+    }
+
+    this.form.controls.categoryId.setValue(categoryId, { emitEvent: false });
+  }
+
+  private detectCategoryId(name: string): string | null {
+    const normalizedName = name.trim().toLowerCase();
+    if (!normalizedName) {
+      return null;
+    }
+
+    const availableCategoryIds = new Set(this.categories.map((category) => category.id));
+    const match = CATEGORY_NAME_MATCHERS.find(
+      (matcher) =>
+        availableCategoryIds.has(matcher.categoryId) &&
+        matcher.terms.some((term) => normalizedName.includes(term)),
+    );
+
+    return match?.categoryId ?? null;
   }
 }

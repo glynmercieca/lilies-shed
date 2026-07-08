@@ -1,3 +1,4 @@
+import { TitleCasePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
@@ -30,6 +31,7 @@ interface DeleteToolDialogData {
     MatIconModule,
     MatFormFieldModule,
     MatInputModule,
+    TitleCasePipe,
   ],
   templateUrl: './delete-tool-dialog.html',
   changeDetection: ChangeDetectionStrategy.Eager,

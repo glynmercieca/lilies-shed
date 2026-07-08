@@ -42,7 +42,7 @@
     <div class="my-tools-stat-sheet-list">
       @for (tool of borrowedTools(); track tool.id) {
       <div class="my-tools-stat-sheet-list-item">
-        <span>{{ tool.name }}</span>
+        <span>{{ tool.name | titlecase }}</span>
         <mat-chip>
           <mat-icon class="material-symbols-outlined" matChipAvatar>assignment_ind</mat-icon>
           {{ tool.activeLoan?.borrowerFirstName || 'Borrowed' }}

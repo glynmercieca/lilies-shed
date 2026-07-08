@@ -47,7 +47,7 @@
   <section class="borrowed-stat-sheet-latest">
     <h3>Most recent</h3>
     <div class="borrowed-stat-sheet-latest-row">
-      <span>{{ tool.name }}</span>
+      <span>{{ tool.name | titlecase }}</span>
       <mat-chip>
         <mat-icon class="material-symbols-outlined" matChipAvatar>event</mat-icon>
         {{ formatBorrowedDate(tool.activeLoan?.loanDate ?? '') }}

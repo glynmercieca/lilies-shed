@@ -20,7 +20,15 @@ import {
 
 import { FirebaseClientService } from './firebase-client.service';
 import { formatOwnerDisplay, splitUserName } from './identity.util';
-import { AppNotificationRecord, LoanRecord, SheetsSnapshot, ToolFormValue, ToolRecord, UserProfile } from './models';
+import {
+  AppNotificationRecord,
+  LoanRecord,
+  SheetsSnapshot,
+  ToolCategoryRecord,
+  ToolFormValue,
+  ToolRecord,
+  UserProfile,
+} from './models';
 import { ToolRequestFormValue } from '../request-tool-dialog';
 
 interface FirestoreUserRecord {
@@ -31,13 +39,31 @@ interface FirestoreUserRecord {
   photoURL?: string;
 }
 
+export const FIXED_TOOL_CATEGORIES: ToolCategoryRecord[] = [
+  { id: 'hand-tools', name: 'Hand tools', order: 10 },
+  { id: 'power-tools', name: 'Power tools', order: 20 },
+  { id: 'garden-outdoor', name: 'Garden and outdoor', order: 30 },
+  { id: 'ladders-access', name: 'Ladders and access', order: 40 },
+  { id: 'electrical', name: 'Electrical', order: 50 },
+  { id: 'plumbing', name: 'Plumbing', order: 60 },
+  { id: 'painting-decorating', name: 'Painting and decorating', order: 70 },
+  { id: 'measuring-layout', name: 'Measuring and layout', order: 80 },
+  { id: 'safety', name: 'Safety gear', order: 90 },
+  { id: 'cleaning', name: 'Cleaning', order: 100 },
+  { id: 'automotive', name: 'Automotive', order: 110 },
+  { id: 'other', name: 'Other', order: 120 },
+];
+
 @Injectable({ providedIn: 'root' })
 export class FirestoreToolboxService {
   private readonly firebase = inject(FirebaseClientService);
 
   async loadSnapshot(): Promise<SheetsSnapshot> {
-    const [usersSnapshot, toolsSnapshot, loansSnapshot, notifications] = await Promise.all([
+    void this.ensureToolCategories();
+
+    const [usersSnapshot, categories, toolsSnapshot, loansSnapshot, notifications] = await Promise.all([
       getDocs(collection(this.firebase.firestore, 'users')),
+      this.loadCategories(),
       getDocs(collection(this.firebase.firestore, 'tools')),
       getDocs(collection(this.firebase.firestore, 'loan')),
       this.loadNotifications(),
@@ -71,7 +97,7 @@ export class FirestoreToolboxService {
     const loans = loansSnapshot.docs
       .map((documentSnapshot) => this.parseLoan(documentSnapshot.id, documentSnapshot.data(), usersById))
       .filter((loan): loan is LoanRecord => Boolean(loan));
-    return { tools, loans, notifications };
+    return { categories, tools, loans, notifications };
   }
 
   async loadNotifications(): Promise<AppNotificationRecord[]> {
@@ -111,9 +137,12 @@ export class FirestoreToolboxService {
   async addTool(formValue: ToolFormValue, owner: UserProfile): Promise<void> {
     const nextId = await this.allocateNextToolId();
     const toolRef = doc(collection(this.firebase.firestore, 'tools'));
+    const category = this.resolveCategory(formValue.categoryId);
     await setDoc(toolRef, {
       id: nextId,
       name: formValue.name,
+      categoryId: category.id,
+      categoryName: category.name,
       description: formValue.description,
       notes: formValue.notes,
       deleted: false,
@@ -125,8 +154,11 @@ export class FirestoreToolboxService {
   }
 
   async updateTool(tool: ToolRecord, formValue: ToolFormValue): Promise<void> {
+    const category = this.resolveCategory(formValue.categoryId);
     await updateDoc(doc(this.firebase.firestore, 'tools', tool.documentId), {
       name: formValue.name,
+      categoryId: category.id,
+      categoryName: category.name,
       description: formValue.description,
       notes: formValue.notes,
       image: formValue.imageUrl,
@@ -169,6 +201,8 @@ export class FirestoreToolboxService {
       documentId: id,
       id: toolId,
       name,
+      categoryId: this.readString(data['categoryId']) || 'other',
+      categoryName: this.readString(data['categoryName']) || this.resolveCategory(data['categoryId']).name,
       description: this.readString(data['description']),
       notes: this.readString(data['notes']),
       deleted: this.readBoolean(data['deleted']),
@@ -179,6 +213,16 @@ export class FirestoreToolboxService {
       ownerLastName,
       image: this.readString(data['image']),
     };
+  }
+
+  private parseCategory(id: string, data: DocumentData): ToolCategoryRecord | null {
+    const name = this.readString(data['name']);
+    const order = Number(data['order'] ?? 0);
+    if (!id || !name || !Number.isFinite(order)) {
+      return null;
+    }
+
+    return { id, name, order };
   }
 
   private parseLoan(id: string, data: DocumentData, usersById: Map<string, UserProfile>): LoanRecord | null {
@@ -253,6 +297,36 @@ export class FirestoreToolboxService {
       transaction.set(counterRef, { nextToolId: nextValue + 1 }, { merge: true });
       return String(nextValue);
     });
+  }
+
+  private async ensureToolCategories(): Promise<void> {
+    try {
+      await Promise.all(
+        FIXED_TOOL_CATEGORIES.map((category) =>
+          setDoc(doc(this.firebase.firestore, 'categories', category.id), category, { merge: true }),
+        ),
+      );
+    } catch {
+      // Category documents are a convenience cache. The app can use the fixed local list
+      // until Firestore rules are deployed and the collection is seeded.
+    }
+  }
+
+  private async loadCategories(): Promise<ToolCategoryRecord[]> {
+    try {
+      const categoriesSnapshot = await getDocs(query(collection(this.firebase.firestore, 'categories'), orderBy('order', 'asc')));
+      const categories = categoriesSnapshot.docs
+        .map((documentSnapshot) => this.parseCategory(documentSnapshot.id, documentSnapshot.data()))
+        .filter((category): category is ToolCategoryRecord => Boolean(category));
+      return categories.length ? categories : FIXED_TOOL_CATEGORIES;
+    } catch {
+      return FIXED_TOOL_CATEGORIES;
+    }
+  }
+
+  private resolveCategory(categoryId: unknown): ToolCategoryRecord {
+    const normalizedCategoryId = this.readString(categoryId) || 'other';
+    return FIXED_TOOL_CATEGORIES.find((category) => category.id === normalizedCategoryId) ?? FIXED_TOOL_CATEGORIES.at(-1)!;
   }
 
   private async fetchMaxToolId(): Promise<number> {

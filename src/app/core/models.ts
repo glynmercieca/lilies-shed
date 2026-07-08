@@ -11,6 +11,8 @@ export interface ToolRecord {
   documentId: string;
   id: string;
   name: string;
+  categoryId: string;
+  categoryName: string;
   description: string;
   notes: string;
   deleted: boolean;
@@ -53,13 +55,21 @@ export interface ToolWithStatus extends ToolRecord {
 
 export interface ToolFormValue {
   name: string;
+  categoryId: string;
   description: string;
   notes: string;
   imageUrl: string;
   imageFile: File | null;
 }
 
+export interface ToolCategoryRecord {
+  id: string;
+  name: string;
+  order: number;
+}
+
 export interface SheetsSnapshot {
+  categories: ToolCategoryRecord[];
   tools: ToolRecord[];
   loans: LoanRecord[];
   notifications: AppNotificationRecord[];

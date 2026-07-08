@@ -1,6 +1,6 @@
 <h2 mat-dialog-title>Delete Tool</h2>
 <mat-dialog-content>
-  <p>Delete <strong>{{ data.toolName }}</strong> from the shed.</p>
+  <p>Delete <strong>{{ data.toolName | titlecase }}</strong> from the shed.</p>
   <p class="text-body-secondary">Enter tool ID <strong>{{ data.toolId }}</strong> to confirm.</p>
 
   <form [formGroup]="form">

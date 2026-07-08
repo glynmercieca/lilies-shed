@@ -3,19 +3,52 @@
     (focusout)="onSearchFocusOut($event)">
     <mat-icon class="material-symbols-outlined tool-search-icon">search</mat-icon>
     <input class="tool-search-input" type="search" placeholder="Search tools" [value]="state.searchTerm()"
-      (input)="state.setSearchTerm($any($event.target).value)" />
+      [matAutocomplete]="toolSearchAutocomplete" (input)="state.setSearchTerm($any($event.target).value)" />
+    <mat-autocomplete #toolSearchAutocomplete="matAutocomplete" (optionSelected)="state.setSearchTerm($event.option.value)">
+      @for (toolName of state.searchAutocompleteOptions(); track toolName) {
+      <mat-option [value]="toolName">{{ toolName | titlecase }}</mat-option>
+      }
+    </mat-autocomplete>
     <button mat-icon-button type="button" class="tool-search-settings" [matMenuTriggerFor]="toolSearchMenu"
       aria-label="Tool search settings">
       <mat-icon class="material-symbols-outlined">tune</mat-icon>
     </button>
   </div>
 
-  <mat-menu #toolSearchMenu="matMenu" xPosition="before">
+  <div class="category-filter-strip" aria-label="Tool categories">
+    <button type="button" class="category-filter-chip" [class.is-selected]="!state.selectedCategoryId()"
+      (click)="state.setSelectedCategory('')">
+      All
+    </button>
+    @for (category of state.categories(); track category.id) {
+    <button type="button" class="category-filter-chip" [class.is-selected]="state.selectedCategoryId() === category.id"
+      (click)="state.setSelectedCategory(category.id)">
+      {{ category.name }}
+    </button>
+    }
+  </div>
+
+  <mat-menu #toolSearchMenu="matMenu" xPosition="before" class="tool-search-menu">
+    <div class="tool-search-menu-label">Show</div>
     <button mat-menu-item type="button" (click)="state.toggleUnavailableTools()">
       <mat-icon class="material-symbols-outlined">
         {{ state.showUnavailableTools() ? 'check_box' : 'check_box_outline_blank' }}
       </mat-icon>
       <span>Show unavailable tools</span>
+    </button>
+    <mat-divider></mat-divider>
+    <div class="tool-search-menu-label">Sort</div>
+    <button mat-menu-item type="button" (click)="state.setToolSortMode('name')">
+      <mat-icon class="material-symbols-outlined">
+        {{ state.toolSortMode() === 'name' ? 'radio_button_checked' : 'radio_button_unchecked' }}
+      </mat-icon>
+      <span>Sort by name</span>
+    </button>
+    <button mat-menu-item type="button" (click)="state.setToolSortMode('date-added')">
+      <mat-icon class="material-symbols-outlined">
+        {{ state.toolSortMode() === 'date-added' ? 'radio_button_checked' : 'radio_button_unchecked' }}
+      </mat-icon>
+      <span>Sort by date added</span>
     </button>
   </mat-menu>
 

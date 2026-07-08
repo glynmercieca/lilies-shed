@@ -45,3 +45,43 @@
 .tool-search-settings {
   flex: 0 0 auto;
 }
+
+.category-filter-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding: 0 2px 2px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.category-filter-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.category-filter-chip {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 6px 13px;
+  border: 1px solid color-mix(in srgb, var(--mat-sys-outline-variant) 86%, transparent);
+  border-radius: 999px;
+  background: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface-variant);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.category-filter-chip.is-selected {
+  border-color: var(--mat-sys-primary);
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+}
+
+.category-filter-chip:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--mat-sys-primary) 34%, transparent);
+  outline-offset: 2px;
+}

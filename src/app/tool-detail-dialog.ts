@@ -1,3 +1,4 @@
+import { TitleCasePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { Subject } from 'rxjs';
 import {
@@ -36,6 +37,7 @@ interface ToolDetailDialogData {
     MatIconModule,
     MatProgressSpinnerModule,
     ResolvedImageDirective,
+    TitleCasePipe,
   ],
   templateUrl: './tool-detail-dialog.html',
   changeDetection: ChangeDetectionStrategy.Eager,

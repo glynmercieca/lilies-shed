@@ -1,6 +1,11 @@
 .tool-sheet {
+  box-sizing: border-box;
   display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
   gap: 16px;
+  height: min(86dvh, 760px);
+  max-height: min(86dvh, 760px);
+  overflow: hidden;
   padding: 8px 4px calc(12px + env(safe-area-inset-bottom));
 }
 
@@ -88,6 +93,10 @@
 .tool-sheet-details {
   display: grid;
   gap: 12px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
 }
 
 .tool-sheet-details p {
@@ -95,13 +104,10 @@
 }
 
 .tool-sheet-actions {
-  position: sticky;
-  bottom: 0;
-  padding-top: 4px;
+  padding-top: 0;
   background: var(--mat-sys-surface-container-low);
 }
 
 .tool-sheet-actions:empty {
   display: none;
 }
-

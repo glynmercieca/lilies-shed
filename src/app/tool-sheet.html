@@ -1,7 +1,7 @@
 <section class="tool-sheet" aria-label="Tool details">
   <div class="tool-sheet-header">
     <div class="tool-sheet-title-group">
-      <h2 class="tool-sheet-title">{{ data.tool.name }}</h2>
+      <h2 class="tool-sheet-title">{{ data.tool.name | titlecase }}</h2>
       <div class="tool-sheet-subtitle">#{{ data.tool.id }}</div>
     </div>
     <button mat-icon-button type="button" (click)="close()" aria-label="Close tool details">
@@ -21,6 +21,10 @@
   </div>
 
   <mat-chip-set class="tool-sheet-chips">
+    <mat-chip>
+      <mat-icon class="material-symbols-outlined" matChipAvatar>category</mat-icon>
+      {{ data.tool.categoryName }}
+    </mat-chip>
     <mat-chip>
       <mat-icon class="material-symbols-outlined" matChipAvatar>person</mat-icon>
       {{ data.tool.ownerFirstName || 'Unknown owner' }}

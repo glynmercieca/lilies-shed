@@ -1,3 +1,4 @@
+import { TitleCasePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import {
   MAT_BOTTOM_SHEET_DATA,
@@ -21,6 +22,7 @@ interface MyToolsStatSheetData {
     MatButtonModule,
     MatChipsModule,
     MatIconModule,
+    TitleCasePipe,
   ],
   templateUrl: './my-tools-stat-sheet.html',
   styleUrl: './my-tools-stat-sheet.scss',
