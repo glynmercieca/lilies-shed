@@ -8,6 +8,7 @@ import {
   MatDialogTitle,
 } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 
 interface ReturnToolDialogData {
   toolName: string;
@@ -15,7 +16,7 @@ interface ReturnToolDialogData {
 
 @Component({
   selector: 'app-return-tool-dialog',
-  imports: [MatDialogActions, MatDialogClose, MatDialogContent, MatDialogTitle, MatButtonModule],
+  imports: [MatDialogActions, MatDialogClose, MatDialogContent, MatDialogTitle, MatButtonModule, MatIconModule],
   templateUrl: './return-tool-dialog.html',
   changeDetection: ChangeDetectionStrategy.Eager,
 })

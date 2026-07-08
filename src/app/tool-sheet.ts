@@ -8,6 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
+import { Subject } from 'rxjs';
 
 import { TOOL_PLACEHOLDER_URL, fallbackImage, normalizeImageUrl } from './core/image-url.util';
 import { ToolWithStatus } from './core/models';
@@ -18,6 +19,7 @@ export type ToolSheetMode = 'shed' | 'borrowed' | 'my-tools';
 export type ToolSheetAction = 'borrow' | 'return' | 'edit' | 'delete';
 
 export interface ToolSheetData {
+  actionRequested: Subject<ToolSheetAction>;
   canBorrow: boolean;
   mode: ToolSheetMode;
   saving: boolean;
@@ -101,6 +103,6 @@ export class ToolSheetComponent {
       return;
     }
 
-    this.sheetRef.dismiss(action);
+    this.data.actionRequested.next(action);
   }
 }

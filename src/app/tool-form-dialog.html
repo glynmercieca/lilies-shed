@@ -70,11 +70,17 @@
   </form>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button mat-button mat-dialog-close [disabled]="saving()">Cancel</button>
+  <button mat-button mat-dialog-close [disabled]="saving()">
+    <mat-icon class="material-symbols-outlined">close</mat-icon>
+    Cancel
+  </button>
   <button mat-flat-button (click)="submit()" [disabled]="!!imageSelectionError() || saving()">
     @if (saving()) {
     <mat-spinner diameter="18"></mat-spinner>
     } @else {
+    <mat-icon class="material-symbols-outlined">save</mat-icon>
+    }
+    @if (!saving()) {
     Save
     }
   </button>

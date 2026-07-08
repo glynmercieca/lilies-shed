@@ -49,6 +49,7 @@ export class App implements OnDestroy {
   readonly headerRaised = signal(false);
   private readonly clockInterval = window.setInterval(() => this.now.set(Date.now()), 60_000);
   private readonly now = signal(Date.now());
+  private readonly windowScrollHandler = () => this.updateHeaderRaised();
   private readonly serviceWorkerMessageHandler = (event: MessageEvent) => {
     if (event.data?.type === OPEN_NOTIFICATIONS_MESSAGE) {
       this.openNotifications();
@@ -66,6 +67,7 @@ export class App implements OnDestroy {
     this.isPublicRoute.set(this.checkIsPublicRoute(this.router.url));
     this.isHomeRoute.set(this.checkIsHomeRoute(this.router.url));
     this.openNotificationsFromUrl(this.router.url);
+    window.addEventListener('scroll', this.windowScrollHandler, { passive: true });
     navigator.serviceWorker?.addEventListener('message', this.serviceWorkerMessageHandler);
     effect(() => {
       if (this.messaging.notificationOpenRequests() > 0) {
@@ -78,6 +80,7 @@ export class App implements OnDestroy {
 
   ngOnDestroy(): void {
     window.clearInterval(this.clockInterval);
+    window.removeEventListener('scroll', this.windowScrollHandler);
     navigator.serviceWorker?.removeEventListener('message', this.serviceWorkerMessageHandler);
   }
 
@@ -107,7 +110,7 @@ export class App implements OnDestroy {
   onContentScroll(event: Event): void {
     const element = event.target;
     if (element instanceof HTMLElement) {
-      this.headerRaised.set(element.scrollTop > 0);
+      this.updateHeaderRaised(element.scrollTop);
     }
   }
 
@@ -162,6 +165,15 @@ export class App implements OnDestroy {
     } catch {
       // Browsers may block orientation locking outside installed app contexts.
     }
+  }
+
+  private updateHeaderRaised(contentScrollTop = 0): void {
+    const documentScrollTop = window.scrollY || this.documentScrollTop();
+    this.headerRaised.set(contentScrollTop > 0 || documentScrollTop > 0);
+  }
+
+  private documentScrollTop(): number {
+    return document.documentElement.scrollTop || document.body.scrollTop || 0;
   }
 
 }

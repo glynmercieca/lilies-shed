@@ -14,6 +14,12 @@
   </form>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button mat-button mat-dialog-close>Cancel</button>
-  <button mat-flat-button (click)="confirm()">Delete</button>
+  <button mat-button mat-dialog-close>
+    <mat-icon class="material-symbols-outlined">close</mat-icon>
+    Cancel
+  </button>
+  <button mat-flat-button (click)="confirm()">
+    <mat-icon class="material-symbols-outlined">delete</mat-icon>
+    Delete
+  </button>
 </mat-dialog-actions>

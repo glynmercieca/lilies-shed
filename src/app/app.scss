@@ -78,19 +78,19 @@
 
 .app-header {
   position: fixed;
-  top: max(12px, env(safe-area-inset-top) + 12px);
-  left: 50%;
+  top: 0;
+  left: 0;
   z-index: 1100;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: min(100% - 24px, 920px);
-  min-height: 64px;
-  padding: 10px 14px;
-  transform: translateX(-50%);
-  border: 1px solid var(--mat-sys-outline-variant);
-  border-radius: 20px;
+  width: 100%;
+  min-height: calc(64px + env(safe-area-inset-top));
+  padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
+  border-bottom-right-radius: 20px;
+  border-bottom-left-radius: 20px;
   background: var(--mat-sys-surface);
+  transition: box-shadow 180ms ease;
 }
 
 .app-header-raised {
@@ -203,11 +203,8 @@
   }
 
   .app-header {
-    top: max(8px, env(safe-area-inset-top) + 8px);
-    width: min(100% - 16px, 520px);
-    min-height: 60px;
-    padding: 8px 10px 8px 12px;
-    border-radius: 18px;
+    min-height: calc(60px + env(safe-area-inset-top));
+    padding: calc(8px + env(safe-area-inset-top)) 10px 8px 12px;
   }
 
   .page-shell-with-header {

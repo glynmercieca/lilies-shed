@@ -3,7 +3,7 @@ import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
-import { Subscription, firstValueFrom } from 'rxjs';
+import { Subject, Subscription, firstValueFrom } from 'rxjs';
 import { Unsubscribe } from 'firebase/firestore';
 
 import { FirebaseAuthService } from './firebase-auth.service';
@@ -171,10 +171,12 @@ export class ToolboxStateService {
   }
 
   async openTool(tool: ToolWithStatus, mode: ToolSheetMode = 'shed'): Promise<void> {
-    const sheetRef = this.bottomSheet.open<ToolSheetComponent, unknown, ToolSheetAction>(
+    const actionRequested = new Subject<ToolSheetAction>();
+    const sheetRef = this.bottomSheet.open<ToolSheetComponent, unknown, void>(
       ToolSheetComponent,
       {
       data: {
+        actionRequested,
         mode,
         saving: this.savingToolId() === tool.id,
         tool,
@@ -184,37 +186,47 @@ export class ToolboxStateService {
     },
     );
 
-    const action = await firstValueFrom(sheetRef.afterDismissed());
-    if (!action) {
-      return;
-    }
+    let handlingAction = false;
+    const actionSubscription = actionRequested.subscribe(async (action) => {
+      if (handlingAction) {
+        return;
+      }
 
-    await this.handleToolSheetAction(action, tool);
+      handlingAction = true;
+      const completed = await this.handleToolSheetAction(action, tool);
+      handlingAction = false;
+
+      if (completed) {
+        sheetRef.dismiss();
+      }
+    });
+
+    sheetRef.afterDismissed().subscribe(() => {
+      actionSubscription.unsubscribe();
+      actionRequested.complete();
+    });
   }
 
-  private async handleToolSheetAction(action: ToolSheetAction, tool: ToolWithStatus): Promise<void> {
+  private async handleToolSheetAction(action: ToolSheetAction, tool: ToolWithStatus): Promise<boolean> {
     if (action === 'borrow') {
-      await this.borrowTool(tool);
-      return;
+      return this.borrowTool(tool);
     }
 
     if (action === 'return') {
-      await this.returnTool(tool);
-      return;
+      return this.returnTool(tool);
     }
 
     if (action === 'edit') {
-      await this.editTool(tool);
-      return;
+      return this.editTool(tool);
     }
 
-    await this.deleteTool(tool);
+    return this.deleteTool(tool);
   }
 
-  async borrowTool(tool: ToolWithStatus): Promise<void> {
+  async borrowTool(tool: ToolWithStatus): Promise<boolean> {
     const user = this.auth.currentUser();
     if (!user || !tool.available) {
-      return;
+      return false;
     }
 
     this.savingToolId.set(tool.id);
@@ -223,16 +235,18 @@ export class ToolboxStateService {
       await this.refresh();
       await this.router.navigate(['/borrowed']);
       this.notify(`Borrow request saved for ${tool.name}.`);
+      return true;
     } catch (error) {
       this.notify(error instanceof Error ? error.message : 'Unable to request this tool.');
+      return false;
     } finally {
       this.savingToolId.set(null);
     }
   }
 
-  async returnTool(tool: ToolWithStatus): Promise<void> {
+  async returnTool(tool: ToolWithStatus): Promise<boolean> {
     if (!tool.activeLoan) {
-      return;
+      return false;
     }
 
     const dialogRef = this.dialog.open(ReturnToolDialogComponent, {
@@ -244,7 +258,7 @@ export class ToolboxStateService {
     });
     const confirmed = await firstValueFrom(dialogRef.afterClosed());
     if (!confirmed) {
-      return;
+      return false;
     }
 
     this.savingToolId.set(tool.id);
@@ -252,8 +266,10 @@ export class ToolboxStateService {
       await this.toolbox.markReturned(tool.activeLoan);
       await this.refresh();
       this.notify(`${tool.name} marked as returned.`);
+      return true;
     } catch (error) {
       this.notify(error instanceof Error ? error.message : 'Unable to mark this tool as returned.');
+      return false;
     } finally {
       this.savingToolId.set(null);
     }
@@ -307,9 +323,9 @@ export class ToolboxStateService {
     dialogRef.afterClosed().subscribe(() => submitSubscription?.unsubscribe());
   }
 
-  async editTool(tool: ToolWithStatus): Promise<void> {
+  async editTool(tool: ToolWithStatus): Promise<boolean> {
     if (!tool.available) {
-      return;
+      return false;
     }
 
     const dialogRef = this.dialog.open(ToolFormDialogComponent, {
@@ -328,7 +344,7 @@ export class ToolboxStateService {
     });
     const component = dialogRef.componentInstance;
     if (!component) {
-      return;
+      return false;
     }
 
     let submitSubscription: Subscription | null = null;
@@ -358,11 +374,12 @@ export class ToolboxStateService {
     });
 
     dialogRef.afterClosed().subscribe(() => submitSubscription?.unsubscribe());
+    return Boolean(await firstValueFrom(dialogRef.afterClosed()));
   }
 
-  async deleteTool(tool: ToolWithStatus): Promise<void> {
+  async deleteTool(tool: ToolWithStatus): Promise<boolean> {
     if (!tool.available) {
-      return;
+      return false;
     }
 
     const dialogRef = this.dialog.open(DeleteToolDialogComponent, {
@@ -376,7 +393,7 @@ export class ToolboxStateService {
 
     const confirmed = await firstValueFrom(dialogRef.afterClosed());
     if (!confirmed) {
-      return;
+      return false;
     }
 
     this.savingToolId.set(tool.id);
@@ -384,8 +401,10 @@ export class ToolboxStateService {
       await this.toolbox.markToolDeleted(tool);
       await this.refresh();
       this.notify(`${tool.name} deleted.`);
+      return true;
     } catch (error) {
       this.notify(error instanceof Error ? error.message : 'Unable to delete this tool.');
+      return false;
     } finally {
       this.savingToolId.set(null);
     }
