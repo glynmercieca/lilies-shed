@@ -1,9 +1,11 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { MatBottomSheet, MatBottomSheetModule } from '@angular/material/bottom-sheet';
+import { ChangeDetectionStrategy, Component, OnDestroy, inject } from '@angular/core';
+import { MatBottomSheet, MatBottomSheetModule, MatBottomSheetRef } from '@angular/material/bottom-sheet';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 
 import { ToolboxStateService } from './core/toolbox-state.service';
 import { ViewportSentinelDirective } from './core/viewport-sentinel.directive';
@@ -25,17 +27,62 @@ import { ToolCardComponent } from './tool-card';
   styleUrl: './my-tools-view.scss',
   changeDetection: ChangeDetectionStrategy.Eager,
 })
-export class MyToolsView {
+export class MyToolsView implements OnDestroy {
   readonly state = inject(ToolboxStateService);
+  private activeStatsSheetRef: MatBottomSheetRef<MyToolsStatSheetComponent> | null = null;
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly bottomSheet = inject(MatBottomSheet);
+  private readonly routeSubscription: Subscription;
+
+  constructor() {
+    this.routeSubscription = this.route.queryParamMap.subscribe((queryParamMap) => {
+      if (queryParamMap.get('sheet') === 'my-tools-stats') {
+        this.openStatsSheet();
+      } else {
+        this.activeStatsSheetRef?.dismiss();
+      }
+    });
+  }
 
   openStats(): void {
+    void this.router.navigate([], {
+      queryParams: {
+        sheet: 'my-tools-stats',
+      },
+      queryParamsHandling: 'merge',
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.routeSubscription.unsubscribe();
+  }
+
+  private openStatsSheet(): void {
+    if (this.activeStatsSheetRef) {
+      return;
+    }
+
     const data = this.createStatsData();
-    this.bottomSheet.open(MyToolsStatSheetComponent, {
+    const sheetRef = this.bottomSheet.open(MyToolsStatSheetComponent, {
       autoFocus: false,
       data,
       panelClass: 'rounded-bottom-sheet-panel',
       restoreFocus: false,
+    });
+    this.activeStatsSheetRef = sheetRef;
+    sheetRef.afterDismissed().subscribe(() => {
+      if (this.activeStatsSheetRef === sheetRef) {
+        this.activeStatsSheetRef = null;
+      }
+
+      if (this.route.snapshot.queryParamMap.get('sheet') === 'my-tools-stats') {
+        void this.router.navigate([], {
+          queryParams: { sheet: null },
+          queryParamsHandling: 'merge',
+          replaceUrl: true,
+        });
+      }
     });
   }
 

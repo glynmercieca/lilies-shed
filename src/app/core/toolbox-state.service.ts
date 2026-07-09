@@ -1,9 +1,9 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
-import { MatBottomSheet } from '@angular/material/bottom-sheet';
-import { MatDialog } from '@angular/material/dialog';
+import { MatBottomSheet, MatBottomSheetRef } from '@angular/material/bottom-sheet';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Router } from '@angular/router';
-import { Subject, Subscription, firstValueFrom } from 'rxjs';
+import { NavigationEnd, Router } from '@angular/router';
+import { Subject, Subscription, filter, firstValueFrom } from 'rxjs';
 import { Unsubscribe } from 'firebase/firestore';
 
 import { FirebaseAuthService } from './firebase-auth.service';
@@ -18,6 +18,7 @@ import { DeleteToolDialogComponent } from '../delete-tool-dialog';
 import { NotificationOptInDialogComponent } from '../notification-opt-in-dialog';
 import { RequestToolDialogComponent } from '../request-tool-dialog';
 import { ReturnToolDialogComponent } from '../return-tool-dialog';
+import { ToolImagePreviewDialogComponent } from '../tool-image-preview-dialog';
 import { ToolSheetAction, ToolSheetComponent, ToolSheetMode } from '../tool-sheet';
 import { ToolFormDialogComponent } from '../tool-form-dialog';
 
@@ -46,6 +47,13 @@ export class ToolboxStateService {
   readonly ownedVisibleCount = signal(this.listPageSize);
   private readonly snapshot = signal<SheetsSnapshot>({ categories: [], tools: [], loans: [], notifications: [] });
   private readonly loadedUserEmail = signal<string | null>(null);
+  private activeAddToolDialogRef: MatDialogRef<ToolFormDialogComponent> | null = null;
+  private activeImagePreviewDialogRef: MatDialogRef<ToolImagePreviewDialogComponent> | null = null;
+  private activeRequestToolDialogRef: MatDialogRef<RequestToolDialogComponent> | null = null;
+  private activeToolSheetKey = '';
+  private activeToolSheetRef: MatBottomSheetRef<ToolSheetComponent> | null = null;
+  private activeToolSheetTool: ToolWithStatus | null = null;
+  private syncingOverlayFromRoute = false;
   private notificationsSubscription: Unsubscribe | null = null;
 
   readonly tools = computed(() => decorateTools(this.snapshot()));
@@ -134,6 +142,13 @@ export class ToolboxStateService {
       this.loadedUserEmail.set(user.email);
       void this.refresh();
       void this.messaging.syncCurrentUser(user);
+    });
+    this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
+      this.syncOverlayFromRoute();
+    });
+    effect(() => {
+      this.tools();
+      this.syncOverlayFromRoute();
     });
   }
 
@@ -243,20 +258,38 @@ export class ToolboxStateService {
   }
 
   async openTool(tool: ToolWithStatus, mode: ToolSheetMode = 'shed'): Promise<void> {
+    await this.router.navigate([], {
+      queryParams: {
+        dialog: null,
+        mode,
+        preview: null,
+        sheet: 'tool',
+        toolId: tool.documentId,
+      },
+      queryParamsHandling: 'merge',
+    });
+  }
+
+  private openToolSheet(tool: ToolWithStatus, mode: ToolSheetMode = 'shed'): void {
     const actionRequested = new Subject<ToolSheetAction>();
+    const previewRequested = new Subject<void>();
     const sheetRef = this.bottomSheet.open<ToolSheetComponent, unknown, void>(
       ToolSheetComponent,
       {
-      data: {
-        actionRequested,
-        mode,
-        saving: this.savingToolId() === tool.id,
-        tool,
-        canBorrow: !matchesUserId(this.auth.currentUser(), tool.ownerId),
+        data: {
+          actionRequested,
+          mode,
+          previewRequested,
+          saving: this.savingToolId() === tool.id,
+          tool,
+          canBorrow: !matchesUserId(this.auth.currentUser(), tool.ownerId),
+        },
+        panelClass: 'rounded-bottom-sheet-panel',
       },
-      panelClass: 'rounded-bottom-sheet-panel',
-    },
     );
+    this.activeToolSheetKey = this.toolSheetKey(tool.documentId, mode);
+    this.activeToolSheetRef = sheetRef;
+    this.activeToolSheetTool = tool;
 
     let handlingAction = false;
     const actionSubscription = actionRequested.subscribe(async (action) => {
@@ -272,10 +305,27 @@ export class ToolboxStateService {
         sheetRef.dismiss();
       }
     });
+    const previewSubscription = previewRequested.subscribe(() => {
+      void this.router.navigate([], {
+        queryParams: { preview: 'tool-image' },
+        queryParamsHandling: 'merge',
+      });
+    });
 
     sheetRef.afterDismissed().subscribe(() => {
+      if (this.activeToolSheetRef === sheetRef) {
+        this.activeToolSheetRef = null;
+        this.activeToolSheetKey = '';
+        this.activeToolSheetTool = null;
+      }
+      this.activeImagePreviewDialogRef?.close();
       actionSubscription.unsubscribe();
+      previewSubscription.unsubscribe();
       actionRequested.complete();
+      previewRequested.complete();
+      if (!this.syncingOverlayFromRoute && this.currentQueryParam('sheet') === 'tool') {
+        void this.clearOverlayQueryParams();
+      }
     });
   }
 
@@ -348,6 +398,19 @@ export class ToolboxStateService {
   }
 
   async addTool(): Promise<void> {
+    await this.router.navigate([], {
+      queryParams: {
+        dialog: 'add-tool',
+        mode: null,
+        preview: null,
+        sheet: null,
+        toolId: null,
+      },
+      queryParamsHandling: 'merge',
+    });
+  }
+
+  private openAddToolDialog(): void {
     const user = this.auth.currentUser();
     if (!user) {
       return;
@@ -358,6 +421,7 @@ export class ToolboxStateService {
       maxWidth: '640px',
       width: 'min(92vw, 640px)',
     });
+    this.activeAddToolDialogRef = dialogRef;
     const component = dialogRef.componentInstance;
     if (!component) {
       return;
@@ -392,7 +456,15 @@ export class ToolboxStateService {
       }
     });
 
-    dialogRef.afterClosed().subscribe(() => submitSubscription?.unsubscribe());
+    dialogRef.afterClosed().subscribe(() => {
+      if (this.activeAddToolDialogRef === dialogRef) {
+        this.activeAddToolDialogRef = null;
+      }
+      submitSubscription?.unsubscribe();
+      if (!this.syncingOverlayFromRoute && this.currentQueryParam('dialog') === 'add-tool') {
+        void this.clearOverlayQueryParams();
+      }
+    });
   }
 
   async editTool(tool: ToolWithStatus): Promise<boolean> {
@@ -485,6 +557,19 @@ export class ToolboxStateService {
   }
 
   async requestTool(): Promise<void> {
+    await this.router.navigate([], {
+      queryParams: {
+        dialog: 'request-tool',
+        mode: null,
+        preview: null,
+        sheet: null,
+        toolId: null,
+      },
+      queryParamsHandling: 'merge',
+    });
+  }
+
+  private openRequestToolDialog(): void {
     const user = this.auth.currentUser();
     if (!user) {
       return;
@@ -494,6 +579,7 @@ export class ToolboxStateService {
       maxWidth: '560px',
       width: 'min(92vw, 560px)',
     });
+    this.activeRequestToolDialogRef = dialogRef;
     const component = dialogRef.componentInstance;
     if (!component) {
       return;
@@ -520,7 +606,15 @@ export class ToolboxStateService {
       }
     });
 
-    dialogRef.afterClosed().subscribe(() => submitSubscription?.unsubscribe());
+    dialogRef.afterClosed().subscribe(() => {
+      if (this.activeRequestToolDialogRef === dialogRef) {
+        this.activeRequestToolDialogRef = null;
+      }
+      submitSubscription?.unsubscribe();
+      if (!this.syncingOverlayFromRoute && this.currentQueryParam('dialog') === 'request-tool') {
+        void this.clearOverlayQueryParams();
+      }
+    });
   }
 
   async requestNotificationPermission(): Promise<void> {
@@ -573,8 +667,123 @@ export class ToolboxStateService {
     this.ownedVisibleCount.set(this.listPageSize);
   }
 
+  private syncOverlayFromRoute(): void {
+    const queryParamMap = this.router.parseUrl(this.router.url).queryParamMap;
+    const sheet = queryParamMap.get('sheet');
+    const dialog = queryParamMap.get('dialog');
+    const preview = queryParamMap.get('preview');
+
+    this.syncingOverlayFromRoute = true;
+    try {
+      if (sheet === 'tool') {
+        const mode = this.parseToolSheetMode(queryParamMap.get('mode'));
+        const toolId = queryParamMap.get('toolId') ?? '';
+        const key = this.toolSheetKey(toolId, mode);
+        const tool = this.visibleTools().find((candidate) => candidate.documentId === toolId || candidate.id === toolId);
+
+        if (tool && this.activeToolSheetKey !== key) {
+          this.activeToolSheetRef?.dismiss();
+          this.openToolSheet(tool, mode);
+        }
+      } else if (this.activeToolSheetRef) {
+        this.activeToolSheetRef.dismiss();
+      }
+
+      if (preview === 'tool-image') {
+        this.openImagePreviewDialog();
+      } else if (this.activeImagePreviewDialogRef) {
+        this.activeImagePreviewDialogRef.close();
+      }
+
+      if (dialog === 'add-tool') {
+        this.activeRequestToolDialogRef?.close();
+        if (!this.activeAddToolDialogRef) {
+          this.openAddToolDialog();
+        }
+      } else if (dialog === 'request-tool') {
+        this.activeAddToolDialogRef?.close();
+        if (!this.activeRequestToolDialogRef) {
+          this.openRequestToolDialog();
+        }
+      } else {
+        this.activeAddToolDialogRef?.close();
+        this.activeRequestToolDialogRef?.close();
+      }
+    } finally {
+      this.syncingOverlayFromRoute = false;
+    }
+  }
+
+  private async clearOverlayQueryParams(): Promise<void> {
+    await this.router.navigate([], {
+      queryParams: {
+        dialog: null,
+        mode: null,
+        preview: null,
+        sheet: null,
+        toolId: null,
+      },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
+
+  private async clearPreviewQueryParam(): Promise<void> {
+    await this.router.navigate([], {
+      queryParams: { preview: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
+
+  private openImagePreviewDialog(): void {
+    const tool = this.activeToolSheetTool;
+    if (!tool || this.activeImagePreviewDialogRef) {
+      return;
+    }
+
+    const dialogRef = this.dialog.open(ToolImagePreviewDialogComponent, {
+      autoFocus: false,
+      data: {
+        alt: tool.name,
+        image: tool.image,
+      },
+      height: '100dvh',
+      maxHeight: '100dvh',
+      maxWidth: '100vw',
+      panelClass: 'tool-image-preview-dialog-panel',
+      width: '100vw',
+    });
+    this.activeImagePreviewDialogRef = dialogRef;
+
+    dialogRef.afterClosed().subscribe(() => {
+      if (this.activeImagePreviewDialogRef === dialogRef) {
+        this.activeImagePreviewDialogRef = null;
+      }
+      if (!this.syncingOverlayFromRoute && this.currentQueryParam('preview') === 'tool-image') {
+        void this.clearPreviewQueryParam();
+      }
+    });
+  }
+
+  private currentQueryParam(name: string): string | null {
+    return this.router.parseUrl(this.router.url).queryParamMap.get(name);
+  }
+
   private formatToolTitle(value: string): string {
     return value.toLowerCase().replace(/\b\p{L}/gu, (letter) => letter.toUpperCase());
+  }
+
+  private parseToolSheetMode(value: string | null): ToolSheetMode {
+    if (value === 'borrowed' || value === 'my-tools') {
+      return value;
+    }
+
+    return 'shed';
+  }
+
+  private toolSheetKey(toolId: string, mode: ToolSheetMode): string {
+    return `${mode}:${toolId}`;
   }
 
   private compareToolIds(firstId: string, secondId: string): number {

@@ -7,14 +7,12 @@ import {
 } from '@angular/material/bottom-sheet';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { Subject } from 'rxjs';
 
 import { TOOL_PLACEHOLDER_URL, fallbackImage, normalizeImageUrl } from './core/image-url.util';
 import { ToolWithStatus } from './core/models';
 import { ResolvedImageDirective } from './core/resolved-image.directive';
-import { ToolImagePreviewDialogComponent } from './tool-image-preview-dialog';
 
 export type ToolSheetMode = 'shed' | 'borrowed' | 'my-tools';
 export type ToolSheetAction = 'borrow' | 'return' | 'edit' | 'delete';
@@ -23,6 +21,7 @@ export interface ToolSheetData {
   actionRequested: Subject<ToolSheetAction>;
   canBorrow: boolean;
   mode: ToolSheetMode;
+  previewRequested: Subject<void>;
   saving: boolean;
   tool: ToolWithStatus;
 }
@@ -43,7 +42,6 @@ export interface ToolSheetData {
 })
 export class ToolSheetComponent {
   readonly data = inject<ToolSheetData>(MAT_BOTTOM_SHEET_DATA);
-  private readonly dialog = inject(MatDialog);
   private readonly sheetRef = inject(MatBottomSheetRef<ToolSheetComponent, ToolSheetAction>);
   protected readonly fallbackImage = fallbackImage;
   private readonly borrowedDateFormatter = new Intl.DateTimeFormat(undefined, {
@@ -67,18 +65,7 @@ export class ToolSheetComponent {
       return;
     }
 
-    this.dialog.open(ToolImagePreviewDialogComponent, {
-      autoFocus: false,
-      data: {
-        alt: this.data.tool.name,
-        image: this.data.tool.image,
-      },
-      height: '100dvh',
-      maxHeight: '100dvh',
-      maxWidth: '100vw',
-      panelClass: 'tool-image-preview-dialog-panel',
-      width: '100vw',
-    });
+    this.data.previewRequested.next();
   }
 
   onPreviewKeyboard(event: Event): void {
