@@ -140,6 +140,7 @@ export class ToolboxStateService {
   async signIn(): Promise<void> {
     const user = await this.auth.signIn();
     if (user) {
+      await this.router.navigate(['/loading']);
       const shouldPromptForNotifications = await this.messaging.canPromptForNotifications();
       if (shouldPromptForNotifications) {
         const dialogRef = this.dialog.open(NotificationOptInDialogComponent, {

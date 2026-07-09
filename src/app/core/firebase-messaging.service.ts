@@ -152,7 +152,7 @@ export class FirebaseMessagingService {
       if (Notification.permission === 'granted') {
         const notification = new Notification(title, {
           body,
-          icon: payload.notification?.image || '/icons/icon-192x192.png',
+          icon: payload.notification?.image || '/notification-icon.png',
         });
         notification.onclick = () => {
           window.focus();

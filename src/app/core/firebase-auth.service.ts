@@ -56,7 +56,9 @@ export class FirebaseAuthService {
       const credential = await signInWithPopup(this.firebase.auth, this.firebase.googleProvider);
       const userProfile = this.mapUser(credential.user);
       this.user.set(userProfile);
-      await this.upsertUserDocument(userProfile);
+      void this.upsertUserDocument(userProfile).catch((error) => {
+        this.errorMessage.set(error instanceof Error ? error.message : 'Unable to update the user profile.');
+      });
       return userProfile;
     } catch (error) {
       this.errorMessage.set(error instanceof Error ? error.message : 'Google sign-in failed.');

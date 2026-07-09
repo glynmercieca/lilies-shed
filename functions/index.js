@@ -10,7 +10,7 @@ const db = getFirestore();
 const messaging = getMessaging();
 const FUNCTION_REGION = 'europe-west1';
 const APP_LINK = process.env.APP_LINK || 'https://shed.lilies.world/my-tools';
-const APP_ICON = process.env.APP_ICON || 'https://shed.lilies.world/icons/icon-192x192.png';
+const APP_ICON = process.env.APP_ICON || 'https://shed.lilies.world/notification-icon.png';
 
 exports.notifyOwnerOnBorrow = onDocumentCreated(
   {
