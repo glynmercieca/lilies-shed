@@ -6,8 +6,10 @@ import { MatCardModule } from '@angular/material/card';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { ToolboxStateService } from './core/toolbox-state.service';
+import { ViewportSentinelDirective } from './core/viewport-sentinel.directive';
 import { ToolCardComponent } from './tool-card';
 
 @Component({
@@ -19,8 +21,10 @@ import { ToolCardComponent } from './tool-card';
     MatDividerModule,
     MatIconModule,
     MatMenuModule,
+    MatProgressSpinnerModule,
     TitleCasePipe,
     ToolCardComponent,
+    ViewportSentinelDirective,
   ],
   templateUrl: './shed-view.html',
   styleUrl: './shed-view.scss',

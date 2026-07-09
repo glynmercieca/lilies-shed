@@ -3,14 +3,24 @@ import { MatBottomSheet, MatBottomSheetModule } from '@angular/material/bottom-s
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { BorrowedStatSheetComponent } from './borrowed-stat-sheet';
 import { ToolboxStateService } from './core/toolbox-state.service';
+import { ViewportSentinelDirective } from './core/viewport-sentinel.directive';
 import { ToolCardComponent } from './tool-card';
 
 @Component({
   selector: 'app-borrowed-view',
-  imports: [MatBottomSheetModule, MatButtonModule, MatCardModule, MatIconModule, ToolCardComponent],
+  imports: [
+    MatBottomSheetModule,
+    MatButtonModule,
+    MatCardModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    ToolCardComponent,
+    ViewportSentinelDirective,
+  ],
   templateUrl: './borrowed-view.html',
   changeDetection: ChangeDetectionStrategy.Eager,
 })

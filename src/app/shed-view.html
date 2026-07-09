@@ -69,11 +69,9 @@
   </div>
 
   @if (state.hasMoreFilteredTools()) {
-  <div class="tool-section-pager">
-    <button mat-stroked-button type="button" (click)="state.showMoreFilteredTools()">
-      <mat-icon class="material-symbols-outlined">expand_more</mat-icon>
-      <span>Load more tools</span>
-    </button>
+  <div class="tool-section-pager" appViewportSentinel (appViewportSentinel)="state.showMoreFilteredTools()"
+    aria-label="Loading more tools">
+    <mat-spinner diameter="28"></mat-spinner>
   </div>
   }
 </section>
