@@ -3,14 +3,24 @@ import { MatBottomSheet, MatBottomSheetModule } from '@angular/material/bottom-s
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { ToolboxStateService } from './core/toolbox-state.service';
+import { ViewportSentinelDirective } from './core/viewport-sentinel.directive';
 import { MyToolsStatSheetComponent } from './my-tools-stat-sheet';
 import { ToolCardComponent } from './tool-card';
 
 @Component({
   selector: 'app-my-tools-view',
-  imports: [MatBottomSheetModule, MatButtonModule, MatCardModule, MatIconModule, ToolCardComponent],
+  imports: [
+    MatBottomSheetModule,
+    MatButtonModule,
+    MatCardModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    ToolCardComponent,
+    ViewportSentinelDirective,
+  ],
   templateUrl: './my-tools-view.html',
   styleUrl: './my-tools-view.scss',
   changeDetection: ChangeDetectionStrategy.Eager,

@@ -225,11 +225,10 @@ mat-chip mat-icon {
 
 .tool-section-pager {
   display: flex;
+  min-height: 48px;
+  align-items: center;
   justify-content: center;
-}
-
-.tool-section-pager button {
-  min-width: min(100%, 220px);
+  padding-block: 8px;
 }
 
 @media (max-width: 599.98px) {
