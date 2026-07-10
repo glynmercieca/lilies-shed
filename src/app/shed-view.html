@@ -15,7 +15,7 @@
     </button>
   </div>
 
-  <div class="category-filter-strip" aria-label="Tool categories">
+  <div class="category-filter-strip" aria-label="Tool categories" (wheel)="onCategoryWheel($event)">
     <button type="button" class="category-filter-chip" [class.is-selected]="!state.selectedCategoryId()"
       (click)="state.setSelectedCategory('')">
       All

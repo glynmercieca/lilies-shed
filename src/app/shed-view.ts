@@ -34,6 +34,30 @@ export class ShedViewComponent {
   readonly state = inject(ToolboxStateService);
   readonly searchFocused = signal(false);
 
+  onCategoryWheel(event: WheelEvent): void {
+    if (event.ctrlKey || event.deltaY === 0) {
+      return;
+    }
+
+    const strip = event.currentTarget;
+    if (!(strip instanceof HTMLElement) || strip.scrollWidth <= strip.clientWidth) {
+      return;
+    }
+
+    const delta = this.normalizedWheelDelta(event.deltaY, event.deltaMode, strip.clientWidth);
+    const nextScrollLeft = Math.min(
+      Math.max(strip.scrollLeft + delta, 0),
+      strip.scrollWidth - strip.clientWidth,
+    );
+
+    if (nextScrollLeft === strip.scrollLeft) {
+      return;
+    }
+
+    strip.scrollLeft = nextScrollLeft;
+    event.preventDefault();
+  }
+
   onSearchFocusIn(): void {
     this.searchFocused.set(true);
   }
@@ -50,5 +74,16 @@ export class ShedViewComponent {
     }
 
     this.searchFocused.set(false);
+  }
+
+  private normalizedWheelDelta(delta: number, deltaMode: number, pageWidth: number): number {
+    switch (deltaMode) {
+      case WheelEvent.DOM_DELTA_LINE:
+        return delta * 16;
+      case WheelEvent.DOM_DELTA_PAGE:
+        return delta * pageWidth;
+      default:
+        return delta;
+    }
   }
 }

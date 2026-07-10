@@ -66,7 +66,12 @@ export class ToolboxStateService {
   private readNotificationsSubscription: Unsubscribe | null = null;
 
   readonly tools = computed(() => decorateTools(this.snapshot()));
-  readonly categories = computed(() => this.snapshot().categories.length ? this.snapshot().categories : FIXED_TOOL_CATEGORIES);
+  readonly categories = computed(() =>
+    [...(this.snapshot().categories.length ? this.snapshot().categories : FIXED_TOOL_CATEGORIES)].sort(
+      (firstCategory, secondCategory) =>
+        firstCategory.name.localeCompare(secondCategory.name, undefined, { sensitivity: 'base' }),
+    ),
+  );
   readonly visibleTools = computed(() => this.tools().filter((tool) => !tool.deleted));
   readonly searchAutocompleteOptions = computed(() => {
     const query = this.searchTerm().trim().toLowerCase();
