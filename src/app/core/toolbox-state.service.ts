@@ -46,6 +46,7 @@ export class ToolboxStateService {
   readonly borrowedVisibleCount = signal(this.listPageSize);
   readonly ownedVisibleCount = signal(this.listPageSize);
   private readonly snapshot = signal<SheetsSnapshot>({ categories: [], tools: [], loans: [], notifications: [] });
+  private readonly readNotificationIds = signal<Set<string>>(new Set());
   private readonly loadedUserEmail = signal<string | null>(null);
   private activeAddToolDialogRef: MatDialogRef<ToolFormDialogComponent> | null = null;
   private activeImagePreviewDialogRef: MatDialogRef<ToolImagePreviewDialogComponent> | null = null;
@@ -55,6 +56,7 @@ export class ToolboxStateService {
   private activeToolSheetTool: ToolWithStatus | null = null;
   private syncingOverlayFromRoute = false;
   private notificationsSubscription: Unsubscribe | null = null;
+  private readNotificationsSubscription: Unsubscribe | null = null;
 
   readonly tools = computed(() => decorateTools(this.snapshot()));
   readonly categories = computed(() => this.snapshot().categories.length ? this.snapshot().categories : FIXED_TOOL_CATEGORIES);
@@ -118,8 +120,20 @@ export class ToolboxStateService {
   readonly recentNotifications = computed(() =>
     this.snapshot()
       .notifications.filter((notification) => !notification.recipientId || matchesUserId(this.auth.currentUser(), notification.recipientId))
-      .slice(0, 10),
+      .slice(0, 10)
+      .map((notification) => ({
+        ...notification,
+        read: this.readNotificationIds().has(notification.id),
+      })),
   );
+  readonly unreadNotificationCount = computed(() => {
+    const readNotificationIds = this.readNotificationIds();
+    return this.snapshot().notifications.filter(
+      (notification) =>
+        (!notification.recipientId || matchesUserId(this.auth.currentUser(), notification.recipientId)) &&
+        !readNotificationIds.has(notification.id),
+    ).length;
+  });
 
   constructor() {
     effect(() => {
@@ -129,6 +143,7 @@ export class ToolboxStateService {
       if (!user) {
         if (loadedUserEmail) {
           this.snapshot.set({ categories: [], tools: [], loans: [], notifications: [] });
+          this.readNotificationIds.set(new Set());
           this.loadedUserEmail.set(null);
         }
         this.stopNotificationsLiveRefresh();
@@ -179,6 +194,7 @@ export class ToolboxStateService {
     }
     await this.auth.signOut();
     this.snapshot.set({ categories: [], tools: [], loans: [], notifications: [] });
+    this.readNotificationIds.set(new Set());
     this.searchTerm.set('');
     this.selectedCategoryId.set('');
     this.showUnavailableTools.set(false);
@@ -227,8 +243,13 @@ export class ToolboxStateService {
 
     this.loading.set(true);
     try {
-      const snapshot = await this.toolbox.loadSnapshot();
+      const user = this.auth.currentUser();
+      const [snapshot, readNotificationIds] = await Promise.all([
+        this.toolbox.loadSnapshot(),
+        user ? this.toolbox.loadReadNotificationIds(user.id) : Promise.resolve(new Set<string>()),
+      ]);
       this.snapshot.set(snapshot);
+      this.readNotificationIds.set(readNotificationIds);
       this.resetListPaging();
     } catch (error) {
       this.notify(error instanceof Error ? error.message : 'Unable to refresh toolbox data.');
@@ -238,23 +259,59 @@ export class ToolboxStateService {
   }
 
   startNotificationsLiveRefresh(): void {
-    if (this.notificationsSubscription || !this.auth.currentUser()) {
+    const user = this.auth.currentUser();
+    if (!user) {
       return;
     }
 
-    this.notificationsSubscription = this.toolbox.watchNotifications(
-      (notifications) => {
-        this.snapshot.update((snapshot) => ({ ...snapshot, notifications }));
-      },
-      (error) => {
-        this.notify(error.message || 'Unable to refresh notifications.');
-      },
-    );
+    if (!this.notificationsSubscription) {
+      this.notificationsSubscription = this.toolbox.watchNotifications(
+        (notifications) => {
+          this.snapshot.update((snapshot) => ({ ...snapshot, notifications }));
+        },
+        (error) => {
+          this.notify(error.message || 'Unable to refresh notifications.');
+        },
+      );
+    }
+
+    if (!this.readNotificationsSubscription) {
+      this.readNotificationsSubscription = this.toolbox.watchReadNotificationIds(
+        user.id,
+        (readNotificationIds) => {
+          this.readNotificationIds.set(readNotificationIds);
+        },
+        (error) => {
+          this.notify(error.message || 'Unable to refresh read notifications.');
+        },
+      );
+    }
   }
 
   stopNotificationsLiveRefresh(): void {
     this.notificationsSubscription?.();
     this.notificationsSubscription = null;
+    this.readNotificationsSubscription?.();
+    this.readNotificationsSubscription = null;
+  }
+
+  async markNotificationRead(notificationId: string): Promise<void> {
+    const user = this.auth.currentUser();
+    if (!user || this.readNotificationIds().has(notificationId)) {
+      return;
+    }
+
+    this.readNotificationIds.update((readNotificationIds) => new Set([...readNotificationIds, notificationId]));
+    try {
+      await this.toolbox.markNotificationRead(user.id, notificationId);
+    } catch (error) {
+      this.readNotificationIds.update((readNotificationIds) => {
+        const nextReadNotificationIds = new Set(readNotificationIds);
+        nextReadNotificationIds.delete(notificationId);
+        return nextReadNotificationIds;
+      });
+      this.notify(error instanceof Error ? error.message : 'Unable to mark this notification as read.');
+    }
   }
 
   async openTool(tool: ToolWithStatus, mode: ToolSheetMode = 'shed'): Promise<void> {

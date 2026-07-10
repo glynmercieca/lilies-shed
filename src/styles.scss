@@ -134,6 +134,11 @@ mat-chip mat-icon {
   vertical-align: middle;
 }
 
+.app-header-notifications .mat-badge-content {
+  background: var(--mat-sys-primary);
+  color: var(--mat-sys-on-primary);
+}
+
 .available-chip {
   background: rgba(46, 125, 50, 0.12) !important;
 }

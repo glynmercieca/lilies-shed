@@ -34,7 +34,10 @@
     @if (state.recentNotifications().length) {
     <div class="d-grid gap-2 align-content-start">
       @for (notification of state.recentNotifications(); track notification.id) {
-      <mat-card appearance="outlined" class="notification-card">
+      <mat-card appearance="outlined" class="notification-card" [class.notification-card-unread]="!notification.read"
+        role="button" tabindex="0" (click)="markNotificationRead(notification.id)"
+        (keydown.enter)="markNotificationRead(notification.id)"
+        (keydown.space)="markNotificationRead(notification.id); $event.preventDefault()">
         <div class="fw-semibold">{{ notification.title }}</div>
         <p class="m-0 notification-message">{{ notification.message }}</p>
         <div class="notification-meta">
@@ -61,8 +64,8 @@
       </div>
 
       <button mat-icon-button type="button" class="app-header-notifications" (click)="openNotifications()"
-        [matBadge]="state.recentNotifications().length" [matBadgeHidden]="state.recentNotifications().length === 0"
-        matBadgeColor="primary" matBadgeSize="small" aria-label="Open notifications">
+        [matBadge]="state.unreadNotificationCount()" [matBadgeHidden]="state.unreadNotificationCount() === 0"
+        matBadgeColor="primary" matBadgeSize="medium" aria-label="Open notifications">
         <mat-icon class="material-symbols-outlined">notifications</mat-icon>
       </button>
     </header>

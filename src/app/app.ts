@@ -99,6 +99,10 @@ export class App implements OnDestroy {
     this.messaging.dismissForegroundNotification();
   }
 
+  markNotificationRead(notificationId: string): void {
+    void this.state.markNotificationRead(notificationId);
+  }
+
   openNotifications(): void {
     if (!this.isSignedIn()) {
       this.pendingNotificationsOpen = true;

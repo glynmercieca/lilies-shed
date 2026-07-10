@@ -3,6 +3,7 @@ import {
   QueryDocumentSnapshot,
   DocumentData,
   Timestamp,
+  arrayUnion,
   collection,
   doc,
   getDoc,
@@ -105,6 +106,11 @@ export class FirestoreToolboxService {
     return this.parseNotificationsSnapshot(notificationsSnapshot.docs);
   }
 
+  async loadReadNotificationIds(userId: string): Promise<Set<string>> {
+    const userSnapshot = await getDoc(doc(this.firebase.firestore, 'users', userId));
+    return new Set(this.readStringArray(userSnapshot.data()?.['readNotificationIds']));
+  }
+
   watchNotifications(
     onChange: (notifications: AppNotificationRecord[]) => void,
     onError?: (error: Error) => void,
@@ -113,6 +119,29 @@ export class FirestoreToolboxService {
       this.notificationsQuery(),
       (snapshot) => onChange(this.parseNotificationsSnapshot(snapshot.docs)),
       (error) => onError?.(error),
+    );
+  }
+
+  watchReadNotificationIds(
+    userId: string,
+    onChange: (readNotificationIds: Set<string>) => void,
+    onError?: (error: Error) => void,
+  ): Unsubscribe {
+    return onSnapshot(
+      doc(this.firebase.firestore, 'users', userId),
+      (snapshot) => onChange(new Set(this.readStringArray(snapshot.data()?.['readNotificationIds']))),
+      (error) => onError?.(error),
+    );
+  }
+
+  async markNotificationRead(userId: string, notificationId: string): Promise<void> {
+    await setDoc(
+      doc(this.firebase.firestore, 'users', userId),
+      {
+        readNotificationIds: arrayUnion(notificationId),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true },
     );
   }
 
@@ -344,6 +373,10 @@ export class FirestoreToolboxService {
 
   private readBoolean(value: unknown): boolean {
     return value === true || this.readString(value).toLowerCase() === 'true';
+  }
+
+  private readStringArray(value: unknown): string[] {
+    return Array.isArray(value) ? value.map((item) => this.readString(item)).filter(Boolean) : [];
   }
 
   private readDateString(value: unknown): string {
