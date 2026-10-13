@@ -17,6 +17,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { Subject, Subscription } from 'rxjs';
 
+import { MAX_IMAGE_INPUT_BYTES, validateImage } from './core/image-processing.util';
 import { fallbackImage } from './core/image-url.util';
 import { ResolvedImageDirective } from './core/resolved-image.directive';
 import { ToolCategoryRecord, ToolFormValue } from './core/models';
@@ -27,7 +28,6 @@ interface ToolFormDialogData {
   value?: ToolFormValue;
 }
 
-const MAX_IMAGE_FILE_SIZE_BYTES = 32 * 1024 * 1024;
 const CATEGORY_NAME_MATCHERS: ReadonlyArray<{ categoryId: string; terms: readonly string[] }> = [
   {
     categoryId: 'automotive',
@@ -109,7 +109,7 @@ export class ToolFormDialogComponent implements OnDestroy {
   private nameChangesSubscription: Subscription;
   protected readonly categories = this.data.categories;
   protected readonly fallbackImage = fallbackImage;
-  protected readonly maxImageSizeMb = 32;
+  protected readonly maxImageSizeMb = MAX_IMAGE_INPUT_BYTES / (1024 * 1024);
 
   readonly form = this.formBuilder.nonNullable.group({
     name: [this.data.value?.name ?? '', Validators.required],
@@ -139,24 +139,16 @@ export class ToolFormDialogComponent implements OnDestroy {
       return;
     }
 
-    const oversizedFiles = files.filter((file) => file.size > MAX_IMAGE_FILE_SIZE_BYTES);
-    const allowedFiles = files.filter((file) => file.size <= MAX_IMAGE_FILE_SIZE_BYTES);
-
-    if (oversizedFiles.length) {
-      const fileList = oversizedFiles.map((file) => file.name || 'Unnamed image').join(', ');
-      this.imageSelectionError.set(`Images must be ${this.maxImageSizeMb} MB or smaller. Skipped: ${fileList}.`);
-    } else {
+    const nextFile = files[0];
+    try {
+      validateImage(nextFile);
       this.imageSelectionError.set(null);
-    }
-
-    if (!allowedFiles.length) {
-      if (input) {
-        input.value = '';
-      }
+    } catch (error) {
+      this.imageSelectionError.set((error as Error).message);
+      if (input) input.value = '';
       return;
     }
 
-    const nextFile = allowedFiles[0];
     const currentSelectedFile = this.selectedFile();
     if (currentSelectedFile) {
       URL.revokeObjectURL(currentSelectedFile.previewUrl);
@@ -210,6 +202,7 @@ export class ToolFormDialogComponent implements OnDestroy {
     this.submitRequested.next({
       ...this.form.getRawValue(),
       imageUrl: this.imageUrl(),
+      thumbnailUrl: this.data.value?.thumbnailUrl,
       imageFile: this.selectedFile()?.file ?? null,
     });
   }

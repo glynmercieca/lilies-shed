@@ -44,7 +44,7 @@
           {{ imageUrl() || selectedFile() ? 'Replace photo' : 'Add photo' }}
         </button>
         <span class="text-body-secondary small">
-          Max file size up to {{ maxImageSizeMb }} MB.
+          JPEG, PNG or WebP, up to {{ maxImageSizeMb }} MB.
         </span>
       </div>
 
@@ -52,7 +52,7 @@
       <div class="small text-danger">{{ imageSelectionError() }}</div>
       }
 
-      <input #picker hidden type="file" accept="image/*" (change)="onFilesSelected($event)" />
+      <input #picker hidden type="file" accept="image/jpeg,image/png,image/webp" (change)="onFilesSelected($event)" />
 
       @if (imageUrl() || selectedFile()) {
       <div class="row row-cols-1 row-cols-sm-2 g-2">

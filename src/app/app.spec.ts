@@ -8,7 +8,10 @@ import { App } from './app';
 import { routes } from './app.routes';
 
 describe('App', () => {
+  afterEach(() => window.localStorage.removeItem('shed-theme-mode'));
   beforeEach(async () => {
+    // JSDOM does not implement the browser theme preference API.
+    window.localStorage.setItem('shed-theme-mode', 'light');
     await TestBed.configureTestingModule({
       imports: [App, MatSnackBarModule],
       providers: [provideZonelessChangeDetection(), provideNoopAnimations(), provideRouter(routes)],

@@ -1,4 +1,4 @@
-import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { DestroyRef, Injectable, computed, effect, inject, signal } from '@angular/core';
 import { MatBottomSheet, MatBottomSheetRef } from '@angular/material/bottom-sheet';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -62,6 +62,7 @@ export class ToolboxStateService {
   private activeToolSheetRef: MatBottomSheetRef<ToolSheetComponent> | null = null;
   private activeToolSheetTool: ToolWithStatus | null = null;
   private syncingOverlayFromRoute = false;
+  private notificationsUserId: string | null = null;
   private notificationsSubscription: Unsubscribe | null = null;
   private readNotificationsSubscription: Unsubscribe | null = null;
 
@@ -149,6 +150,7 @@ export class ToolboxStateService {
   });
 
   constructor() {
+    inject(DestroyRef).onDestroy(() => this.stopNotificationsLiveRefresh());
     effect(() => {
       const user = this.auth.currentUser();
       const loadedUserEmail = this.loadedUserEmail();
@@ -161,6 +163,13 @@ export class ToolboxStateService {
         }
         this.stopNotificationsLiveRefresh();
         return;
+      }
+
+      if (this.notificationsUserId && this.notificationsUserId !== user.id) {
+        this.stopNotificationsLiveRefresh();
+        this.snapshot.update((snapshot) => ({ ...snapshot, notifications: [] }));
+        this.readNotificationIds.set(new Set());
+        this.startNotificationsLiveRefresh();
       }
 
       if (loadedUserEmail === user.email) {
@@ -257,10 +266,12 @@ export class ToolboxStateService {
     this.loading.set(true);
     try {
       const user = this.auth.currentUser();
+      if (!user) return;
       const [snapshot, readNotificationIds] = await Promise.all([
-        this.toolbox.loadSnapshot(),
-        user ? this.toolbox.loadReadNotificationIds(user.id) : Promise.resolve(new Set<string>()),
+        this.toolbox.loadSnapshot(user.id),
+        this.toolbox.loadReadNotificationIds(user.id),
       ]);
+      if (this.auth.currentUser()?.id !== user.id) return;
       this.snapshot.set(snapshot);
       this.readNotificationIds.set(readNotificationIds);
       this.resetListPaging();
@@ -278,9 +289,14 @@ export class ToolboxStateService {
       return;
     }
 
+    if (this.notificationsUserId !== user.id) this.stopNotificationsLiveRefresh();
+    this.notificationsUserId = user.id;
+
     if (!this.notificationsSubscription) {
       this.notificationsSubscription = this.toolbox.watchNotifications(
+        user.id,
         (notifications) => {
+          if (this.auth.currentUser()?.id !== user.id) return;
           this.snapshot.update((snapshot) => ({ ...snapshot, notifications }));
         },
         (error) => {
@@ -293,6 +309,7 @@ export class ToolboxStateService {
       this.readNotificationsSubscription = this.toolbox.watchReadNotificationIds(
         user.id,
         (readNotificationIds) => {
+          if (this.auth.currentUser()?.id !== user.id) return;
           this.readNotificationIds.set(readNotificationIds);
         },
         (error) => {
@@ -303,6 +320,7 @@ export class ToolboxStateService {
   }
 
   stopNotificationsLiveRefresh(): void {
+    this.notificationsUserId = null;
     this.notificationsSubscription?.();
     this.notificationsSubscription = null;
     this.readNotificationsSubscription?.();
@@ -317,7 +335,7 @@ export class ToolboxStateService {
 
     this.readNotificationIds.update((readNotificationIds) => new Set([...readNotificationIds, notificationId]));
     try {
-      await this.toolbox.markNotificationRead(user.id, notificationId);
+      await this.toolbox.markNotificationRead(user.id, notificationId, this.snapshot().notifications.map((item) => item.id));
     } catch (error) {
       this.readNotificationIds.update((readNotificationIds) => {
         const nextReadNotificationIds = new Set(readNotificationIds);
@@ -351,7 +369,7 @@ export class ToolboxStateService {
       (currentReadNotificationIds) => new Set([...currentReadNotificationIds, ...unreadNotificationIds]),
     );
     try {
-      await this.toolbox.markNotificationsRead(user.id, unreadNotificationIds);
+      await this.toolbox.markNotificationsRead(user.id, unreadNotificationIds, this.snapshot().notifications.map((item) => item.id));
     } catch (error) {
       this.readNotificationIds.update((currentReadNotificationIds) => {
         const nextReadNotificationIds = new Set(currentReadNotificationIds);
@@ -552,7 +570,8 @@ export class ToolboxStateService {
         await this.toolbox.addTool(
           {
             ...result,
-            imageUrl: uploadedImageUrl || result.imageUrl,
+            imageUrl: uploadedImageUrl?.imageUrl || result.imageUrl,
+            thumbnailUrl: uploadedImageUrl?.thumbnailUrl || (result.imageUrl ? result.thumbnailUrl : ''),
           },
           user,
         );
@@ -593,6 +612,7 @@ export class ToolboxStateService {
           description: tool.description,
           notes: tool.notes,
           imageUrl: tool.image,
+          thumbnailUrl: tool.thumbnail,
           imageFile: null,
         },
       },
@@ -617,7 +637,8 @@ export class ToolboxStateService {
         const uploadedImageUrl = await this.imageUpload.uploadImage(result.imageFile);
         await this.toolbox.updateTool(tool, {
           ...result,
-          imageUrl: uploadedImageUrl || result.imageUrl,
+          imageUrl: uploadedImageUrl?.imageUrl || result.imageUrl,
+          thumbnailUrl: uploadedImageUrl?.thumbnailUrl || (result.imageUrl ? result.thumbnailUrl : ''),
         });
         await this.refresh();
         dialogRef.close(true);

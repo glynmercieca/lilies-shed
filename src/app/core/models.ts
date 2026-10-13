@@ -22,6 +22,7 @@ export interface ToolRecord {
   ownerFirstName: string;
   ownerLastName: string;
   image: string;
+  thumbnail?: string;
 }
 
 export interface LoanRecord {
@@ -59,6 +60,7 @@ export interface ToolFormValue {
   description: string;
   notes: string;
   imageUrl: string;
+  thumbnailUrl?: string;
   imageFile: File | null;
 }
 

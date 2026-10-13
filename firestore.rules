@@ -11,7 +11,15 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read: if signedIn();
-      allow create, update: if isSelf(userId);
+      allow create: if isSelf(userId)
+        && (!('readNotificationIds' in request.resource.data)
+          || (request.resource.data.readNotificationIds is list
+            && request.resource.data.readNotificationIds.size() <= 500));
+      // Existing large histories can remain unchanged during profile updates.
+      allow update: if isSelf(userId)
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['readNotificationIds'])
+          || (request.resource.data.readNotificationIds is list
+            && request.resource.data.readNotificationIds.size() <= 500));
       allow delete: if false;
     }
 

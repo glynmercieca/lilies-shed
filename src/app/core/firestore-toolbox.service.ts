@@ -3,7 +3,6 @@ import {
   QueryDocumentSnapshot,
   DocumentData,
   Timestamp,
-  arrayUnion,
   collection,
   doc,
   getDoc,
@@ -17,6 +16,7 @@ import {
   setDoc,
   Unsubscribe,
   updateDoc,
+  where,
 } from 'firebase/firestore';
 
 import { FirebaseClientService } from './firebase-client.service';
@@ -30,6 +30,7 @@ import {
   ToolRecord,
   UserProfile,
 } from './models';
+import { boundReadNotificationIds, mergeNotifications, NOTIFICATION_QUERY_LIMIT } from './notification.util';
 import { ToolRequestFormValue } from '../request-tool-dialog';
 
 interface FirestoreUserRecord {
@@ -59,7 +60,7 @@ export const FIXED_TOOL_CATEGORIES: ToolCategoryRecord[] = [
 export class FirestoreToolboxService {
   private readonly firebase = inject(FirebaseClientService);
 
-  async loadSnapshot(): Promise<SheetsSnapshot> {
+  async loadSnapshot(userId: string): Promise<SheetsSnapshot> {
     void this.ensureToolCategories();
 
     const [usersSnapshot, categories, toolsSnapshot, loansSnapshot, notifications] = await Promise.all([
@@ -67,7 +68,7 @@ export class FirestoreToolboxService {
       this.loadCategories(),
       getDocs(collection(this.firebase.firestore, 'tools')),
       getDocs(collection(this.firebase.firestore, 'loan')),
-      this.loadNotifications(),
+      this.loadNotifications(userId),
     ]);
 
     const usersById = new Map<string, UserProfile>(
@@ -101,9 +102,9 @@ export class FirestoreToolboxService {
     return { categories, tools, loans, notifications };
   }
 
-  async loadNotifications(): Promise<AppNotificationRecord[]> {
-    const notificationsSnapshot = await getDocs(this.notificationsQuery());
-    return this.parseNotificationsSnapshot(notificationsSnapshot.docs);
+  async loadNotifications(userId: string): Promise<AppNotificationRecord[]> {
+    const snapshots = await Promise.all(this.notificationsQueries(userId).map((source) => getDocs(source)));
+    return mergeNotifications(snapshots.map((snapshot) => this.parseNotificationsSnapshot(snapshot.docs)));
   }
 
   async loadReadNotificationIds(userId: string): Promise<Set<string>> {
@@ -112,14 +113,28 @@ export class FirestoreToolboxService {
   }
 
   watchNotifications(
+    userId: string,
     onChange: (notifications: AppNotificationRecord[]) => void,
     onError?: (error: Error) => void,
   ): Unsubscribe {
-    return onSnapshot(
-      this.notificationsQuery(),
-      (snapshot) => onChange(this.parseNotificationsSnapshot(snapshot.docs)),
-      (error) => onError?.(error),
-    );
+    const sources = this.notificationsQueries(userId);
+    const groups: AppNotificationRecord[][] = sources.map(() => []);
+    const ready = new Set<number>();
+    let active = true;
+    const subscriptions = sources.map((source, index) => onSnapshot(
+      source,
+      (snapshot) => {
+        if (!active) return;
+        groups[index] = this.parseNotificationsSnapshot(snapshot.docs);
+        ready.add(index);
+        if (ready.size === sources.length) onChange(mergeNotifications(groups));
+      },
+      (error) => { if (active) onError?.(error); },
+    ));
+    return () => {
+      active = false;
+      subscriptions.forEach((unsubscribe) => unsubscribe());
+    };
   }
 
   watchReadNotificationIds(
@@ -134,23 +149,23 @@ export class FirestoreToolboxService {
     );
   }
 
-  async markNotificationRead(userId: string, notificationId: string): Promise<void> {
-    await this.markNotificationsRead(userId, [notificationId]);
+  async markNotificationRead(userId: string, notificationId: string, visibleIds: string[] = []): Promise<void> {
+    await this.markNotificationsRead(userId, [notificationId], visibleIds);
   }
 
-  async markNotificationsRead(userId: string, notificationIds: string[]): Promise<void> {
-    if (!notificationIds.length) {
-      return;
-    }
-
-    await setDoc(
-      doc(this.firebase.firestore, 'users', userId),
-      {
-        readNotificationIds: arrayUnion(...notificationIds),
+  async markNotificationsRead(userId: string, notificationIds: string[], visibleIds: string[] = []): Promise<void> {
+    if (!notificationIds.length) return;
+    const userRef = doc(this.firebase.firestore, 'users', userId);
+    // A transaction preserves marks made concurrently by other tabs/devices.
+    await runTransaction(this.firebase.firestore, async (transaction) => {
+      const snapshot = await transaction.get(userRef);
+      transaction.set(userRef, {
+        readNotificationIds: boundReadNotificationIds(
+          this.readStringArray(snapshot.data()?.['readNotificationIds']), notificationIds, visibleIds,
+        ),
         updatedAt: serverTimestamp(),
-      },
-      { merge: true },
-    );
+      }, { merge: true });
+    });
   }
 
   async addBorrowRequest(toolId: string, borrower: UserProfile): Promise<void> {
@@ -185,6 +200,7 @@ export class FirestoreToolboxService {
       deleted: false,
       ownerId: owner.id,
       image: formValue.imageUrl,
+      thumbnail: formValue.thumbnailUrl || '',
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
@@ -199,6 +215,7 @@ export class FirestoreToolboxService {
       description: formValue.description,
       notes: formValue.notes,
       image: formValue.imageUrl,
+      thumbnail: formValue.thumbnailUrl || '',
       updatedAt: serverTimestamp(),
     });
   }
@@ -270,6 +287,7 @@ export class FirestoreToolboxService {
       ownerFirstName,
       ownerLastName,
       image: this.readString(data['image']),
+      thumbnail: this.readString(data['thumbnail']),
     };
   }
 
@@ -331,8 +349,13 @@ export class FirestoreToolboxService {
     };
   }
 
-  private notificationsQuery() {
-    return query(collection(this.firebase.firestore, 'notifications'), orderBy('createdAt', 'desc'), limit(50));
+  private notificationsQueries(userId: string) {
+    const notifications = collection(this.firebase.firestore, 'notifications');
+    const recipientIds = [...new Set([userId, userId.trim().toLowerCase()])];
+    return [
+      query(notifications, where('recipientId', 'in', recipientIds), orderBy('createdAt', 'desc'), limit(NOTIFICATION_QUERY_LIMIT)),
+      query(notifications, where('recipientId', 'in', ['', null]), orderBy('createdAt', 'desc'), limit(NOTIFICATION_QUERY_LIMIT)),
+    ];
   }
 
   private parseNotificationsSnapshot(

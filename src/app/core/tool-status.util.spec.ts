@@ -6,11 +6,15 @@ import { SheetsSnapshot } from './models';
 describe('decorateTools', () => {
   it('marks tools with active loans as unavailable', () => {
     const snapshot: SheetsSnapshot = {
+      categories: [],
+      notifications: [],
       tools: [
         {
           documentId: '100000',
           id: '100000',
           name: 'Crimper',
+          categoryId: 'other',
+          categoryName: 'Other',
           description: 'desc',
           notes: '',
           deleted: false,
@@ -25,6 +29,8 @@ describe('decorateTools', () => {
           documentId: '100001',
           id: '100001',
           name: 'Tester',
+          categoryId: 'other',
+          categoryName: 'Other',
           description: 'desc',
           notes: '',
           deleted: false,
@@ -72,11 +78,15 @@ describe('decorateTools', () => {
 
   it('marks never-loaned tools as available', () => {
     const snapshot: SheetsSnapshot = {
+      categories: [],
+      notifications: [],
       tools: [
         {
           documentId: '100002',
           id: '100002',
           name: 'Never Loaned',
+          categoryId: 'other',
+          categoryName: 'Other',
           description: 'desc',
           notes: '',
           deleted: false,
