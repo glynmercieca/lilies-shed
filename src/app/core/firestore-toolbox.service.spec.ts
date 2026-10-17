@@ -343,6 +343,23 @@ describe('recipient notification queries', () => {
     expect(sdk.getDoc).toHaveBeenCalledTimes(5);
   });
 
+  it('retries missing profiles on refresh and preserves the legacy owner display until backfilled', async () => {
+    sdk.getDocs.mockImplementation(async source => ({ docs: source.source?.path === 'tools'
+      ? [{ id: 'tool', data: () => ({ name: 'Drill', ownerId: 'owner', owner: 'Alice Smith', latestLoanId: null }) }]
+      : [] }));
+    const snapshot = await service.loadSnapshot('user');
+    expect(snapshot.tools[0].owner).toBe('Alice Smith');
+    expect(snapshot.tools[0].ownerFirstName).toBe('');
+    sdk.getDoc.mockImplementation(async reference => ({
+      exists: () => reference.path === 'publicProfiles',
+      data: () => reference.path === 'publicProfiles' ? { firstName: 'Alice', lastName: 'Smith' } : undefined,
+    }));
+    const refreshed = await service.loadSnapshot('user');
+    expect(refreshed.tools[0].ownerFirstName).toBe('Alice');
+    expect(sdk.getDoc.mock.calls.filter(([reference]) => reference.path === 'publicProfiles')).toHaveLength(2);
+    expect(sdk.getDoc.mock.calls.some(([reference]) => reference.path === 'users')).toBe(false);
+  });
+
   it('excludes deleted tools only after the trusted migration gate is published', async () => {
     sdk.getDoc.mockResolvedValue({ exists: () => true, data: () => ({ schemaVersion: 1 }) });
     sdk.getDocs.mockResolvedValue({ docs: [] });

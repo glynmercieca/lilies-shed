@@ -1,6 +1,31 @@
 # Database permissions rollout
 
-Local implementation only. No production deployment or migration has been run.
+The full rollout remains a local implementation; the focused production repair
+below is the exception.
+
+Update, 17 October 2026: the focused owner-profile repair below has now been
+deployed through the signed-in Firebase Console. The broader permissions and
+borrowing rollout described in this document remains separate and incomplete.
+
+## Production owner-profile repair (17 October 2026)
+
+The live `shed-3fc03` database still had its July rules and no `publicProfiles`
+collection. Published the four-field `publicProfiles` read/self-write rules and
+restricted private `users` reads to the matching account. Other collection rules
+were preserved from the live version, avoiding activation of reservation rules
+before the borrowing migration. The deployed rules are recorded in
+`firestore-profile-rollout-2026-10-17.rules`; these are a transitional production
+snapshot, not a replacement for the repository's complete target `firestore.rules`.
+
+Created eight public profile documents using the existing case-sensitive user
+document IDs, copying only `displayName`, `firstName`, `lastName`, and `photoURL`.
+No notification tokens, email addresses, preferences, or read marks were copied.
+This was a focused display-profile backfill through the Console, not execution
+of the combined notification/identity migration script.
+
+Reloaded the existing signed-in production app in Chrome and loaded the complete
+inventory: 66 available tool cards, zero “Unknown owner” labels, and no remaining
+inventory loading indicator. This repair needed no new front-end deployment.
 
 ## Privacy step
 
@@ -46,6 +71,25 @@ Firebase references: [field access](https://firebase.google.com/docs/firestore/s
 Privacy step 698ba81 passed 41 application tests, 13 integration checks and the production build. Final implementation passed 46 application tests, 24 integration/security checks (Firestore/Storage emulators plus mocked trusted-function/migration checks), production build, and Chromium offline/reload/version-update smoke checks. Tests include genuine competing Firestore transactions and an offline browser attempting the same borrowing operation used by the app. No production credentials were used for testing. Existing Bootstrap Sass deprecations and the tool-sheet optional-chain compiler warning remain.
 
 ## Front-end rollout compatibility (17 October 2026)
+
+### All tools show “Unknown owner”
+
+Publishing the client to Pages does not deploy Firebase rules or backfill `publicProfiles`.
+If inventory loads but every owner is unknown, verify that signed-in members can read
+`publicProfiles/{ownerId}` and that those documents exist. A permission-denied read
+means the public-profile rules still need deploying; a missing document means the
+profile backfill is pending. Signing in creates only that member's profile, not
+every existing owner's profile.
+
+Complete the Privacy step above with trusted administrator credentials. From `functions`,
+set `GCLOUD_PROJECT=shed-3fc03`, run `node scripts/migrate-profile-privacy.js` to review
+the dry run, resolve conflicts, then run `node scripts/migrate-profile-privacy.js --apply`
+in the maintenance window. Verify that tool owner IDs match public profile document
+IDs exactly, then refresh inventory. Do not expose private `users` documents to fix
+display names. The client now retains a tool's legacy owner label when available,
+fetches display profiles from the server, and retries missing profiles on refresh
+instead of retaining a missing result for five minutes. Tools without either source
+still require the backend rollout to display a name.
 
 A browser inspection found that the deployed Firebase rules still lacked publicProfiles, while the published client already used that collection. A rejected profile write cleared the client's authenticated account even though Firebase Auth was still signed in. The account then vanished from the shell, removing its header/navigation and desktop container styling, while rejected public-profile reads prevented inventory rendering.
 

@@ -27,7 +27,7 @@
     </mat-chip>
     <mat-chip>
       <mat-icon class="material-symbols-outlined" matChipAvatar>person</mat-icon>
-      {{ tool().ownerFirstName || 'Unknown owner' }}
+      {{ tool().ownerFirstName || tool().owner || 'Unknown owner' }}
     </mat-chip>
     @if (tool().activeLoan?.borrowerFirstName) {
     <mat-chip>

@@ -149,8 +149,12 @@ export class FirestoreToolboxService {
   private cachedUser(id: string): Promise<UserProfile | null> {
     const cached = this.usersCache.get(id);
     if (cached && cached.expires > Date.now()) return cached.value;
-    const value = getDoc(doc(this.firebase.firestore, 'publicProfiles', id)).then((snapshot) => {
-      if (!snapshot.exists()) return null;
+    const value = getDocFromServer(doc(this.firebase.firestore, 'publicProfiles', id)).then((snapshot) => {
+      if (!snapshot.exists()) {
+        // A migration or the owner's next sign-in can create this profile.
+        this.usersCache.delete(id);
+        return null;
+      }
       const data = snapshot.data() as FirestoreUserRecord;
       const email = this.readString(data.email).toLowerCase();
       const name = this.readString(data.displayName) || email || id;

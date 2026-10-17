@@ -1,0 +1,80 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+
+    function isSelf(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+
+    function text(value, maximum) {
+      return value is string && value.size() <= maximum;
+    }
+
+    match /publicProfiles/{userId} {
+      allow read: if signedIn();
+      allow create, update: if isSelf(userId)
+        && request.resource.data.keys().hasAll(['displayName', 'firstName', 'lastName', 'photoURL'])
+        && request.resource.data.keys().hasOnly(['displayName', 'firstName', 'lastName', 'photoURL'])
+        && text(request.resource.data.displayName, 200)
+        && text(request.resource.data.firstName, 100)
+        && text(request.resource.data.lastName, 100)
+        && text(request.resource.data.photoURL, 2048);
+      allow delete: if false;
+    }
+
+    match /users/{userId} {
+      allow read: if isSelf(userId);
+      allow create, update: if isSelf(userId);
+      allow delete: if false;
+    }
+
+
+    match /tools/{toolId} {
+      allow read: if signedIn();
+      allow create, update: if signedIn();
+      allow delete: if false;
+    }
+
+
+    match /categories/{categoryId} {
+      allow read, create, update: if signedIn();
+      allow delete: if false;
+    }
+
+
+    match /loan/{loanId} {
+      allow read: if signedIn();
+      allow create, update: if signedIn();
+      allow delete: if false;
+    }
+
+
+    match /requests/{requestId} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.requesterId == request.auth.uid
+        && request.resource.data.message is string
+        && request.resource.data.message.size() > 0
+        && request.resource.data.message.size() <= 1000
+        && request.resource.data.createdAt is timestamp;
+      allow update, delete: if false;
+    }
+
+
+    match /notifications/{notificationId} {
+      allow read: if signedIn();
+      allow create, update, delete: if false;
+    }
+
+
+    match /meta/{docId} {
+      allow read, write: if signedIn();
+    }
+  }
+}
+
