@@ -1,9 +1,7 @@
 import { Injectable, inject } from '@angular/core';
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 
 import { FirebaseAuthService } from './firebase-auth.service';
 import { FirebaseClientService } from './firebase-client.service';
-import { prepareImage } from './image-processing.util';
 import { normalizeImageUrl } from './image-url.util';
 
 @Injectable({ providedIn: 'root' })
@@ -15,11 +13,15 @@ export class ImageUploadService {
     if (!file) return null;
     const user = this.auth.currentUser();
     if (!user) throw new Error('You must be signed in to upload an image.');
+    const [{ getStorage, getDownloadURL, ref, uploadBytes }, { prepareImage }] = await Promise.all([
+      import('firebase/storage'), import('./image-processing.util'),
+    ]);
+    const storage = getStorage(this.firebase.app);
     const images = await prepareImage(file);
     const basePath = 'tools/' + user.id + '/' + Date.now() + '-' + crypto.randomUUID();
     const upload = async (blob: Blob, suffix: string) => {
       const extension = blob.type === 'image/webp' ? 'webp' : 'png';
-      const storageRef = ref(this.firebase.storage, basePath + '-' + suffix + '.' + extension);
+      const storageRef = ref(storage, basePath + '-' + suffix + '.' + extension);
       await uploadBytes(storageRef, blob, {
         cacheControl: 'public,max-age=31536000,immutable',
         contentType: blob.type,

@@ -1,15 +1,16 @@
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { MatSnackBar } from '@angular/material/snack-bar';
-const sdk = vi.hoisted(() => ({ setDoc: vi.fn(), runTransaction: vi.fn(), updateDoc: vi.fn(), getToken: vi.fn(), deleteToken: vi.fn(), onMessage: vi.fn() }));
+const sdk = vi.hoisted(() => ({ setDoc: vi.fn(), runTransaction: vi.fn(), updateDoc: vi.fn(), getToken: vi.fn(), deleteToken: vi.fn(), onMessage: vi.fn(), isSupported: vi.fn() }));
 vi.mock('firebase/firestore', () => ({ doc: (_db: unknown, path: string, id: string) => ({ path, id }), setDoc: sdk.setDoc, runTransaction: sdk.runTransaction, updateDoc: sdk.updateDoc, arrayRemove: (token: string) => ({ remove: token }) }));
-vi.mock('firebase/messaging', () => ({ isSupported: async () => true, getMessaging: () => ({}), getToken: sdk.getToken, deleteToken: sdk.deleteToken, onMessage: sdk.onMessage }));
+vi.mock('firebase/messaging', () => ({ isSupported: sdk.isSupported, getMessaging: () => ({}), getToken: sdk.getToken, deleteToken: sdk.deleteToken, onMessage: sdk.onMessage }));
 import { APP_SETTINGS } from './app-settings';
 const originalVapidKey = APP_SETTINGS.firebaseVapidKey;
 import { FirebaseMessagingService } from './firebase-messaging.service';
 import { FirebaseClientService } from './firebase-client.service';
 beforeEach(() => {
   vi.resetAllMocks();
+  sdk.isSupported.mockResolvedValue(true);
   APP_SETTINGS.firebaseVapidKey = 'test-vapid';
   window.localStorage.clear();
   vi.stubGlobal('Notification', { permission: 'granted' });
@@ -17,6 +18,18 @@ beforeEach(() => {
   TestBed.configureTestingModule({ providers: [FirebaseMessagingService, { provide: FirebaseClientService, useValue: { firestore: {}, app: {} } }, { provide: MatSnackBar, useValue: { open: vi.fn() } }] });
 });
 afterEach(() => { APP_SETTINGS.firebaseVapidKey = originalVapidKey; vi.unstubAllGlobals(); });
+
+it('does not initialize messaging support until needed and skips unconfigured notifications', async () => {
+  const service = TestBed.inject(FirebaseMessagingService);
+  expect(sdk.isSupported).not.toHaveBeenCalled();
+  APP_SETTINGS.firebaseVapidKey = '';
+  expect(await service.canPromptForNotifications()).toBe(false);
+  expect(sdk.isSupported).not.toHaveBeenCalled();
+  APP_SETTINGS.firebaseVapidKey = 'test-vapid';
+  await service.canPromptForNotifications();
+  await service.canPromptForNotifications();
+  expect(sdk.isSupported).toHaveBeenCalledOnce();
+});
 it('registration bounds legacy token histories transactionally and writes only the private account', async () => {
   sdk.getToken.mockResolvedValue('new-token');
   const set = vi.fn();

@@ -8,6 +8,7 @@ Branch: `codex/remaining-project-optimizations`, based on main 2521ea4.
 2. Add/edit preserve discovered category IDs and canonical names. Unknown categories fail with a useful message instead of silently changing to Other.
 3. Server-confirmed tool changes trigger targeted reads, update open tool sheets, and preserve list paging. Cached/pending writes do not verify availability. Visible-window focus refreshes are throttled to 30 seconds; listeners are released on sign-out/account changes/destruction. Existing transactions remain the authority for borrowing.
 4. Inventory, category and notification signals are independent. Regression tests verify that notification/read changes preserve the exact decorated-tool and filtered-list references. Cards, tool details and inventory pages use OnPush change detection. The unit suite, production build and desktop/tablet/mobile browser checks pass.
+5. Storage and image preparation load only for an upload; the Messaging SDK loads when notification functionality is requested. Build metadata confirms neither Firebase Storage nor Messaging contributes bytes to the main chunk. Initial assets are now 1.36 MB raw / 297.40 kB estimated transfer (review baseline 1.40 MB / 308.87 kB). Offline installation still deliberately prefetches lazy code to preserve offline routes. The unit suite and offline/update browser checks pass.
 
 ## Notification delivery
 

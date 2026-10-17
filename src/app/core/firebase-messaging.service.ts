@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { arrayRemove, doc, runTransaction, setDoc, updateDoc } from 'firebase/firestore';
-import { deleteToken, getMessaging, getToken, isSupported, onMessage } from 'firebase/messaging';
+import type { Messaging } from 'firebase/messaging';
 
 import { APP_SETTINGS } from './app-settings';
 import { FirebaseClientService } from './firebase-client.service';
@@ -23,7 +23,8 @@ export const OPEN_NOTIFICATIONS_MESSAGE = 'lilies-shed:open-notifications';
 export class FirebaseMessagingService {
   private readonly firebase = inject(FirebaseClientService);
   private readonly snackBar = inject(MatSnackBar);
-  private readonly supportPromise = isSupported().catch(() => false);
+  private supportPromise: Promise<boolean> | null = null;
+  private sdkPromise: Promise<typeof import('firebase/messaging')> | null = null;
   private foregroundListenerAttached = false;
   private readonly receivedNotificationIds = new Set<string>();
   private serviceWorkerRegistrationPromise: Promise<ServiceWorkerRegistration> | null = null;
@@ -31,8 +32,20 @@ export class FirebaseMessagingService {
   readonly notificationOpenRequests = signal(0);
   private foregroundNotificationTimer: ReturnType<typeof window.setTimeout> | null = null;
 
+  private sdk(): Promise<typeof import('firebase/messaging')> {
+    return this.sdkPromise ??= import('firebase/messaging').catch(error => {
+      this.sdkPromise = null;
+      throw error;
+    });
+  }
+
+  private supported(): Promise<boolean> {
+    if (!APP_SETTINGS.firebaseVapidKey.trim()) return Promise.resolve(false);
+    return this.supportPromise ??= this.sdk().then(sdk => sdk.isSupported()).catch(() => false);
+  }
+
   async canPromptForNotifications(): Promise<boolean> {
-    if (!(await this.supportPromise) || !APP_SETTINGS.firebaseVapidKey.trim()) {
+    if (!(await this.supported())) {
       return false;
     }
 
@@ -40,7 +53,7 @@ export class FirebaseMessagingService {
   }
 
   async syncCurrentUser(user: UserProfile, options?: { requestPermission?: boolean }): Promise<void> {
-    if (!(await this.supportPromise) || !APP_SETTINGS.firebaseVapidKey.trim()) {
+    if (!(await this.supported())) {
       return;
     }
 
@@ -63,10 +76,11 @@ export class FirebaseMessagingService {
     }
 
     try {
-      const messaging = getMessaging(this.firebase.app);
+      const sdk = await this.sdk();
+      const messaging = sdk.getMessaging(this.firebase.app);
       const serviceWorkerRegistration = await this.registerServiceWorker();
       await serviceWorkerRegistration.update();
-      const token = await getToken(messaging, {
+      const token = await sdk.getToken(messaging, {
         vapidKey: APP_SETTINGS.firebaseVapidKey,
         serviceWorkerRegistration,
       });
@@ -98,7 +112,7 @@ export class FirebaseMessagingService {
         }, { merge: true });
       });
 
-      this.attachForegroundListener(messaging);
+      this.attachForegroundListener(sdk, messaging);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to register push notifications.';
       await setDoc(
@@ -114,7 +128,7 @@ export class FirebaseMessagingService {
   }
 
   async clearCurrentUserToken(userId: string): Promise<void> {
-    if (!(await this.supportPromise) || !APP_SETTINGS.firebaseVapidKey.trim()) {
+    if (!(await this.supported())) {
       window.localStorage.removeItem(TOKEN_STORAGE_KEY);
       return;
     }
@@ -133,7 +147,8 @@ export class FirebaseMessagingService {
     }
 
     try {
-      await deleteToken(getMessaging(this.firebase.app));
+      const sdk = await this.sdk();
+      await sdk.deleteToken(sdk.getMessaging(this.firebase.app));
     } catch {
       // Ignore deleteToken failures and continue clearing local state.
     }
@@ -141,12 +156,12 @@ export class FirebaseMessagingService {
     window.localStorage.removeItem(TOKEN_STORAGE_KEY);
   }
 
-  private attachForegroundListener(messaging: ReturnType<typeof getMessaging>): void {
+  private attachForegroundListener(sdk: typeof import('firebase/messaging'), messaging: Messaging): void {
     if (this.foregroundListenerAttached) {
       return;
     }
 
-    onMessage(messaging, (payload) => {
+    sdk.onMessage(messaging, (payload) => {
       const notificationId = payload.data?.['notificationId'];
       if (notificationId) {
         if (this.receivedNotificationIds.has(notificationId)) return;
