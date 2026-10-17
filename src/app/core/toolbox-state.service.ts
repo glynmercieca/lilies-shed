@@ -13,7 +13,7 @@ import { ImageUploadService } from './image-upload.service';
 import { APP_SETTINGS } from './app-settings';
 import { CategoryDiscoveryService } from './category-discovery.service';
 import { matchesUserId } from './identity.util';
-import { SheetsSnapshot, ToolCategoryRecord, ToolWithStatus } from './models';
+import { AppNotificationRecord, SheetsSnapshot, ToolCategoryRecord, ToolWithStatus } from './models';
 import { decorateTools } from './tool-status.util';
 import { NetworkStatusService } from './network-status.service';
 import type { RequestToolDialogComponent } from '../request-tool-dialog';
@@ -52,7 +52,9 @@ export class ToolboxStateService {
   readonly shedVisibleCount = signal(this.listPageSize);
   readonly borrowedVisibleCount = signal(this.listPageSize);
   readonly ownedVisibleCount = signal(this.listPageSize);
-  private readonly snapshot = signal<SheetsSnapshot>({ categories: [], tools: [], loans: [], notifications: [] });
+  private readonly inventory = signal<Pick<SheetsSnapshot, 'tools' | 'loans'>>({ tools: [], loans: [] });
+  private readonly categoryRecords = signal<ToolCategoryRecord[]>([]);
+  private readonly notifications = signal<AppNotificationRecord[]>([]);
   private readonly readNotificationIds = signal<Set<string>>(new Set());
   private readonly loadedUserEmail = signal<string | null>(null);
   private activeAddToolDialogRef: MatDialogRef<ToolFormDialogComponent> | null = null;
@@ -70,9 +72,9 @@ export class ToolboxStateService {
   private inventoryUpdates = Promise.resolve();
   private lastRefreshAt = 0;
 
-  readonly tools = computed(() => decorateTools(this.snapshot()));
+  readonly tools = computed(() => decorateTools(this.inventory()));
   readonly categories = computed(() =>
-    [...(this.snapshot().categories.length ? this.snapshot().categories : FIXED_TOOL_CATEGORIES)].sort(
+    [...(this.categoryRecords().length ? this.categoryRecords() : FIXED_TOOL_CATEGORIES)].sort(
       (firstCategory, secondCategory) =>
         firstCategory.name.localeCompare(secondCategory.name, undefined, { sensitivity: 'base' }),
     ),
@@ -144,8 +146,8 @@ export class ToolboxStateService {
   readonly hasMoreOwnedTools = computed(() => this.pagedOwnedTools().length < this.ownedTools().length);
   readonly canRunCategoryDiscovery = computed(() => this.auth.currentUser()?.id === CATEGORY_DISCOVERY_ADMIN_USER_ID);
   readonly recentNotifications = computed(() =>
-    this.snapshot()
-      .notifications.filter((notification) => !notification.recipientId || matchesUserId(this.auth.currentUser(), notification.recipientId))
+    this.notifications()
+      .filter((notification) => !notification.recipientId || matchesUserId(this.auth.currentUser(), notification.recipientId))
       .slice(0, 10)
       .map((notification) => ({
         ...notification,
@@ -154,7 +156,7 @@ export class ToolboxStateService {
   );
   readonly unreadNotificationCount = computed(() => {
     const readNotificationIds = this.readNotificationIds();
-    return this.snapshot().notifications.filter(
+    return this.notifications().filter(
       (notification) =>
         (!notification.recipientId || matchesUserId(this.auth.currentUser(), notification.recipientId)) &&
         !readNotificationIds.has(notification.id),
@@ -188,7 +190,7 @@ export class ToolboxStateService {
 
       if (!user) {
         if (loadedUserEmail) {
-          this.snapshot.set({ categories: [], tools: [], loans: [], notifications: [] });
+          this.clearSnapshot();
           this.readNotificationIds.set(new Set());
           this.loadedUserEmail.set(null);
         }
@@ -198,7 +200,7 @@ export class ToolboxStateService {
 
       if (this.notificationsUserId && this.notificationsUserId !== user.id) {
         this.stopNotificationsLiveRefresh();
-        this.snapshot.update((snapshot) => ({ ...snapshot, notifications: [] }));
+        this.notifications.set([]);
         this.readNotificationIds.set(new Set());
         this.startNotificationsLiveRefresh();
       }
@@ -247,7 +249,7 @@ export class ToolboxStateService {
       await this.messaging.clearCurrentUserToken(user.id);
     }
     await this.auth.signOut();
-    this.snapshot.set({ categories: [], tools: [], loans: [], notifications: [] });
+    this.clearSnapshot();
     this.readNotificationIds.set(new Set());
     this.searchTerm.set('');
     this.selectedCategoryId.set('');
@@ -291,6 +293,12 @@ export class ToolboxStateService {
     this.ownedVisibleCount.update((count) => count + this.listPageSize);
   }
 
+  private clearSnapshot(): void {
+    this.inventory.set({ tools: [], loans: [] });
+    this.categoryRecords.set([]);
+    this.notifications.set([]);
+  }
+
   private pendingRefresh: { userId: string; promise: Promise<void> } | null = null;
 
   refresh(): Promise<void> {
@@ -308,7 +316,7 @@ export class ToolboxStateService {
     await this.pendingRefresh?.promise;
     const update = await this.toolbox.loadToolUpdate(toolId);
     if (this.auth.currentUser()?.id !== userId) return;
-    this.snapshot.update((snapshot) => ({
+    this.inventory.update((snapshot) => ({
       ...snapshot,
       tools: [...snapshot.tools.filter((tool) => tool.documentId !== toolId), ...update.tools],
       loans: [...snapshot.loans.filter((loan) => loan.itemId !== toolId), ...update.loans.filter((loan) => loan.itemId === toolId)],
@@ -330,7 +338,9 @@ export class ToolboxStateService {
         this.toolbox.loadReadNotificationIds(user.id),
       ]);
       if (this.auth.currentUser()?.id !== user.id) return;
-      this.snapshot.set(snapshot);
+      this.inventory.set({ tools: snapshot.tools, loans: snapshot.loans });
+      this.categoryRecords.set(snapshot.categories);
+      this.notifications.set(snapshot.notifications);
       this.lastRefreshAt = Date.now();
       this.network.availabilityVerified.set(this.online());
       this.readNotificationIds.set(readNotificationIds);
@@ -348,7 +358,7 @@ export class ToolboxStateService {
     if (this.inventorySubscription && this.inventoryUserId === userId) return;
     this.stopInventoryLiveRefresh();
     this.inventoryUserId = userId;
-    this.inventorySubscription = this.toolbox.watchToolChanges(this.snapshot().tools, ids => {
+    this.inventorySubscription = this.toolbox.watchToolChanges(this.inventory().tools, ids => {
       if (this.auth.currentUser()?.id !== userId) return;
       this.network.availabilityVerified.set(false);
       this.inventoryUpdates = this.inventoryUpdates.then(async () => {
@@ -390,7 +400,7 @@ export class ToolboxStateService {
         user.id,
         (notifications) => {
           if (this.auth.currentUser()?.id !== user.id) return;
-          this.snapshot.update((snapshot) => ({ ...snapshot, notifications }));
+          this.notifications.set(notifications);
         },
         (error) => {
           this.notify(error.message || 'Unable to refresh notifications.');
@@ -428,7 +438,7 @@ export class ToolboxStateService {
 
     this.readNotificationIds.update((readNotificationIds) => new Set([...readNotificationIds, notificationId]));
     try {
-      await this.toolbox.markNotificationRead(user.id, notificationId, this.snapshot().notifications.map((item) => item.id));
+      await this.toolbox.markNotificationRead(user.id, notificationId, this.notifications().map((item) => item.id));
     } catch (error) {
       this.readNotificationIds.update((readNotificationIds) => {
         const nextReadNotificationIds = new Set(readNotificationIds);
@@ -446,8 +456,8 @@ export class ToolboxStateService {
     }
 
     const readNotificationIds = this.readNotificationIds();
-    const unreadNotificationIds = this.snapshot()
-      .notifications.filter(
+    const unreadNotificationIds = this.notifications()
+      .filter(
         (notification) =>
           (!notification.recipientId || matchesUserId(user, notification.recipientId)) &&
           !readNotificationIds.has(notification.id),
@@ -462,7 +472,7 @@ export class ToolboxStateService {
       (currentReadNotificationIds) => new Set([...currentReadNotificationIds, ...unreadNotificationIds]),
     );
     try {
-      await this.toolbox.markNotificationsRead(user.id, unreadNotificationIds, this.snapshot().notifications.map((item) => item.id));
+      await this.toolbox.markNotificationsRead(user.id, unreadNotificationIds, this.notifications().map((item) => item.id));
     } catch (error) {
       this.readNotificationIds.update((currentReadNotificationIds) => {
         const nextReadNotificationIds = new Set(currentReadNotificationIds);
@@ -914,8 +924,8 @@ export class ToolboxStateService {
     }
 
     try {
-      const snapshot = this.snapshot();
-      const discoveredCategories = this.categoryDiscovery.discoverCategories(snapshot.tools, snapshot.categories);
+      const snapshot = this.inventory();
+      const discoveredCategories = this.categoryDiscovery.discoverCategories(snapshot.tools, this.categoryRecords());
       if (!discoveredCategories.length) {
         if (options.manual) {
           this.notify('No new categories found.');
@@ -925,10 +935,7 @@ export class ToolboxStateService {
       }
 
       await this.toolbox.saveDiscoveredCategories(discoveredCategories);
-      this.snapshot.update((currentSnapshot) => ({
-        ...currentSnapshot,
-        categories: this.mergeCategories(currentSnapshot.categories, discoveredCategories),
-      }));
+      this.categoryRecords.update(categories => this.mergeCategories(categories, discoveredCategories));
       window.localStorage.setItem(CATEGORY_DISCOVERY_STORAGE_KEY, String(Date.now()));
       if (options.manual) {
         this.notify(`Added ${discoveredCategories.length} ${discoveredCategories.length === 1 ? 'category' : 'categories'}.`);

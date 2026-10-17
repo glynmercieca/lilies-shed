@@ -39,7 +39,7 @@ export interface ToolSheetData {
   ],
   templateUrl: './tool-sheet.html',
   styleUrl: './tool-sheet.scss',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ToolSheetComponent {
   readonly online = inject(NetworkStatusService).online;

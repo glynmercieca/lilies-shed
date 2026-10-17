@@ -7,11 +7,11 @@ describe('decorateTools', () => {
   it('selects the latest loan by date, preserves active loans, and respects a reservation without a loaded loan', () => {
     const tool: ToolRecord = { documentId: 'tool', id: '100000', name: 'Drill', categoryId: 'other', categoryName: 'Other', description: '', notes: '', deleted: false, ownerId: '', owner: '', ownerEmail: '', ownerFirstName: '', ownerLastName: '', image: '' };
     const loan: LoanRecord = { id: 'new', itemId: 'tool', borrowerId: '', borrower: '', borrowerEmail: '', borrowerFirstName: '', borrowerLastName: '', loanDate: '2026-10-10', returnDate: '2026-10-11' };
-    const [decorated] = decorateTools({ categories: [], notifications: [], tools: [tool], loans: [loan, { ...loan, id: 'old', loanDate: '2026-01-01', returnDate: '' }] });
+    const [decorated] = decorateTools({ tools: [tool], loans: [loan, { ...loan, id: 'old', loanDate: '2026-01-01', returnDate: '' }] });
     expect(decorated.latestLoan?.id).toBe('new');
     expect(decorated.activeLoan?.id).toBe('old');
     expect(decorated.available).toBe(false);
-    const [reserved] = decorateTools({ categories: [], notifications: [], tools: [{ ...tool, activeLoanId: 'pending' }], loans: [] });
+    const [reserved] = decorateTools({ tools: [{ ...tool, activeLoanId: 'pending' }], loans: [] });
     expect(reserved.available).toBe(false);
   });
   it('marks tools with active loans as unavailable', () => {

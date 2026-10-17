@@ -7,6 +7,7 @@ Branch: `codex/remaining-project-optimizations`, based on main 2521ea4.
 1. Date-added sorting uses `createdAt`, with deterministic ID ordering only for legacy records without a usable timestamp. No dates are fabricated for old tools.
 2. Add/edit preserve discovered category IDs and canonical names. Unknown categories fail with a useful message instead of silently changing to Other.
 3. Server-confirmed tool changes trigger targeted reads, update open tool sheets, and preserve list paging. Cached/pending writes do not verify availability. Visible-window focus refreshes are throttled to 30 seconds; listeners are released on sign-out/account changes/destruction. Existing transactions remain the authority for borrowing.
+4. Inventory, category and notification signals are independent. Regression tests verify that notification/read changes preserve the exact decorated-tool and filtered-list references. Cards, tool details and inventory pages use OnPush change detection. The unit suite, production build and desktop/tablet/mobile browser checks pass.
 
 ## Notification delivery
 

@@ -28,7 +28,7 @@ import { ToolCardComponent } from './tool-card';
   ],
   templateUrl: './shed-view.html',
   styleUrl: './shed-view.scss',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ShedViewComponent {
   readonly state = inject(ToolboxStateService);

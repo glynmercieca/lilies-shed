@@ -1,6 +1,6 @@
 import { LoanRecord, SheetsSnapshot, ToolWithStatus } from './models';
 
-export function decorateTools(snapshot: SheetsSnapshot): ToolWithStatus[] {
+export function decorateTools(snapshot: Pick<SheetsSnapshot, 'tools' | 'loans'>): ToolWithStatus[] {
   const activeLoanByTool = new Map<string, LoanRecord>();
   const latestLoanByTool = new Map<string, LoanRecord>();
 

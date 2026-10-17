@@ -26,7 +26,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
     ViewportSentinelDirective,
   ],
   templateUrl: './borrowed-view.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BorrowedViewComponent implements OnDestroy {
   readonly state = inject(ToolboxStateService);

@@ -26,7 +26,7 @@ describe('toolbox refresh and targeted mutations', () => {
   let service: ToolboxStateService;
   let dialogOpen: ReturnType<typeof vi.fn>;
   let sheetOpen: ReturnType<typeof vi.fn>;
-  let storage: { loadSnapshot: ReturnType<typeof vi.fn>; loadReadNotificationIds: ReturnType<typeof vi.fn>; loadToolUpdate: ReturnType<typeof vi.fn>; addBorrowRequest: ReturnType<typeof vi.fn>; watchToolChanges: ReturnType<typeof vi.fn> };
+  let storage: { loadSnapshot: ReturnType<typeof vi.fn>; loadReadNotificationIds: ReturnType<typeof vi.fn>; loadToolUpdate: ReturnType<typeof vi.fn>; addBorrowRequest: ReturnType<typeof vi.fn>; watchToolChanges: ReturnType<typeof vi.fn>; watchNotifications: ReturnType<typeof vi.fn>; watchReadNotificationIds: ReturnType<typeof vi.fn> };
   beforeEach(() => {
     window.localStorage.setItem('shed-theme-mode', 'light');
     vi.stubGlobal('Notification', { permission: 'default' });
@@ -36,7 +36,7 @@ describe('toolbox refresh and targeted mutations', () => {
       afterClosed: () => new Subject(), close: vi.fn(),
     }));
     sheetOpen = vi.fn().mockImplementation(() => ({ instance: { tool: signal(null) }, afterDismissed: () => new Subject(), dismiss: vi.fn() }));
-    storage = { loadSnapshot: vi.fn().mockResolvedValue(empty()), loadReadNotificationIds: vi.fn().mockResolvedValue(new Set()), loadToolUpdate: vi.fn(), addBorrowRequest: vi.fn().mockResolvedValue(undefined), watchToolChanges: vi.fn().mockReturnValue(vi.fn()) };
+    storage = { loadSnapshot: vi.fn().mockResolvedValue(empty()), loadReadNotificationIds: vi.fn().mockResolvedValue(new Set()), loadToolUpdate: vi.fn(), addBorrowRequest: vi.fn().mockResolvedValue(undefined), watchToolChanges: vi.fn().mockReturnValue(vi.fn()), watchNotifications: vi.fn().mockReturnValue(vi.fn()), watchReadNotificationIds: vi.fn().mockReturnValue(vi.fn()) };
     TestBed.configureTestingModule({ providers: [provideRouter(routes), provideNoopAnimations(),
       { provide: FirebaseAuthService, useValue: { currentUser, ensureValidSession: async () => Boolean(currentUser()), isConfigured: () => true, isBusy: () => false, error: () => null } },
       { provide: FirestoreToolboxService, useValue: storage },
@@ -201,5 +201,19 @@ describe('toolbox refresh and targeted mutations', () => {
     window.dispatchEvent(new Event('focus'));
     await Promise.resolve();
     expect(storage.loadSnapshot).toHaveBeenCalledTimes(count);
+  });
+
+  it('keeps inventory and filtered-list references stable when notifications and read marks change', async () => {
+    await service.refresh();
+    const tools = service.tools(), filtered = service.filteredTools(), categories = service.categories();
+    service.startNotificationsLiveRefresh();
+    storage.watchNotifications.mock.calls[0][1]([{ id: 'notice', recipientId: user.id, title: 'Borrowed', message: 'Drill borrowed', type: 'borrow', actorUserId: 'owner', actorFirstName: 'Alice', createdAt: '2026-10-17T10:00:00Z' }]);
+    expect(service.unreadNotificationCount()).toBe(1);
+    storage.watchReadNotificationIds.mock.calls[0][1](new Set(['notice']));
+    expect(service.unreadNotificationCount()).toBe(0);
+    expect(service.recentNotifications()[0].read).toBe(true);
+    expect(service.tools()).toBe(tools);
+    expect(service.filteredTools()).toBe(filtered);
+    expect(service.categories()).toBe(categories);
   });
 });

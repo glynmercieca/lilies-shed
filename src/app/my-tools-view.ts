@@ -27,7 +27,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
   ],
   templateUrl: './my-tools-view.html',
   styleUrl: './my-tools-view.scss',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MyToolsView implements OnDestroy {
   readonly state = inject(ToolboxStateService);

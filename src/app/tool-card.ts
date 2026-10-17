@@ -24,7 +24,7 @@ type ToolCardMode = 'shed' | 'borrowed' | 'my-tools';
   ],
   templateUrl: './tool-card.html',
   styleUrl: './tool-card.scss',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ToolCardComponent {
   readonly online = inject(NetworkStatusService).online;
