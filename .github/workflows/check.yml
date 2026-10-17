@@ -19,4 +19,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test -- --watch=false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm run test:integration
       - run: npm run build

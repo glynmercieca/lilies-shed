@@ -10,7 +10,8 @@
     "start": "node scripts/run-ng.cjs serve",
     "build": "node scripts/run-ng.cjs build",
     "watch": "node scripts/run-ng.cjs build --watch --configuration development",
-    "test": "node scripts/run-ng.cjs test"
+    "test": "node scripts/run-ng.cjs test",
+    "test:integration": "firebase emulators:exec --only firestore --config firebase.test.json --project demo-lilies-tests \"node --experimental-strip-types --test scripts/borrow.integration.test.mjs\""
   },
   "private": true,
   "packageManager": "npm@11.0.0",
@@ -34,6 +35,8 @@
     "@angular/build": "^22.0.5",
     "@angular/cli": "^22.0.5",
     "@angular/compiler-cli": "^22.0.5",
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "firebase-tools": "^15.34.0",
     "jsdom": "^28.0.0",
     "prettier": "^3.8.1",
     "typescript": "~6.0.3",

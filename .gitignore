@@ -39,6 +39,7 @@ yarn-error.log
 /libpeerconnection.log
 firebase-debug.log
 firebase-debug.*.log
+firestore-debug.log
 testem.log
 /typings
 __screenshots__/

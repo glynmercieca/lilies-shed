@@ -25,8 +25,57 @@ service cloud.firestore {
 
     match /tools/{toolId} {
       allow read: if signedIn();
-      allow create, update: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.borrowStateVersion == 1
+        && request.resource.data.activeLoanId == null
+        && request.resource.data.deleted == false;
+      allow update: if signedIn()
+        && resource.data.borrowStateVersion == 1
+        && request.resource.data.borrowStateVersion == 1
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.id == resource.data.id
+        && (
+          // An owner may edit/delete only while the tool is unreserved.
+          (request.auth.uid == resource.data.ownerId
+            && resource.data.activeLoanId == null
+            && request.resource.data.activeLoanId == null)
+          || reserveTool(toolId)
+          || releaseTool(toolId)
+        );
       allow delete: if false;
+
+      function reservationFieldsOnly() {
+        return request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['activeLoanId', 'updatedAt']);
+      }
+
+      function reserveTool(toolId) {
+        let loanId = request.resource.data.activeLoanId;
+        let loan = getAfter(/databases/$(database)/documents/loan/$(loanId)).data;
+        return reservationFieldsOnly()
+          && resource.data.deleted == false
+          && resource.data.activeLoanId == null
+          && loanId is string
+          && !exists(/databases/$(database)/documents/loan/$(loanId))
+          && resource.data.ownerId != request.auth.uid
+          && loan.toolId == toolId
+          && loan.borrowerId == request.auth.uid
+          && loan.returnDate == '';
+      }
+
+      function releaseTool(toolId) {
+        let loanId = resource.data.activeLoanId;
+        let before = get(/databases/$(database)/documents/loan/$(loanId)).data;
+        let after = getAfter(/databases/$(database)/documents/loan/$(loanId)).data;
+        return reservationFieldsOnly()
+          && loanId is string
+          && request.resource.data.activeLoanId == null
+          && before.toolId == toolId
+          && before.returnDate == ''
+          && after.returnDate is string && after.returnDate.size() > 0
+          && (request.auth.uid == before.borrowerId || request.auth.uid == resource.data.ownerId);
+      }
     }
 
     match /categories/{categoryId} {
@@ -36,8 +85,34 @@ service cloud.firestore {
 
     match /loan/{loanId} {
       allow read: if signedIn();
-      allow create, update: if signedIn();
+      allow create: if signedIn() && validBorrow();
+      allow update: if signedIn() && validReturn();
       allow delete: if false;
+
+      function validBorrow() {
+        let toolId = request.resource.data.toolId;
+        let before = get(/databases/$(database)/documents/tools/$(toolId)).data;
+        let after = getAfter(/databases/$(database)/documents/tools/$(toolId)).data;
+        return request.resource.data.keys().hasOnly(['toolId', 'borrowerId', 'loanDate', 'returnDate', 'createdAt'])
+          && request.resource.data.borrowerId == request.auth.uid
+          && request.resource.data.loanDate is string && request.resource.data.loanDate.size() > 0
+          && request.resource.data.returnDate == ''
+          && request.resource.data.createdAt == request.time
+          && before.borrowStateVersion == 1 && before.activeLoanId == null
+          && before.deleted == false && before.ownerId != request.auth.uid
+          && after.activeLoanId == loanId;
+      }
+
+      function validReturn() {
+        let toolId = resource.data.toolId;
+        let before = get(/databases/$(database)/documents/tools/$(toolId)).data;
+        let after = getAfter(/databases/$(database)/documents/tools/$(toolId)).data;
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['returnDate', 'updatedAt'])
+          && resource.data.returnDate == ''
+          && request.resource.data.returnDate is string && request.resource.data.returnDate.size() > 0
+          && (request.auth.uid == resource.data.borrowerId || request.auth.uid == before.ownerId)
+          && before.activeLoanId == loanId && after.activeLoanId == null;
+      }
     }
 
     match /requests/{requestId} {

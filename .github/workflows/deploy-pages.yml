@@ -107,6 +107,14 @@ jobs:
       - name: Test application
         run: npm test -- --watch=false
 
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Test borrowing with Firestore emulator
+        run: npm run test:integration
+
       - name: Compute base href
         id: base-href
         shell: bash

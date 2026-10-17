@@ -15,7 +15,6 @@ import {
   serverTimestamp,
   setDoc,
   Unsubscribe,
-  updateDoc,
   where,
 } from 'firebase/firestore';
 
@@ -31,6 +30,7 @@ import {
   UserProfile,
 } from './models';
 import { boundReadNotificationIds, mergeNotifications, NOTIFICATION_QUERY_LIMIT } from './notification.util';
+import { reserveTool, returnLoan } from './borrow-operations';
 import { ToolRequestFormValue } from '../request-tool-dialog';
 
 interface FirestoreUserRecord {
@@ -194,21 +194,11 @@ export class FirestoreToolboxService {
   }
 
   async addBorrowRequest(toolId: string, borrower: UserProfile): Promise<void> {
-    const loanRef = doc(collection(this.firebase.firestore, 'loan'));
-    await setDoc(loanRef, {
-      toolId,
-      borrowerId: borrower.id,
-      loanDate: this.today(),
-      returnDate: '',
-      createdAt: serverTimestamp(),
-    });
+    await reserveTool(this.firebase.firestore, toolId, borrower.id, this.today());
   }
 
   async markReturned(loan: LoanRecord): Promise<void> {
-    await updateDoc(doc(this.firebase.firestore, 'loan', loan.id), {
-      returnDate: this.today(),
-      updatedAt: serverTimestamp(),
-    });
+    await returnLoan(this.firebase.firestore, loan.id, this.today());
   }
 
   async addTool(formValue: ToolFormValue, owner: UserProfile): Promise<void> {
@@ -223,6 +213,8 @@ export class FirestoreToolboxService {
       description: formValue.description,
       notes: formValue.notes,
       deleted: false,
+      borrowStateVersion: 1,
+      activeLoanId: null,
       ownerId: owner.id,
       image: formValue.imageUrl,
       thumbnail: formValue.thumbnailUrl || '',
@@ -233,7 +225,7 @@ export class FirestoreToolboxService {
 
   async updateTool(tool: ToolRecord, formValue: ToolFormValue): Promise<void> {
     const category = this.resolveCategory(formValue.categoryId);
-    await updateDoc(doc(this.firebase.firestore, 'tools', tool.documentId), {
+    await this.updateAvailableTool(tool, {
       name: formValue.name,
       categoryId: category.id,
       categoryName: category.name,
@@ -246,9 +238,21 @@ export class FirestoreToolboxService {
   }
 
   async markToolDeleted(tool: ToolRecord): Promise<void> {
-    await updateDoc(doc(this.firebase.firestore, 'tools', tool.documentId), {
+    await this.updateAvailableTool(tool, {
       deleted: true,
       updatedAt: serverTimestamp(),
+    });
+  }
+
+  private async updateAvailableTool(tool: ToolRecord, changes: DocumentData): Promise<void> {
+    const reference = doc(this.firebase.firestore, 'tools', tool.documentId);
+    await runTransaction(this.firebase.firestore, async (transaction) => {
+      const snapshot = await transaction.get(reference);
+      if (!snapshot.exists() || this.readBoolean(snapshot.data()?.['deleted'])) throw new Error('This tool no longer exists.');
+      if (snapshot.data()?.['borrowStateVersion'] !== 1 || snapshot.data()?.['activeLoanId'] !== null) {
+        throw new Error('Only an available tool with reconciled loan history can be changed.');
+      }
+      transaction.update(reference, changes);
     });
   }
 
