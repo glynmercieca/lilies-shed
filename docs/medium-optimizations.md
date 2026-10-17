@@ -40,6 +40,34 @@ This was component-level visual verification, not a signed-in production walkthr
 
 ## Notifications and release prerequisites
 
+### Missing-index startup fix (17 October 2026)
+
+The website deployment publishes GitHub Pages only; it does not deploy Firebase
+indexes. A missing notification composite index caused `loadSnapshot` to reject,
+preventing tools and loans from displaying as well.
+
+Startup reads and live listeners now retry a missing-index `failed-precondition`
+once with the same recipient filters and no server ordering or limit. The fallback
+sorts matching records locally and retains the newest 50 per stream. It can read
+more documents until the composite index is ready; other errors still propagate.
+Fallback listeners are released with the original listeners on unsubscribe.
+
+To restore the optimized queries for the existing live app, deploy the index from
+the repository root using an authenticated Firebase CLI:
+
+```sh
+firebase deploy --only firestore:indexes --project shed-3fc03
+```
+
+Wait for `notifications` / `recipientId ASCENDING` / `createdAt DESCENDING` to show
+as enabled in Firestore, then reload the app. The client fix also needs the normal
+website release. Regression coverage includes startup catalogue loading when
+notification queries require an index, fallback ordering and limits, unrelated
+error propagation, live fallback and cleanup. No live deployment was performed
+as part of this local fix.
+
+### Optimized query behavior
+
 Personal and broadcast queries each read at most 50 documents, using
 `recipientId` plus descending `createdAt`. Personal queries include the current UID
 and its lowercase form, preserving the old case-insensitive identity matching for

@@ -103,8 +103,18 @@ export class FirestoreToolboxService {
   }
 
   async loadNotifications(userId: string): Promise<AppNotificationRecord[]> {
-    const snapshots = await Promise.all(this.notificationsQueries(userId).map((source) => getDocs(source)));
-    return mergeNotifications(snapshots.map((snapshot) => this.parseNotificationsSnapshot(snapshot.docs)));
+    const fallbackSources = this.notificationsQueries(userId, false);
+    const groups = await Promise.all(this.notificationsQueries(userId).map(async (source, index) => {
+      try {
+        const snapshot = await getDocs(source);
+        return this.parseNotificationsSnapshot(snapshot.docs);
+      } catch (error) {
+        if (!this.isMissingNotificationIndex(error)) throw error;
+        const snapshot = await getDocs(fallbackSources[index]);
+        return this.boundNotificationsSnapshot(snapshot.docs);
+      }
+    }));
+    return mergeNotifications(groups);
   }
 
   async loadReadNotificationIds(userId: string): Promise<Set<string>> {
@@ -118,19 +128,34 @@ export class FirestoreToolboxService {
     onError?: (error: Error) => void,
   ): Unsubscribe {
     const sources = this.notificationsQueries(userId);
+    const fallbackSources = this.notificationsQueries(userId, false);
     const groups: AppNotificationRecord[][] = sources.map(() => []);
     const ready = new Set<number>();
     let active = true;
-    const subscriptions = sources.map((source, index) => onSnapshot(
-      source,
-      (snapshot) => {
-        if (!active) return;
-        groups[index] = this.parseNotificationsSnapshot(snapshot.docs);
-        ready.add(index);
-        if (ready.size === sources.length) onChange(mergeNotifications(groups));
-      },
-      (error) => { if (active) onError?.(error); },
-    ));
+    const subscriptions: Unsubscribe[] = [];
+    const subscribe = (source: typeof sources[number], index: number, fallback = false): void => {
+      subscriptions.push(onSnapshot(
+        source,
+        (snapshot) => {
+          if (!active) return;
+          groups[index] = fallback
+            ? this.boundNotificationsSnapshot(snapshot.docs)
+            : this.parseNotificationsSnapshot(snapshot.docs);
+          ready.add(index);
+          if (ready.size === sources.length) onChange(mergeNotifications(groups));
+        },
+        (error) => {
+          if (!active) return;
+          // Firestore closes a failed listener. Retry once without the composite index.
+          if (!fallback && this.isMissingNotificationIndex(error)) {
+            subscribe(fallbackSources[index], index, true);
+          } else {
+            onError?.(error);
+          }
+        },
+      ));
+    };
+    sources.forEach((source, index) => subscribe(source, index));
     return () => {
       active = false;
       subscriptions.forEach((unsubscribe) => unsubscribe());
@@ -349,13 +374,28 @@ export class FirestoreToolboxService {
     };
   }
 
-  private notificationsQueries(userId: string) {
+  private notificationsQueries(userId: string, indexed = true) {
     const notifications = collection(this.firebase.firestore, 'notifications');
     const recipientIds = [...new Set([userId, userId.trim().toLowerCase()])];
+    const ordering = indexed ? [orderBy('createdAt', 'desc'), limit(NOTIFICATION_QUERY_LIMIT)] : [];
     return [
-      query(notifications, where('recipientId', 'in', recipientIds), orderBy('createdAt', 'desc'), limit(NOTIFICATION_QUERY_LIMIT)),
-      query(notifications, where('recipientId', 'in', ['', null]), orderBy('createdAt', 'desc'), limit(NOTIFICATION_QUERY_LIMIT)),
+      query(notifications, where('recipientId', 'in', recipientIds), ...ordering),
+      query(notifications, where('recipientId', 'in', ['', null]), ...ordering),
     ];
+  }
+
+  private isMissingNotificationIndex(error: unknown): boolean {
+    if (!error || typeof error !== 'object') return false;
+    const { code, message } = error as { code?: string; message?: string };
+    return code === 'failed-precondition' && /index/i.test(message ?? '');
+  }
+
+  private boundNotificationsSnapshot(documents: QueryDocumentSnapshot<DocumentData>[]): AppNotificationRecord[] {
+    // A recipient-only query uses automatic indexes. Sort before limiting so we
+    // retain the newest records, rather than an arbitrary document-ID window.
+    return mergeNotifications([this.parseNotificationsSnapshot(documents)])
+      .filter((notification) => Boolean(notification.createdAt))
+      .slice(0, NOTIFICATION_QUERY_LIMIT);
   }
 
   private parseNotificationsSnapshot(

@@ -31,10 +31,14 @@ const notification = (id: string, createdAt: string, recipientId = '') => ({
   data: () => ({ type: 'borrow', title: 'Borrow', message: 'A request', recipientId, createdAt }),
 });
 
+const missingIndex = () => Object.assign(new Error('The query requires an index.'), {
+  code: 'failed-precondition',
+});
+
 describe('recipient notification queries', () => {
   let service: FirestoreToolboxService;
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     TestBed.configureTestingModule({
       providers: [
         FirestoreToolboxService,
@@ -88,6 +92,89 @@ describe('recipient notification queries', () => {
     errors[0](new Error('late'));
     expect(changed).toHaveBeenCalledTimes(2);
     expect(failed).toHaveBeenCalledOnce();
+  });
+
+  it('loads tools at startup when the notification index is missing', async () => {
+    sdk.getDocs.mockImplementation(async (source) => {
+      const path = source.source?.path ?? source.path;
+      if (path === 'notifications') {
+        if (source.constraints.some((constraint: { direction?: string }) => constraint.direction)) {
+          throw missingIndex();
+        }
+        return { docs: [notification('broadcast', '2026-10-13')] };
+      }
+      return { docs: path === 'tools'
+        ? [{ id: 'tool-doc', data: () => ({ id: '1', name: 'Drill', ownerId: 'user' }) }]
+        : [] };
+    });
+
+    const snapshot = await service.loadSnapshot('user');
+    expect(snapshot.tools.map((tool) => tool.name)).toEqual(['Drill']);
+    expect(snapshot.notifications.map((item) => item.id)).toEqual(['broadcast']);
+  });
+
+  it('falls back per recipient stream and sorts before keeping the newest 50', async () => {
+    const history = Array.from({ length: 60 }, (_, index) => notification(
+      `n${index}`, new Date(Date.UTC(2026, 0, index + 1)).toISOString(), 'user',
+    ));
+    sdk.getDocs
+      .mockRejectedValueOnce(missingIndex())
+      .mockResolvedValueOnce({ docs: [notification('broadcast', '2026-10-13')] })
+      .mockResolvedValueOnce({ docs: [...history, notification('undated', '')] });
+
+    const notifications = await service.loadNotifications('user');
+    expect(notifications).toHaveLength(51);
+    expect(notifications[0].id).toBe('broadcast');
+    expect(notifications[1].id).toBe('n59');
+    expect(notifications.at(-1)?.id).toBe('n10');
+    expect(sdk.getDocs.mock.calls[2][0].constraints).toEqual([
+      { field: 'recipientId', op: 'in', value: ['user'] },
+    ]);
+  });
+
+  it('propagates permission and unrelated precondition errors without fallback reads', async () => {
+    for (const error of [
+      Object.assign(new Error('Permission denied'), { code: 'permission-denied' }),
+      Object.assign(new Error('Other precondition'), { code: 'failed-precondition' }),
+    ]) {
+      sdk.getDocs.mockReset().mockRejectedValue(error);
+      await expect(service.loadNotifications('user')).rejects.toBe(error);
+      expect(sdk.getDocs).toHaveBeenCalledTimes(2);
+    }
+  });
+
+  it('retries a missing-index listener once and cleans up fallback listeners', () => {
+    const callbacks: Array<(snapshot: unknown) => void> = [];
+    const errors: Array<(error: Error) => void> = [];
+    const stops: Array<ReturnType<typeof vi.fn>> = [];
+    sdk.onSnapshot.mockImplementation((_source, callback, error) => {
+      callbacks.push(callback);
+      errors.push(error);
+      const stop = vi.fn();
+      stops.push(stop);
+      return stop;
+    });
+    const changed = vi.fn(), failed = vi.fn();
+    const stop = service.watchNotifications('user', changed, failed);
+    errors[0](missingIndex());
+    expect(sdk.onSnapshot.mock.calls[2][0].constraints).toEqual([
+      { field: 'recipientId', op: 'in', value: ['user'] },
+    ]);
+    callbacks[1]({ docs: [notification('broadcast', '2026-10-12')] });
+    expect(changed).not.toHaveBeenCalled();
+    callbacks[2]({ docs: [notification('older', '2026-10-11'), notification('newer', '2026-10-13')] });
+    expect(changed.mock.lastCall?.[0].map((item: { id: string }) => item.id))
+      .toEqual(['newer', 'broadcast', 'older']);
+    expect(failed).not.toHaveBeenCalled();
+    errors[2](missingIndex());
+    expect(sdk.onSnapshot).toHaveBeenCalledTimes(3);
+    expect(failed).toHaveBeenCalledOnce();
+    stop();
+    expect(stops.every((unsubscribe) => unsubscribe.mock.calls.length === 1)).toBe(true);
+    callbacks[2]({ docs: [] });
+    errors[1](missingIndex());
+    expect(changed).toHaveBeenCalledOnce();
+    expect(sdk.onSnapshot).toHaveBeenCalledTimes(3);
   });
 
   it('merges read history from the transaction snapshot and protects visible old marks', async () => {
