@@ -278,6 +278,23 @@ describe('recipient notification queries', () => {
     expect(snapshot.tools.map(tool => tool.createdAt)).toEqual(['2026-10-17T10:00:00.000Z', '']);
   });
 
+  it('preserves discovered categories when creating and editing tools and rejects unknown categories', async () => {
+    sdk.getDocs.mockResolvedValue({ docs: [{ id: 'woodworking', data: () => ({ name: 'Woodworking', order: 130 }) }] });
+    const owner = { id: 'owner', name: 'Olivia', email: '', firstName: 'Olivia', lastName: '', picture: '' };
+    const form = { name: 'Plane', categoryId: 'woodworking', description: 'Hand plane', notes: '', imageUrl: '', imageFile: null };
+    await service.addTool(form, owner);
+    expect(sdk.setDoc.mock.calls[0][1]).toMatchObject({ categoryId: 'woodworking', categoryName: 'Woodworking' });
+    const update = vi.fn();
+    sdk.runTransaction.mockImplementation(async (_db, action) => action({
+      get: async () => ({ exists: () => true, data: () => ({ borrowStateVersion: 1, activeLoanId: null }) }), update,
+    }));
+    await service.updateTool({ documentId: 'plane' } as Parameters<typeof service.updateTool>[0], form);
+    expect(update.mock.calls[0][1]).toMatchObject({ categoryId: 'woodworking', categoryName: 'Woodworking' });
+    expect(sdk.getDocs).toHaveBeenCalledOnce();
+    await expect(service.addTool({ ...form, categoryId: 'missing' }, owner)).rejects.toThrow('category is no longer available');
+    expect(sdk.setDoc).toHaveBeenCalledOnce();
+  });
+
   it('loads legacy inventory without public-profile access and retries display profiles after rules are ready', async () => {
     sdk.getDocs.mockImplementation(async source => {
       const path = source.source?.path ?? source.path;

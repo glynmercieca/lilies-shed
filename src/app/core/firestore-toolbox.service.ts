@@ -227,7 +227,7 @@ export class FirestoreToolboxService {
 
   async addTool(formValue: ToolFormValue, owner: UserProfile): Promise<string> {
     const toolRef = doc(collection(this.firebase.firestore, 'tools'));
-    const category = this.resolveCategory(formValue.categoryId);
+    const category = await this.resolveSavedCategory(formValue.categoryId);
     await setDoc(toolRef, {
       id: toolRef.id,
       name: formValue.name,
@@ -249,7 +249,7 @@ export class FirestoreToolboxService {
   }
 
   async updateTool(tool: ToolRecord, formValue: ToolFormValue): Promise<void> {
-    const category = this.resolveCategory(formValue.categoryId);
+    const category = await this.resolveSavedCategory(formValue.categoryId);
     await this.updateAvailableTool(tool, {
       name: formValue.name,
       categoryId: category.id,
@@ -458,6 +458,14 @@ export class FirestoreToolboxService {
   private resolveCategory(categoryId: unknown): ToolCategoryRecord {
     const normalizedCategoryId = this.readString(categoryId) || 'other';
     return FIXED_TOOL_CATEGORIES.find((category) => category.id === normalizedCategoryId) ?? FIXED_TOOL_CATEGORIES.at(-1)!;
+  }
+
+  private async resolveSavedCategory(categoryId: string): Promise<ToolCategoryRecord> {
+    const id = categoryId.trim();
+    const category = FIXED_TOOL_CATEGORIES.find(category => category.id === id)
+      ?? (await this.cachedCategories()).find(category => category.id === id);
+    if (!category) throw new Error('This category is no longer available. Refresh and choose another category.');
+    return category;
   }
 
   private readString(value: unknown): string {
