@@ -9,7 +9,7 @@ import { Unsubscribe } from 'firebase/firestore';
 import { FirebaseAuthService } from './firebase-auth.service';
 import { FirebaseMessagingService } from './firebase-messaging.service';
 import { FirestoreToolboxService, FIXED_TOOL_CATEGORIES } from './firestore-toolbox.service';
-import { ImageUploadService } from './image-upload.service';
+import { ImageUploadService, UploadedToolImages } from './image-upload.service';
 import { APP_SETTINGS } from './app-settings';
 import { CategoryDiscoveryService } from './category-discovery.service';
 import { matchesUserId } from './identity.util';
@@ -674,9 +674,11 @@ export class ToolboxStateService {
 
       component.setSaving(true);
       this.loading.set(true);
+      let uploadedImageUrl: UploadedToolImages | null = null;
+      let saved = false;
 
       try {
-        const uploadedImageUrl = await this.imageUpload.uploadImage(result.imageFile);
+        uploadedImageUrl = await this.imageUpload.uploadImage(result.imageFile);
         const toolId = await this.toolbox.addTool(
           {
             ...result,
@@ -685,12 +687,18 @@ export class ToolboxStateService {
           },
           user,
         );
-        await this.refreshTool(toolId);
+        saved = true;
+        this.imageUpload.commitUpload(uploadedImageUrl);
         dialogRef.close(true);
+        await this.refreshTool(toolId);
         this.notify('Tool added.');
       } catch (error) {
-        component.setSaving(false);
-        this.notify(error instanceof Error ? error.message : 'Unable to add a new tool.');
+        if (!saved) {
+          await this.imageUpload.discardUpload(uploadedImageUrl).catch(() => undefined);
+          component.setSaving(false);
+        }
+        this.notify(saved ? 'Tool added, but the list could not refresh. Try refreshing again.'
+          : error instanceof Error ? error.message : 'Unable to add a new tool.');
       } finally {
         this.loading.set(false);
       }
@@ -743,20 +751,28 @@ export class ToolboxStateService {
 
       component.setSaving(true);
       this.savingToolId.set(tool.id);
+      let uploadedImageUrl: UploadedToolImages | null = null;
+      let saved = false;
 
       try {
-        const uploadedImageUrl = await this.imageUpload.uploadImage(result.imageFile);
+        uploadedImageUrl = await this.imageUpload.uploadImage(result.imageFile);
         await this.toolbox.updateTool(tool, {
           ...result,
           imageUrl: uploadedImageUrl?.imageUrl || result.imageUrl,
           thumbnailUrl: uploadedImageUrl?.thumbnailUrl || (result.imageUrl ? result.thumbnailUrl : ''),
         });
-        await this.refreshTool(tool.documentId);
+        saved = true;
+        this.imageUpload.commitUpload(uploadedImageUrl);
         dialogRef.close(true);
+        await this.refreshTool(tool.documentId);
         this.notify(`${this.formatToolTitle(tool.name)} updated.`);
       } catch (error) {
-        component.setSaving(false);
-        this.notify(error instanceof Error ? error.message : 'Unable to update this tool.');
+        if (!saved) {
+          await this.imageUpload.discardUpload(uploadedImageUrl).catch(() => undefined);
+          component.setSaving(false);
+        }
+        this.notify(saved ? 'Tool updated, but the list could not refresh. Try refreshing again.'
+          : error instanceof Error ? error.message : 'Unable to update this tool.');
       } finally {
         this.savingToolId.set(null);
       }

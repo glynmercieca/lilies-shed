@@ -26,7 +26,8 @@ describe('toolbox refresh and targeted mutations', () => {
   let service: ToolboxStateService;
   let dialogOpen: ReturnType<typeof vi.fn>;
   let sheetOpen: ReturnType<typeof vi.fn>;
-  let storage: { loadSnapshot: ReturnType<typeof vi.fn>; loadReadNotificationIds: ReturnType<typeof vi.fn>; loadToolUpdate: ReturnType<typeof vi.fn>; addBorrowRequest: ReturnType<typeof vi.fn>; watchToolChanges: ReturnType<typeof vi.fn>; watchNotifications: ReturnType<typeof vi.fn>; watchReadNotificationIds: ReturnType<typeof vi.fn> };
+  let uploads: { uploadImage: ReturnType<typeof vi.fn>; commitUpload: ReturnType<typeof vi.fn>; discardUpload: ReturnType<typeof vi.fn> };
+  let storage: { loadSnapshot: ReturnType<typeof vi.fn>; loadReadNotificationIds: ReturnType<typeof vi.fn>; loadToolUpdate: ReturnType<typeof vi.fn>; addBorrowRequest: ReturnType<typeof vi.fn>; watchToolChanges: ReturnType<typeof vi.fn>; watchNotifications: ReturnType<typeof vi.fn>; watchReadNotificationIds: ReturnType<typeof vi.fn>; addTool: ReturnType<typeof vi.fn> };
   beforeEach(() => {
     window.localStorage.setItem('shed-theme-mode', 'light');
     vi.stubGlobal('Notification', { permission: 'default' });
@@ -36,12 +37,13 @@ describe('toolbox refresh and targeted mutations', () => {
       afterClosed: () => new Subject(), close: vi.fn(),
     }));
     sheetOpen = vi.fn().mockImplementation(() => ({ instance: { tool: signal(null) }, afterDismissed: () => new Subject(), dismiss: vi.fn() }));
-    storage = { loadSnapshot: vi.fn().mockResolvedValue(empty()), loadReadNotificationIds: vi.fn().mockResolvedValue(new Set()), loadToolUpdate: vi.fn(), addBorrowRequest: vi.fn().mockResolvedValue(undefined), watchToolChanges: vi.fn().mockReturnValue(vi.fn()), watchNotifications: vi.fn().mockReturnValue(vi.fn()), watchReadNotificationIds: vi.fn().mockReturnValue(vi.fn()) };
+    uploads = { uploadImage: vi.fn(), commitUpload: vi.fn(), discardUpload: vi.fn().mockResolvedValue(undefined) };
+    storage = { loadSnapshot: vi.fn().mockResolvedValue(empty()), loadReadNotificationIds: vi.fn().mockResolvedValue(new Set()), loadToolUpdate: vi.fn(), addBorrowRequest: vi.fn().mockResolvedValue(undefined), watchToolChanges: vi.fn().mockReturnValue(vi.fn()), watchNotifications: vi.fn().mockReturnValue(vi.fn()), watchReadNotificationIds: vi.fn().mockReturnValue(vi.fn()), addTool: vi.fn() };
     TestBed.configureTestingModule({ providers: [provideRouter(routes), provideNoopAnimations(),
       { provide: FirebaseAuthService, useValue: { currentUser, ensureValidSession: async () => Boolean(currentUser()), isConfigured: () => true, isBusy: () => false, error: () => null } },
       { provide: FirestoreToolboxService, useValue: storage },
       { provide: FirebaseMessagingService, useValue: { syncCurrentUser: vi.fn() } },
-      { provide: ImageUploadService, useValue: {} },
+      { provide: ImageUploadService, useValue: uploads },
       { provide: MatDialog, useValue: { open: dialogOpen } }, { provide: MatBottomSheet, useValue: { open: sheetOpen } },
       { provide: MatSnackBar, useValue: { open: vi.fn() } },
     ] });
@@ -215,5 +217,27 @@ describe('toolbox refresh and targeted mutations', () => {
     expect(service.tools()).toBe(tools);
     expect(service.filteredTools()).toBe(filtered);
     expect(service.categories()).toBe(categories);
+  });
+
+  it('discards uploads after a failed save but keeps committed images when the subsequent refresh fails', async () => {
+    const harness = await RouterTestingHarness.create();
+    await service.refresh();
+    await harness.navigateByUrl('/shed?dialog=add-tool');
+    await vi.waitFor(() => expect(dialogOpen).toHaveBeenCalledOnce());
+    const dialog = dialogOpen.mock.results[0].value;
+    const uploaded = { imageUrl: 'new-image', thumbnailUrl: 'new-thumb' };
+    uploads.uploadImage.mockResolvedValue(uploaded);
+    storage.addTool.mockRejectedValueOnce(new Error('Save denied'));
+    const form = { name: 'Drill', categoryId: 'other', description: 'Drill', notes: '', imageUrl: '', imageFile: null };
+    dialog.componentInstance.submitRequested.next(form);
+    await vi.waitFor(() => expect(uploads.discardUpload).toHaveBeenCalledWith(uploaded));
+    expect(uploads.commitUpload).not.toHaveBeenCalled();
+    storage.addTool.mockResolvedValueOnce('created');
+    storage.loadToolUpdate.mockRejectedValueOnce(new Error('Refresh unavailable'));
+    dialog.componentInstance.submitRequested.next(form);
+    await vi.waitFor(() => expect(dialog.close).toHaveBeenCalledWith(true));
+    await vi.waitFor(() => expect(service.loading()).toBe(false));
+    expect(uploads.commitUpload).toHaveBeenCalledWith(uploaded);
+    expect(uploads.discardUpload).toHaveBeenCalledOnce();
   });
 });
