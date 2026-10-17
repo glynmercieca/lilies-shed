@@ -344,6 +344,7 @@ export class FirestoreToolboxService {
       ownerLastName,
       image: this.readString(data['image']),
       thumbnail: this.readString(data['thumbnail']),
+      createdAt: this.readDateTimeString(data['createdAt']),
     };
   }
 

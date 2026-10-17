@@ -75,6 +75,23 @@ describe('toolbox refresh and targeted mutations', () => {
     expect(service.categories().some((category) => category.id === 'private')).toBe(false);
   });
 
+  it('sorts date-added by creation time rather than random IDs, with stable legacy fallbacks', async () => {
+    const base = { documentId: 'tool', id: '', name: 'Tool', categoryId: 'other', categoryName: 'Other', description: '', notes: '', deleted: false, ownerId: 'owner', owner: '', ownerEmail: '', ownerFirstName: '', ownerLastName: '', image: '' };
+    storage.loadSnapshot.mockResolvedValue({ ...empty(), tools: [
+      { ...base, id: 'zz-random', createdAt: '2026-10-01T10:00:00Z' },
+      { ...base, id: '100002' },
+      { ...base, id: 'aa-random', createdAt: '2026-10-17T10:00:00Z' },
+      { ...base, id: '100001', createdAt: 'invalid' },
+      { ...base, id: 'bb-random', createdAt: '2026-10-17T10:00:00Z' },
+    ] });
+    await service.refresh();
+    expect(service.filteredTools().map(tool => tool.id)).toEqual([
+      'bb-random', 'aa-random', 'zz-random', '100002', '100001',
+    ]);
+    service.setToolSortMode('name');
+    expect(service.filteredTools()).toHaveLength(5);
+  });
+
   it('refreshes only the borrowed tool while keeping search, categories and borrowed counts current', async () => {
     const tool = { documentId: 'tool', id: '100000', name: 'Drill', categoryId: 'power-tools', categoryName: 'Power tools', description: '', notes: '', deleted: false, ownerId: 'owner', owner: 'Olivia', ownerEmail: '', ownerFirstName: 'Olivia', ownerLastName: '', image: '', activeLoanId: null };
     storage.loadSnapshot.mockResolvedValue({ ...empty(), tools: [tool] });

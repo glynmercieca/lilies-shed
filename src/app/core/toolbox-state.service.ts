@@ -112,6 +112,14 @@ export class ToolboxStateService {
 
     return filteredTools.sort((firstTool, secondTool) => {
       if (this.toolSortMode() === 'date-added') {
+        const firstCreated = Date.parse(firstTool.createdAt ?? '');
+        const secondCreated = Date.parse(secondTool.createdAt ?? '');
+        const firstKnown = Number.isFinite(firstCreated);
+        const secondKnown = Number.isFinite(secondCreated);
+        // Auto-generated Firestore IDs are random. Known timestamps sort first;
+        // legacy records retain their numeric-ID ordering without inventing dates.
+        if (firstKnown !== secondKnown) return firstKnown ? -1 : 1;
+        if (firstKnown && firstCreated !== secondCreated) return secondCreated - firstCreated;
         return this.compareToolIds(secondTool.id, firstTool.id);
       }
 

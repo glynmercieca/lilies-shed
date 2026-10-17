@@ -267,6 +267,17 @@ describe('recipient notification queries', () => {
     expect(sdk.runTransaction).not.toHaveBeenCalled();
   });
 
+  it('preserves creation timestamps when loading new and legacy tools', async () => {
+    sdk.getDocs.mockImplementation(async source => ({ docs:
+      (source.source?.path ?? source.path) === 'tools' ? [
+        { id: 'new', data: () => ({ name: 'New drill', latestLoanId: null, createdAt: '2026-10-17T10:00:00Z' }) },
+        { id: 'legacy', data: () => ({ name: 'Old drill', latestLoanId: null }) },
+      ] : [],
+    }));
+    const snapshot = await service.loadSnapshot('user');
+    expect(snapshot.tools.map(tool => tool.createdAt)).toEqual(['2026-10-17T10:00:00.000Z', '']);
+  });
+
   it('loads legacy inventory without public-profile access and retries display profiles after rules are ready', async () => {
     sdk.getDocs.mockImplementation(async source => {
       const path = source.source?.path ?? source.path;
