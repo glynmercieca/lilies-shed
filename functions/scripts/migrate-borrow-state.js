@@ -1,8 +1,9 @@
 // Run with Application Default Credentials against an explicitly selected project.
 // Dry-run by default. Deploy the reservation rules BEFORE applying this migration.
 const { initializeApp } = require('firebase-admin/app');
-const { getFirestore } = require('firebase-admin/firestore');
+const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const { planBorrowMigration } = require('./plan-borrow-migration');
+const { verifyInventoryReadModel } = require('./verify-inventory-read-model');
 
 async function main() {
   const projectId = process.env.GCLOUD_PROJECT;
@@ -22,6 +23,18 @@ async function main() {
   // borrow until the migration is complete. Re-running is safe in that window.
   for (const update of plan.loans) await db.collection('loan').doc(update.id).update(update.data);
   for (const update of plan.tools) await db.collection('tools').doc(update.id).update(update.data);
+  // Publish the optimization gate only after an independent transactional read
+  // verifies normalized flags, canonical links and complete reservation pointers.
+  await db.runTransaction(async transaction => {
+    const verifiedTools = await transaction.get(db.collection('tools'));
+    const verifiedLoans = await transaction.get(db.collection('loan'));
+    const conflicts = verifyInventoryReadModel(
+      verifiedTools.docs.map(doc => ({ documentId: doc.id, ...doc.data() })),
+      verifiedLoans.docs.map(doc => ({ documentId: doc.id, ...doc.data() })),
+    );
+    if (conflicts.length) throw new Error(`Read-model verification failed: ${conflicts.join(', ')}`);
+    transaction.set(db.collection('appConfig').doc('inventory'), { schemaVersion: 1, verifiedAt: FieldValue.serverTimestamp() });
+  });
 }
 
 main().catch((error) => { console.error(error.message); process.exitCode = 1; });

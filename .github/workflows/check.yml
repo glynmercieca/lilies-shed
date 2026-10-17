@@ -18,6 +18,7 @@ jobs:
           node-version: 22.22.3
           cache: npm
       - run: npm ci
+      - run: npm ci --prefix functions
       - run: npx playwright install --with-deps chromium
       - run: npm test -- --watch=false
       - run: npm run test:layout

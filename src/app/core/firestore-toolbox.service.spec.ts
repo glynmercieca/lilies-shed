@@ -223,6 +223,7 @@ describe('recipient notification queries', () => {
     });
     sdk.getDoc.mockImplementation(async (reference) => {
       documentReads++;
+      if (reference.path === 'appConfig') return { exists: () => true, data: () => ({ schemaVersion: 1 }) };
       if (reference.path === 'tools') return { ...tools[0], exists: () => true };
       expect(reference.path).toBe('publicProfiles');
       expect(['owner', 'borrower']).toContain(reference.id);
@@ -233,7 +234,7 @@ describe('recipient notification queries', () => {
     expect(snapshot.loans).toHaveLength(60);
     expect(snapshot.tools[0].ownerFirstName).toBe('Olivia');
     expect(snapshot.loans[0].borrowerFirstName).toBe('Ben');
-    expect(documentReads).toBe(122); // 60 tools, 60 latest loans, 2 profiles
+    expect(documentReads).toBe(123); // one migration gate, 60 tools, 60 latest loans, 2 profiles
     expect(sdk.setDoc).not.toHaveBeenCalled();
     expect(sdk.getDocs.mock.calls.filter(([source]) => (source.source?.path ?? source.path) === 'users')).toHaveLength(0);
     const beforeTargeted = documentReads;
@@ -242,7 +243,7 @@ describe('recipient notification queries', () => {
     expect(updated.loans).toHaveLength(1);
     expect(documentReads - beforeTargeted).toBe(2);
     await service.loadSnapshot('user');
-    expect(sdk.getDoc).toHaveBeenCalledTimes(3); // two profiles plus targeted tool
+    expect(sdk.getDoc).toHaveBeenCalledTimes(4); // migration gate, two profiles plus targeted tool
     expect(sdk.getDocs.mock.calls.filter(([source]) => source.source?.path === 'categories')).toHaveLength(1);
   });
 
@@ -255,6 +256,12 @@ describe('recipient notification queries', () => {
     });
     const result = await service.loadSnapshot('user');
     expect(result.loans[0].itemId).toBe('canonical');
+    expect(result.loans).toHaveLength(1); // toolId/itemId query overlap is deduplicated
+    const loanQueries = sdk.getDocs.mock.calls.filter(([source]) => source.source?.path === 'loan');
+    expect(loanQueries.map(([source]) => source.constraints[0])).toEqual([
+      { field: 'toolId', op: 'in', value: ['canonical', '100000'] },
+      { field: 'itemId', op: 'in', value: ['canonical', '100000'] },
+    ]);
     expect(sdk.setDoc).not.toHaveBeenCalled();
   });
   it('creates tools using their unique document ID without accessing shared counters', async () => {
@@ -278,11 +285,12 @@ describe('recipient notification queries', () => {
     expect(snapshot.tools.map(tool => tool.createdAt)).toEqual(['2026-10-17T10:00:00.000Z', '']);
   });
 
-  it('watches server changes, including initial races and removals, without treating cached writes as verified', () => {
+  it('watches server changes, including initial races and removals, without treating cached writes as verified', async () => {
     const stop = vi.fn();
     sdk.onSnapshot.mockReturnValue(stop);
     const changed = vi.fn(), failed = vi.fn();
     const unsubscribe = service.watchToolChanges([{ documentId: 'known', updatedAt: '2026-10-17T10:00:00.000Z' }] as Parameters<typeof service.watchToolChanges>[0], changed, failed);
+    await vi.waitFor(() => expect(sdk.onSnapshot).toHaveBeenCalledOnce());
     const callback = sdk.onSnapshot.mock.calls[0][2];
     const snapshot = (ids: string[], cached = false) => ({ metadata: { fromCache: cached, hasPendingWrites: false }, docs: ids.map(id => ({ id, data: () => ({ updatedAt: '2026-10-17T10:00:00Z' }) })) });
     callback(snapshot(['known']));
@@ -321,15 +329,29 @@ describe('recipient notification queries', () => {
         : path === 'loan' ? [{ id: 'loan', data: () => ({ itemId: '100000', borrowerId: 'borrower', loanDate: '2026-10-17', returnDate: '' }) }]
         : [] };
     });
-    sdk.getDoc.mockRejectedValue(Object.assign(new Error('Profile rules not ready'), { code: 'permission-denied' }));
+    sdk.getDoc.mockImplementation(async reference => {
+      if (reference.path === 'appConfig') return { exists: () => false, data: () => undefined };
+      throw Object.assign(new Error('Profile rules not ready'), { code: 'permission-denied' });
+    });
     const snapshot = await service.loadSnapshot('user');
     expect(snapshot.tools.map(tool => tool.name)).toEqual(['Drill']);
     expect(snapshot.loans[0].itemId).toBe('tool');
-    expect(sdk.getDoc.mock.calls.every(([reference]) => reference.path === 'publicProfiles')).toBe(true);
+    expect(sdk.getDoc.mock.calls.every(([reference]) => ['publicProfiles', 'appConfig'].includes(reference.path))).toBe(true);
     sdk.getDoc.mockResolvedValue({ exists: () => true, data: () => ({ firstName: 'Alice' }) });
     const refreshed = await service.loadSnapshot('user');
     expect(refreshed.tools[0].ownerFirstName).toBe('Alice');
-    expect(sdk.getDoc).toHaveBeenCalledTimes(4);
+    expect(sdk.getDoc).toHaveBeenCalledTimes(5);
+  });
+
+  it('excludes deleted tools only after the trusted migration gate is published', async () => {
+    sdk.getDoc.mockResolvedValue({ exists: () => true, data: () => ({ schemaVersion: 1 }) });
+    sdk.getDocs.mockResolvedValue({ docs: [] });
+    await service.loadSnapshot('user');
+    const toolsQuery = sdk.getDocs.mock.calls.find(([source]) => source.source?.path === 'tools')![0];
+    expect(toolsQuery.constraints).toEqual([{ field: 'deleted', op: '==', value: false }]);
+    service.watchToolChanges([], vi.fn(), vi.fn());
+    await vi.waitFor(() => expect(sdk.onSnapshot).toHaveBeenCalledOnce());
+    expect(sdk.onSnapshot.mock.calls[0][0]).toEqual(toolsQuery);
   });
 
   it('does not mask a failed inventory read as an empty successful result', async () => {

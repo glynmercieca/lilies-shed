@@ -2,6 +2,7 @@ import fixedCategories from './tool-categories.json';
 import { Injectable, inject } from '@angular/core';
 import {
   QueryDocumentSnapshot,
+  Query,
   DocumentData,
   Timestamp,
   collection,
@@ -53,11 +54,30 @@ export class FirestoreToolboxService {
 
   private usersCache = new Map<string, { expires: number; value: Promise<UserProfile | null> }>();
   private categoriesCache: { expires: number; value: Promise<ToolCategoryRecord[]> } | null = null;
+  private inventorySourceCache: { expires: number; value: Promise<Query<DocumentData>> } | null = null;
+
+  private inventorySource(): Promise<Query<DocumentData>> {
+    if (!this.inventorySourceCache || this.inventorySourceCache.expires < Date.now()) {
+      const value = getDocFromServer(doc(this.firebase.firestore, 'appConfig', 'inventory')).then(marker => {
+        const tools = collection(this.firebase.firestore, 'tools');
+        // Missing fields are excluded by Firestore equality queries. Enable this
+        // only after the trusted migration has verified every legacy tool.
+        return marker.data()?.['schemaVersion'] === 1 ? query(tools, where('deleted', '==', false)) : query(tools);
+      }).catch(error => {
+        this.inventorySourceCache = null;
+        if (this.isPermissionDenied(error)) return query(collection(this.firebase.firestore, 'tools'));
+        throw error;
+      });
+      this.inventorySourceCache = { expires: Date.now() + 300_000, value };
+    }
+    return this.inventorySourceCache.value;
+  }
 
   async loadSnapshot(userId: string): Promise<SheetsSnapshot> {
+    const source = await this.inventorySource();
     const [categories, toolsSnapshot, notifications] = await Promise.all([
       this.cachedCategories(),
-      getDocsFromServer(collection(this.firebase.firestore, 'tools')),
+      getDocsFromServer(source),
       this.loadNotifications(userId),
     ]);
     const { tools, loans } = await this.parseToolDocuments(toolsSnapshot.docs);
@@ -75,7 +95,11 @@ export class FirestoreToolboxService {
     onError: (error: Error) => void,
   ): Unsubscribe {
     const versions = new Map(knownTools.map(tool => [tool.documentId, tool.updatedAt ?? '']));
-    return onSnapshot(collection(this.firebase.firestore, 'tools'), { includeMetadataChanges: true }, snapshot => {
+    let stopped = false;
+    let unsubscribe: Unsubscribe | undefined;
+    void this.inventorySource().then(source => {
+      if (stopped) return;
+      unsubscribe = onSnapshot(source, { includeMetadataChanges: true }, snapshot => {
       // Local pending writes and cached results do not verify shared availability.
       if (snapshot.metadata.fromCache || snapshot.metadata.hasPendingWrites) return;
       const current = new Map(snapshot.docs.map(document => [document.id, this.readDateTimeString(document.data()['updatedAt'])]));
@@ -84,22 +108,23 @@ export class FirestoreToolboxService {
       versions.clear();
       current.forEach((version, id) => versions.set(id, version));
       if (changed.length) onChange(changed);
-    }, onError);
+      }, onError);
+    }).catch(error => { if (!stopped) onError(error); });
+    return () => { stopped = true; unsubscribe?.(); };
   }
 
   private async parseToolDocuments(documents: Array<{ id: string; data(): DocumentData | undefined }>) {
     const records = documents.map((snapshot) => ({ id: snapshot.id, data: snapshot.data()! }));
-    let loanDocuments: Array<{ id: string; data(): DocumentData }> = [];
-    if (records.some(({ data }) => !('latestLoanId' in data))) {
-      // Read old history only until the migration has initialized tool pointers.
-      loanDocuments = (await getDocsFromServer(collection(this.firebase.firestore, 'loan'))).docs;
-    } else {
-      const ids = [...new Set(records.flatMap(({ data }) => [data['activeLoanId'], data['latestLoanId']]).filter(Boolean))];
-      const groups = await Promise.all(Array.from({ length: Math.ceil(ids.length / 30) }, (_, index) =>
-        getDocsFromServer(query(collection(this.firebase.firestore, 'loan'), where(documentId(), 'in', ids.slice(index * 30, index * 30 + 30)))),
-      ));
-      loanDocuments = groups.flatMap((group) => group.docs);
+    const ids = [...new Set(records.flatMap(({ data }) => [data['activeLoanId'], data['latestLoanId']]).filter(Boolean))];
+    const legacyAliases = [...new Set(records.filter(({ data }) => !('latestLoanId' in data))
+      .flatMap(({ id, data }) => [id, this.readString(data['id']) || id]))];
+    const queries = Array.from({ length: Math.ceil(ids.length / 30) }, (_, index) =>
+      query(collection(this.firebase.firestore, 'loan'), where(documentId(), 'in', ids.slice(index * 30, index * 30 + 30))));
+    for (let index = 0; index < legacyAliases.length; index += 30) {
+      for (const field of ['toolId', 'itemId']) queries.push(query(collection(this.firebase.firestore, 'loan'), where(field, 'in', legacyAliases.slice(index, index + 30))));
     }
+    const groups = await Promise.all(queries.map(source => getDocsFromServer(source)));
+    const loanDocuments = [...new Map(groups.flatMap(group => group.docs).map(snapshot => [snapshot.id, snapshot])).values()];
     const userIds = [...new Set([
       ...records.map(({ data }) => this.readString(data['ownerId'])),
       ...loanDocuments.map((snapshot) => this.readString(snapshot.data()['borrowerId'])),

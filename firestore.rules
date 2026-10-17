@@ -226,5 +226,10 @@ service cloud.firestore {
     match /meta/{docId} {
       allow read, write: if false;
     }
+
+    match /appConfig/inventory {
+      allow read: if signedIn();
+      allow write: if false;
+    }
   }
 }
