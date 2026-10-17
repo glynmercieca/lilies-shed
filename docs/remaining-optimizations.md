@@ -17,6 +17,10 @@ Deploy the accompanying rules before enabling this read mode. During the existin
 
 The emulator checks execute the real dry-run and apply scripts, prove dry-run writes no marker, verify a legacy active tool remains queryable, exclude a legacy deleted tool, and reject client marker writes. No production migration has been run. Unit suite: 60 tests; integration suite: 29 checks; production build passed for this step.
 
+## Backend dependency security
+
+Installing the locked backend dependencies exposed 15 audit findings, including a critical proxy-addr advisory. Backend dependencies are upgraded to Firebase Admin 14.5 and Functions 7.4, with the remaining compatible transitive patch applied. The production runtime target is now Node 22, matching the repository pin and Admin 14 requirements. All application scripts already use the supported modular Admin entry points. Backend module loading and all 29 integration/security checks pass under the pinned Node 22.22.3 runtime. `npm audit --prefix functions --omit=dev` reports zero vulnerabilities at verification time. Deploying the functions will apply the new runtime; nothing has been deployed by this work.
+
 ## Notification delivery
 
 Each Firestore event ID maps to one deterministic notification document. Create-only writes preserve its original timestamp on replay. Server-only `notificationDeliveries` records lease delivery for six minutes (longer than the configured five-minute function timeout), serializing concurrent invocations. Per-token hashed receipts record successful and permanently invalid destinations. Transient failures retry only unfinished tokens; batches contain at most 500 unique tokens. Disabled/inactive accounts are skipped and invalid-token cleanup is retriable. Function retries are enabled.
