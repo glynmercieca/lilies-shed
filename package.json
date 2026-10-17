@@ -12,7 +12,8 @@
     "watch": "node scripts/run-ng.cjs build --watch --configuration development",
     "test": "node scripts/run-ng.cjs test",
     "test:integration": "firebase emulators:exec --only firestore,storage --config firebase.test.json --project demo-lilies-tests \"node --experimental-strip-types --test --test-concurrency=1 scripts/*.integration.test.mjs\"",
-    "test:offline": "node scripts/offline-smoke.mjs"
+    "test:offline": "node scripts/offline-smoke.mjs",
+    "test:layout": "node scripts/layout-smoke.mjs"
   },
   "private": true,
   "packageManager": "npm@11.0.0",

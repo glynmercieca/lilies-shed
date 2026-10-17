@@ -110,6 +110,9 @@ jobs:
       - name: Test application
         run: npm test -- --watch=false
 
+      - name: Test signed-in desktop and mobile layout
+        run: npm run test:layout
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

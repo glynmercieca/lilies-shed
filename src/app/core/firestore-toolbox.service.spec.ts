@@ -267,4 +267,31 @@ describe('recipient notification queries', () => {
     expect(sdk.runTransaction).not.toHaveBeenCalled();
   });
 
+  it('loads legacy inventory without public-profile access and retries display profiles after rules are ready', async () => {
+    sdk.getDocs.mockImplementation(async source => {
+      const path = source.source?.path ?? source.path;
+      return { docs: path === 'tools' ? [{ id: 'tool', data: () => ({ id: '100000', name: 'Drill', ownerId: 'owner' }) }]
+        : path === 'loan' ? [{ id: 'loan', data: () => ({ itemId: '100000', borrowerId: 'borrower', loanDate: '2026-10-17', returnDate: '' }) }]
+        : [] };
+    });
+    sdk.getDoc.mockRejectedValue(Object.assign(new Error('Profile rules not ready'), { code: 'permission-denied' }));
+    const snapshot = await service.loadSnapshot('user');
+    expect(snapshot.tools.map(tool => tool.name)).toEqual(['Drill']);
+    expect(snapshot.loans[0].itemId).toBe('tool');
+    expect(sdk.getDoc.mock.calls.every(([reference]) => reference.path === 'publicProfiles')).toBe(true);
+    sdk.getDoc.mockResolvedValue({ exists: () => true, data: () => ({ firstName: 'Alice' }) });
+    const refreshed = await service.loadSnapshot('user');
+    expect(refreshed.tools[0].ownerFirstName).toBe('Alice');
+    expect(sdk.getDoc).toHaveBeenCalledTimes(4);
+  });
+
+  it('does not mask a failed inventory read as an empty successful result', async () => {
+    const denied = Object.assign(new Error('Tool access denied'), { code: 'permission-denied' });
+    sdk.getDocs.mockImplementation(async source => {
+      if ((source.source?.path ?? source.path) === 'tools') throw denied;
+      return { docs: [] };
+    });
+    await expect(service.loadSnapshot('user')).rejects.toBe(denied);
+  });
+
 });

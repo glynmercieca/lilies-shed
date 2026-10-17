@@ -27,3 +27,18 @@ it('does not publish the email fallback when the account has no display name', a
   await sdk.onIdTokenChanged.mock.calls[0][1]({ uid: 'UserA', email: 'private@example.com', displayName: null, photoURL: null });
   expect(sdk.setDoc.mock.calls[0][1]).toEqual({ displayName: 'Member', firstName: '', lastName: '', photoURL: '' });
 });
+
+it('keeps a restored account signed in when public-profile writes are denied during rollout', async () => {
+  const firebaseUser = { uid: 'UserA', email: 'private@example.com', displayName: 'Alice Smith', photoURL: null, getIdToken: vi.fn().mockResolvedValue('test-token') };
+  TestBed.overrideProvider(FirebaseClientService, { useValue: { auth: { currentUser: firebaseUser }, firestore: {} } });
+  sdk.setDoc.mockRejectedValue(Object.assign(new Error('Missing or insufficient permissions.'), { code: 'permission-denied' }));
+  const service = TestBed.inject(FirebaseAuthService);
+  await sdk.onIdTokenChanged.mock.calls[0][1](firebaseUser);
+  expect(service.currentUser()?.id).toBe('UserA');
+  expect(await service.ensureValidSession()).toBe(true);
+  expect(service.error()).toContain('permissions');
+  expect(sdk.setDoc.mock.calls[0][0].path).toBe('publicProfiles');
+  // Auth still clears the account for an actual sign-out event.
+  await sdk.onIdTokenChanged.mock.calls[0][1](null);
+  expect(service.currentUser()).toBeNull();
+});

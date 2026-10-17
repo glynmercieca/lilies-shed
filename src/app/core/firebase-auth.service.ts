@@ -34,7 +34,8 @@ export class FirebaseAuthService {
             this.user.set(null);
           }
         } catch (error) {
-          this.user.set(null);
+          // A profile-write failure does not invalidate Firebase authentication.
+          // Keep the account usable while profile rules/migrations roll out.
           this.errorMessage.set(error instanceof Error ? error.message : 'Unable to restore the Firebase session.');
         } finally {
           resolve();

@@ -115,7 +115,13 @@ export class FirestoreToolboxService {
       return { id, email, name, picture: this.readString(data.photoURL),
         firstName: this.readString(data.firstName) || parts.firstName,
         lastName: this.readString(data.lastName) || parts.lastName };
-    }).catch((error) => { this.usersCache.delete(id); throw error; });
+    }).catch((error) => {
+      this.usersCache.delete(id);
+      // Display profiles are optional during rollout. Never fall back to reading
+      // another member's private users record, and retry on the next refresh.
+      if (this.isPermissionDenied(error)) return null;
+      throw error;
+    });
     this.usersCache.set(id, { expires: Date.now() + 300_000, value });
     return value;
   }
@@ -413,6 +419,11 @@ export class FirestoreToolboxService {
     if (!error || typeof error !== 'object') return false;
     const { code, message } = error as { code?: string; message?: string };
     return code === 'failed-precondition' && /index/i.test(message ?? '');
+  }
+
+  private isPermissionDenied(error: unknown): boolean {
+    return Boolean(error && typeof error === 'object'
+      && 'code' in error && error.code === 'permission-denied');
   }
 
   private boundNotificationsSnapshot(documents: QueryDocumentSnapshot<DocumentData>[]): AppNotificationRecord[] {
