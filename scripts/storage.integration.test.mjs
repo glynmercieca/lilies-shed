@@ -1,0 +1,23 @@
+import { readFile } from 'node:fs/promises';
+import { before, after, test } from 'node:test';
+import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
+import { ref, uploadBytes, getMetadata, deleteObject } from 'firebase/storage';
+let env;
+before(async () => { env = await initializeTestEnvironment({ projectId: 'demo-lilies-tests', storage: { host: '127.0.0.1', port: 9195, rules: await readFile('storage.rules', 'utf8') } }); });
+after(async () => env?.cleanup());
+test('tool images enforce authentication, upload ownership, MIME type and size limits', async () => {
+  const owner = env.authenticatedContext('owner').storage();
+  const other = env.authenticatedContext('other').storage();
+  const anonymous = env.unauthenticatedContext().storage();
+  const image = ref(owner, 'tools/owner/image.webp');
+  await assertSucceeds(uploadBytes(image, new Uint8Array([1, 2, 3]), { contentType: 'image/webp' }));
+  await assertSucceeds(getMetadata(ref(other, image.fullPath)));
+  await assertFails(getMetadata(ref(anonymous, image.fullPath)));
+  await assertFails(uploadBytes(ref(other, image.fullPath), new Uint8Array([1]), { contentType: 'image/webp' }));
+  await assertFails(uploadBytes(ref(anonymous, image.fullPath), new Uint8Array([1]), { contentType: 'image/webp' }));
+  await assertFails(uploadBytes(ref(owner, 'tools/owner/empty'), new Uint8Array(), { contentType: 'image/png' }));
+  await assertFails(uploadBytes(ref(owner, 'tools/owner/large'), new Uint8Array(2 * 1024 * 1024 + 1), { contentType: 'image/png' }));
+  await assertFails(uploadBytes(ref(owner, 'tools/owner/script'), new Uint8Array([1]), { contentType: 'text/html' }));
+  await assertFails(deleteObject(ref(other, image.fullPath)));
+  await assertSucceeds(deleteObject(image));
+});

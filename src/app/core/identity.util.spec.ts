@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatUserIdentity, matchesUserEmail, matchesUserIdentity } from './identity.util';
+import { formatUserIdentity, matchesUserEmail, matchesUserIdentity, matchesUserId } from './identity.util';
 import { UserProfile } from './models';
 
 const user: UserProfile = {
@@ -13,6 +13,10 @@ const user: UserProfile = {
 };
 
 describe('identity utilities', () => {
+  it('compares Firebase UIDs exactly, including case', () => {
+    expect(matchesUserId(user, 'user-1')).toBe(true);
+    expect(matchesUserId(user, 'USER-1')).toBe(false);
+  });
   it('formats a combined display identity', () => {
     expect(formatUserIdentity(user)).toBe('Glyn Morgan <glyn@example.com>');
   });

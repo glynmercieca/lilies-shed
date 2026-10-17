@@ -10,7 +10,7 @@ const sdk = vi.hoisted(() => ({
 }));
 vi.mock('firebase/firestore', () => ({
   collection: (_db: unknown, path: string) => ({ path }),
-  doc: (_db: unknown, path: string, id: string) => ({ path, id }),
+  doc: (database: { path?: string }, path?: string, id?: string) => path ? ({ path, id }) : ({ path: database.path, id: 'generated-tool' }),
   documentId: () => '__name__',
   where: (field: string, op: string, value: unknown) => ({ field, op, value }),
   orderBy: (field: string, direction: string) => ({ field, direction }),
@@ -119,8 +119,8 @@ describe('recipient notification queries', () => {
     expect(snapshot.notifications.map((item) => item.id)).toEqual(['broadcast']);
   });
 
-  it('falls back per recipient stream and sorts before keeping the newest 50', async () => {
-    const history = Array.from({ length: 60 }, (_, index) => notification(
+  it('keeps fallback queries bounded and sorts the returned window', async () => {
+    const history = Array.from({ length: 49 }, (_, index) => notification(
       `n${index}`, new Date(Date.UTC(2026, 0, index + 1)).toISOString(), 'user',
     ));
     sdk.getDocs
@@ -129,10 +129,10 @@ describe('recipient notification queries', () => {
       .mockResolvedValueOnce({ docs: [...history, notification('undated', '')] });
 
     const notifications = await service.loadNotifications('user');
-    expect(notifications).toHaveLength(51);
+    expect(notifications).toHaveLength(50);
     expect(notifications[0].id).toBe('broadcast');
-    expect(notifications[1].id).toBe('n59');
-    expect(notifications.at(-1)?.id).toBe('n10');
+    expect(notifications[1].id).toBe('n48');
+    expect(notifications.at(-1)?.id).toBe('n0');
     expect(sdk.getDocs.mock.calls[2][0].constraints).toEqual([
       { field: 'recipientId', op: 'in', value: ['user'] },
       { count: 50 },
@@ -257,4 +257,14 @@ describe('recipient notification queries', () => {
     expect(result.loans[0].itemId).toBe('canonical');
     expect(sdk.setDoc).not.toHaveBeenCalled();
   });
+  it('creates tools using their unique document ID without accessing shared counters', async () => {
+    const owner = { id: 'owner', name: 'Olivia', email: 'private@example.com', firstName: 'Olivia', lastName: '', picture: '' };
+    const result = await service.addTool({ name: 'Drill', categoryId: 'other', description: 'Drill', notes: '', imageUrl: '', imageFile: null }, owner);
+    expect(result).toBe('generated-tool');
+    expect(sdk.setDoc.mock.calls[0][0]).toEqual({ path: 'tools', id: 'generated-tool' });
+    expect(sdk.setDoc.mock.calls[0][1]).toMatchObject({ id: 'generated-tool', ownerId: 'owner', activeLoanId: null, latestLoanId: null, borrowStateVersion: 1 });
+    expect(sdk.getDoc).not.toHaveBeenCalled();
+    expect(sdk.runTransaction).not.toHaveBeenCalled();
+  });
+
 });

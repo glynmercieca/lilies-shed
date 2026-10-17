@@ -21,3 +21,9 @@ it('restoring an existing account refreshes a safe public projection and preserv
   expect(sdk.setDoc.mock.calls[1][1]).not.toHaveProperty('createdAt');
   expect(sdk.setDoc.mock.calls[1][2]).toEqual({ merge: true });
 });
+
+it('does not publish the email fallback when the account has no display name', async () => {
+  TestBed.inject(FirebaseAuthService);
+  await sdk.onIdTokenChanged.mock.calls[0][1]({ uid: 'UserA', email: 'private@example.com', displayName: null, photoURL: null });
+  expect(sdk.setDoc.mock.calls[0][1]).toEqual({ displayName: 'Member', firstName: '', lastName: '', photoURL: '' });
+});

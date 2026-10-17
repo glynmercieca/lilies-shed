@@ -220,11 +220,10 @@ export class FirestoreToolboxService {
   }
 
   async addTool(formValue: ToolFormValue, owner: UserProfile): Promise<string> {
-    const nextId = await this.allocateNextToolId();
     const toolRef = doc(collection(this.firebase.firestore, 'tools'));
     const category = this.resolveCategory(formValue.categoryId);
     await setDoc(toolRef, {
-      id: nextId,
+      id: toolRef.id,
       name: formValue.name,
       categoryId: category.id,
       categoryName: category.name,
@@ -432,23 +431,6 @@ export class FirestoreToolboxService {
       .filter((notification): notification is AppNotificationRecord => Boolean(notification));
   }
 
-  private async allocateNextToolId(): Promise<string> {
-    const counterRef = doc(this.firebase.firestore, 'meta', 'counters');
-    const counter = await getDoc(counterRef);
-    const savedNextId = Number(counter.data()?.['nextToolId']);
-    const existingMaxToolId = Number.isFinite(savedNextId) && savedNextId >= 100000
-      ? savedNextId - 1 : await this.fetchMaxToolId();
-
-    return runTransaction(this.firebase.firestore, async (transaction) => {
-      const snapshot = await transaction.get(counterRef);
-      const currentValue = Number(snapshot.data()?.['nextToolId'] ?? existingMaxToolId + 1);
-      const nextValue = Number.isFinite(currentValue) ? currentValue : existingMaxToolId + 1;
-
-      transaction.set(counterRef, { nextToolId: nextValue + 1 }, { merge: true });
-      return String(nextValue);
-    });
-  }
-
   private async loadCategories(): Promise<ToolCategoryRecord[]> {
     try {
       const categoriesSnapshot = await getDocs(query(collection(this.firebase.firestore, 'categories'), orderBy('order', 'asc')));
@@ -464,15 +446,6 @@ export class FirestoreToolboxService {
   private resolveCategory(categoryId: unknown): ToolCategoryRecord {
     const normalizedCategoryId = this.readString(categoryId) || 'other';
     return FIXED_TOOL_CATEGORIES.find((category) => category.id === normalizedCategoryId) ?? FIXED_TOOL_CATEGORIES.at(-1)!;
-  }
-
-  private async fetchMaxToolId(): Promise<number> {
-    const snapshot = await getDocs(query(collection(this.firebase.firestore, 'tools'), orderBy('id', 'desc'), limit(1)));
-    const highestId = snapshot.docs
-      .map((documentSnapshot) => Number(documentSnapshot.data()['id'] ?? documentSnapshot.id))
-      .find((value) => Number.isFinite(value));
-
-    return highestId ?? 99999;
   }
 
   private readString(value: unknown): string {

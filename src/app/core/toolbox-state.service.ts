@@ -834,6 +834,7 @@ export class ToolboxStateService {
   }
 
   private async runWeeklyCategoryDiscovery(): Promise<void> {
+    if (!this.canRunCategoryDiscovery()) return;
     const lastRunAt = Number(window.localStorage.getItem(CATEGORY_DISCOVERY_STORAGE_KEY) ?? 0);
     if (Number.isFinite(lastRunAt) && Date.now() - lastRunAt < CATEGORY_DISCOVERY_INTERVAL_MS) {
       return;
@@ -877,7 +878,7 @@ export class ToolboxStateService {
         const message = error instanceof Error ? error.message : '';
         this.notify(
           message.toLowerCase().includes('permission')
-            ? 'Category discovery needs updated Firestore rules deployed.'
+            ? 'This account is not authorized to save categories.'
             : message || 'Unable to discover new categories.',
         );
       }

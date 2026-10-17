@@ -1,15 +1,32 @@
 // Dry run by default. Maintenance window required; use explicit GCLOUD_PROJECT.
 const { initializeApp } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
+const { getAuth } = require('firebase-admin/auth');
 const { publicProfile, canonicalRecipient } = require('./plan-profile-migration');
 async function main() {
   const projectId = process.env.GCLOUD_PROJECT;
   if (!projectId) throw new Error('Set GCLOUD_PROJECT explicitly.');
   initializeApp({ projectId });
   const db = getFirestore();
-  const [users, notifications] = await Promise.all([db.collection('users').get(), db.collection('notifications').get()]);
-  const ids = users.docs.map(d => d.id);
+  const [users, notifications, tools, loans] = await Promise.all([
+    db.collection('users').get(), db.collection('notifications').get(),
+    db.collection('tools').get(), db.collection('loan').get(),
+  ]);
+  // Auth, not client profile fields, is authoritative for recipient identity.
+  const ids = [];
+  let pageToken;
+  do {
+    const page = await getAuth().listUsers(1000, pageToken);
+    ids.push(...page.users.map(user => user.uid));
+    pageToken = page.pageToken;
+  } while (pageToken);
   const updates = [], conflicts = [];
+  for (const tool of tools.docs) {
+    if (!ids.includes(tool.data().ownerId)) conflicts.push({ id: tool.id, reason: 'Tool owner is not an exact Auth UID; reconcile through trusted administration.' });
+  }
+  for (const loan of loans.docs) {
+    if (!loan.data().returnDate && !ids.includes(loan.data().borrowerId)) conflicts.push({ id: loan.id, reason: 'Active borrower is not an exact Auth UID; reconcile through trusted administration.' });
+  }
   for (const notification of notifications.docs) {
     try {
       const recipientId = canonicalRecipient(notification.data().recipientId, ids);
