@@ -273,4 +273,3 @@ function readString(value) {
 function readStringArray(value) {
   return Array.isArray(value) ? value.map(readString).filter(Boolean) : [];
 }
-
