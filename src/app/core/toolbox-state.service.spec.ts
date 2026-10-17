@@ -26,7 +26,7 @@ describe('toolbox refresh and targeted mutations', () => {
   let service: ToolboxStateService;
   let dialogOpen: ReturnType<typeof vi.fn>;
   let sheetOpen: ReturnType<typeof vi.fn>;
-  let storage: { loadSnapshot: ReturnType<typeof vi.fn>; loadReadNotificationIds: ReturnType<typeof vi.fn>; loadToolUpdate: ReturnType<typeof vi.fn>; addBorrowRequest: ReturnType<typeof vi.fn> };
+  let storage: { loadSnapshot: ReturnType<typeof vi.fn>; loadReadNotificationIds: ReturnType<typeof vi.fn>; loadToolUpdate: ReturnType<typeof vi.fn>; addBorrowRequest: ReturnType<typeof vi.fn>; watchToolChanges: ReturnType<typeof vi.fn> };
   beforeEach(() => {
     window.localStorage.setItem('shed-theme-mode', 'light');
     vi.stubGlobal('Notification', { permission: 'default' });
@@ -35,8 +35,8 @@ describe('toolbox refresh and targeted mutations', () => {
       componentInstance: { submitRequested: new Subject(), saving: () => false, setSaving: vi.fn() },
       afterClosed: () => new Subject(), close: vi.fn(),
     }));
-    sheetOpen = vi.fn().mockImplementation(() => ({ afterDismissed: () => new Subject(), dismiss: vi.fn() }));
-    storage = { loadSnapshot: vi.fn().mockResolvedValue(empty()), loadReadNotificationIds: vi.fn().mockResolvedValue(new Set()), loadToolUpdate: vi.fn(), addBorrowRequest: vi.fn().mockResolvedValue(undefined) };
+    sheetOpen = vi.fn().mockImplementation(() => ({ instance: { tool: signal(null) }, afterDismissed: () => new Subject(), dismiss: vi.fn() }));
+    storage = { loadSnapshot: vi.fn().mockResolvedValue(empty()), loadReadNotificationIds: vi.fn().mockResolvedValue(new Set()), loadToolUpdate: vi.fn(), addBorrowRequest: vi.fn().mockResolvedValue(undefined), watchToolChanges: vi.fn().mockReturnValue(vi.fn()) };
     TestBed.configureTestingModule({ providers: [provideRouter(routes), provideNoopAnimations(),
       { provide: FirebaseAuthService, useValue: { currentUser, ensureValidSession: async () => Boolean(currentUser()), isConfigured: () => true, isBusy: () => false, error: () => null } },
       { provide: FirestoreToolboxService, useValue: storage },
@@ -158,8 +158,48 @@ describe('toolbox refresh and targeted mutations', () => {
     TestBed.tick();
     expect(sheetOpen.mock.calls[0][1].data.tool.name).toBe('Drill');
     expect(dialogOpen.mock.calls[0][1].data.image).toBe('/drill.jpg');
+    const changed = { ...service.tools()[0], name: 'Updated drill', activeLoanId: 'someone-else' };
+    storage.loadToolUpdate.mockResolvedValue({ tools: [changed], loans: [] });
+    storage.watchToolChanges.mock.calls[0][1](['tool']);
+    await vi.waitFor(() => expect(sheetOpen.mock.results[0].value.instance.tool().name).toBe('Updated drill'));
+    expect(sheetOpen).toHaveBeenCalledOnce();
+    expect(service.tools()[0].available).toBe(false);
     await harness.navigateByUrl('/shed');
     expect(sheetOpen.mock.results[0].value.dismiss).toHaveBeenCalled();
     expect(dialogOpen.mock.results[0].value.close).toHaveBeenCalled();
+  });
+
+  it('refreshes changed tools without resetting paging and releases the listener on sign-out', async () => {
+    TestBed.tick();
+    await service.refresh();
+    service.showMoreFilteredTools();
+    storage.loadToolUpdate.mockResolvedValue({ tools: [], loans: [] });
+    const callback = storage.watchToolChanges.mock.calls[0][1];
+    callback(['removed']);
+    await vi.waitFor(() => expect(storage.loadToolUpdate).toHaveBeenCalledWith('removed'));
+    expect(service.shedVisibleCount()).toBe(36);
+    const stop = storage.watchToolChanges.mock.results[0].value;
+    currentUser.set(null);
+    TestBed.tick();
+    expect(stop).toHaveBeenCalledOnce();
+    callback(['old-session']);
+    await Promise.resolve();
+    expect(storage.loadToolUpdate).not.toHaveBeenCalledWith('old-session');
+  });
+
+  it('refreshes on returning to the visible app, while throttling repeated focus events', async () => {
+    TestBed.tick();
+    await service.refresh();
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+    const now = Date.now();
+    vi.spyOn(Date, 'now').mockReturnValue(now + 31_000);
+    window.dispatchEvent(new Event('focus'));
+    document.dispatchEvent(new Event('visibilitychange'));
+    await vi.waitFor(() => expect(storage.loadSnapshot).toHaveBeenCalledTimes(2));
+    await service.refresh();
+    const count = storage.loadSnapshot.mock.calls.length;
+    window.dispatchEvent(new Event('focus'));
+    await Promise.resolve();
+    expect(storage.loadSnapshot).toHaveBeenCalledTimes(count);
   });
 });

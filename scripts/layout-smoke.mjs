@@ -31,7 +31,7 @@ bootstrapApplication(App, { providers: [provideZonelessChangeDetection(), provid
   { provide: FirebaseClientService, useFactory: () => { throw new Error('Layout smoke must not initialize Firebase'); } },
   { provide: FirebaseAuthService, useValue: { currentUser, ensureValidSession: async () => Boolean(currentUser()), isConfigured: () => true, isBusy: () => false, error: () => null } },
   { provide: FirebaseMessagingService, useValue: { foregroundNotification: signal(null), notificationOpenRequests: signal(0), syncCurrentUser: async () => undefined } },
-  { provide: FirestoreToolboxService, useValue: { loadSnapshot: async () => ({ tools, loans: [], categories: [], notifications: [] }), loadReadNotificationIds: async () => new Set() } },
+  { provide: FirestoreToolboxService, useValue: { loadSnapshot: async () => ({ tools, loans: [], categories: [], notifications: [] }), loadReadNotificationIds: async () => new Set(), watchToolChanges: () => () => undefined } },
   { provide: ImageUploadService, useValue: {} },
   { provide: VersionCheckService, useValue: { start: () => undefined } },
 ] }).catch(error => { console.error(error); throw error; });

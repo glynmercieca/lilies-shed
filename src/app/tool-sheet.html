@@ -1,8 +1,8 @@
 <section class="tool-sheet" aria-label="Tool details">
   <div class="tool-sheet-header">
     <div class="tool-sheet-title-group">
-      <h2 class="tool-sheet-title">{{ data.tool.name | titlecase }}</h2>
-      <div class="tool-sheet-subtitle">#{{ data.tool.id }}</div>
+      <h2 class="tool-sheet-title">{{ tool().name | titlecase }}</h2>
+      <div class="tool-sheet-subtitle">#{{ tool().id }}</div>
     </div>
     <button mat-icon-button type="button" (click)="close()" aria-label="Close tool details">
       <mat-icon class="material-symbols-outlined">close</mat-icon>
@@ -13,32 +13,32 @@
     (keydown.enter)="onPreviewKeyboard($event)" (keydown.space)="onPreviewKeyboard($event)"
     [attr.role]="canPreviewImage() ? 'button' : null" [attr.tabindex]="canPreviewImage() ? 0 : null"
     [attr.aria-label]="canPreviewImage() ? 'Open full screen image preview' : null">
-    <img class="tool-sheet-image" [appResolvedSrc]="data.tool.image || ''" [alt]="data.tool.name"
+    <img class="tool-sheet-image" [appResolvedSrc]="tool().image || ''" [alt]="tool().name"
       (error)="fallbackImage($event)" />
-    <div class="tool-availability" [class.unavailable]="!online() || !availabilityVerified() || !data.tool.available">
-      {{ !online() ? 'Availability unknown offline' : !availabilityVerified() ? 'Availability not verified' : data.tool.available ? 'Available' : 'Not available' }}
+    <div class="tool-availability" [class.unavailable]="!online() || !availabilityVerified() || !tool().available">
+      {{ !online() ? 'Availability unknown offline' : !availabilityVerified() ? 'Availability not verified' : tool().available ? 'Available' : 'Not available' }}
     </div>
   </div>
 
   <mat-chip-set class="tool-sheet-chips">
     <mat-chip>
       <mat-icon class="material-symbols-outlined" matChipAvatar>category</mat-icon>
-      {{ data.tool.categoryName }}
+      {{ tool().categoryName }}
     </mat-chip>
     <mat-chip>
       <mat-icon class="material-symbols-outlined" matChipAvatar>person</mat-icon>
-      {{ data.tool.ownerFirstName || 'Unknown owner' }}
+      {{ tool().ownerFirstName || 'Unknown owner' }}
     </mat-chip>
-    @if (data.tool.activeLoan?.borrowerFirstName) {
+    @if (tool().activeLoan?.borrowerFirstName) {
     <mat-chip>
       <mat-icon class="material-symbols-outlined" matChipAvatar>assignment_ind</mat-icon>
-      {{ data.tool.activeLoan?.borrowerFirstName }}
+      {{ tool().activeLoan?.borrowerFirstName }}
     </mat-chip>
     }
     @if (showBorrowedDateChip()) {
     <mat-chip>
       <mat-icon class="material-symbols-outlined" matChipAvatar>event</mat-icon>
-      {{ formatBorrowedDate(data.tool.activeLoan?.loanDate ?? '') }}
+      {{ formatBorrowedDate(tool().activeLoan?.loanDate ?? '') }}
     </mat-chip>
     }
   </mat-chip-set>
@@ -46,26 +46,26 @@
   <div class="tool-sheet-details">
     <section>
       <div class="tool-sheet-label">Description</div>
-      <p>{{ data.tool.description || 'No description provided.' }}</p>
+      <p>{{ tool().description || 'No description provided.' }}</p>
     </section>
 
-    @if (data.tool.notes) {
+    @if (tool().notes) {
     <section>
       <div class="tool-sheet-label">Notes</div>
-      <p>{{ data.tool.notes }}</p>
+      <p>{{ tool().notes }}</p>
     </section>
     }
   </div>
 
   <div class="tool-sheet-actions">
-    @if (data.mode === 'shed' && data.canBorrow && data.tool.available) {
+    @if (data.mode === 'shed' && data.canBorrow && tool().available) {
     <button mat-flat-button type="button" (click)="selectAction('borrow')" [disabled]="!online() || !availabilityVerified() || data.saving">
       <mat-icon class="material-symbols-outlined">hand_package</mat-icon>
       Borrow
     </button>
     }
 
-    @if (data.mode === 'borrowed') {
+    @if (data.mode === 'borrowed' && tool().activeLoan) {
     <button mat-flat-button type="button" (click)="selectAction('return')" [disabled]="!online() || !availabilityVerified() || data.saving">
       <mat-icon class="material-symbols-outlined">assignment_return</mat-icon>
       Return
@@ -74,11 +74,11 @@
 
     @if (data.mode === 'my-tools') {
     <button mat-button type="button" (click)="selectAction('delete')"
-      [disabled]="!online() || !availabilityVerified() || !data.tool.available || data.saving">
+      [disabled]="!online() || !availabilityVerified() || !tool().available || data.saving">
       <mat-icon class="material-symbols-outlined">delete</mat-icon>
       Delete
     </button>
-    <button mat-flat-button type="button" (click)="selectAction('edit')" [disabled]="!online() || !availabilityVerified() || !data.tool.available || data.saving">
+    <button mat-flat-button type="button" (click)="selectAction('edit')" [disabled]="!online() || !availabilityVerified() || !tool().available || data.saving">
       <mat-icon class="material-symbols-outlined">edit</mat-icon>
       Edit
     </button>

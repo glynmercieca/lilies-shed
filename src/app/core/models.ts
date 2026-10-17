@@ -26,6 +26,7 @@ export interface ToolRecord {
   thumbnail?: string;
   /** Absent on legacy records that predate creation timestamps. */
   createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface LoanRecord {

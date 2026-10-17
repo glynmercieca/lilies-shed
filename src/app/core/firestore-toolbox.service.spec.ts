@@ -278,6 +278,25 @@ describe('recipient notification queries', () => {
     expect(snapshot.tools.map(tool => tool.createdAt)).toEqual(['2026-10-17T10:00:00.000Z', '']);
   });
 
+  it('watches server changes, including initial races and removals, without treating cached writes as verified', () => {
+    const stop = vi.fn();
+    sdk.onSnapshot.mockReturnValue(stop);
+    const changed = vi.fn(), failed = vi.fn();
+    const unsubscribe = service.watchToolChanges([{ documentId: 'known', updatedAt: '2026-10-17T10:00:00.000Z' }] as Parameters<typeof service.watchToolChanges>[0], changed, failed);
+    const callback = sdk.onSnapshot.mock.calls[0][2];
+    const snapshot = (ids: string[], cached = false) => ({ metadata: { fromCache: cached, hasPendingWrites: false }, docs: ids.map(id => ({ id, data: () => ({ updatedAt: '2026-10-17T10:00:00Z' }) })) });
+    callback(snapshot(['known']));
+    expect(changed).not.toHaveBeenCalled();
+    callback(snapshot(['known', 'added'], true));
+    expect(changed).not.toHaveBeenCalled();
+    callback(snapshot(['known', 'added']));
+    expect(changed).toHaveBeenLastCalledWith(['added']);
+    callback(snapshot(['added']));
+    expect(changed).toHaveBeenLastCalledWith(['known']);
+    unsubscribe();
+    expect(stop).toHaveBeenCalledOnce();
+  });
+
   it('preserves discovered categories when creating and editing tools and rejects unknown categories', async () => {
     sdk.getDocs.mockResolvedValue({ docs: [{ id: 'woodworking', data: () => ({ name: 'Woodworking', order: 130 }) }] });
     const owner = { id: 'owner', name: 'Olivia', email: '', firstName: 'Olivia', lastName: '', picture: '' };

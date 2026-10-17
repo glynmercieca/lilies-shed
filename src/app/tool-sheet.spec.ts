@@ -34,5 +34,10 @@ describe('offline tool actions', () => {
     fixture.detectChanges();
     expect(element.querySelector('.tool-availability')?.textContent).toContain('Availability not verified');
     expect(borrow.disabled).toBe(true);
+    availabilityVerified.set(true);
+    fixture.componentInstance.tool.set({ ...data.tool, available: false, activeLoanId: 'other-member-loan' });
+    fixture.detectChanges();
+    expect(element.querySelector('.tool-availability')?.textContent?.trim()).toBe('Not available');
+    expect(element.querySelector('.tool-sheet-actions button')).toBeNull();
   });
 });

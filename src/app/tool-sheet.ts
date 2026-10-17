@@ -1,5 +1,5 @@
 import { TitleCasePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import {
   MAT_BOTTOM_SHEET_DATA,
   MatBottomSheetModule,
@@ -45,17 +45,18 @@ export class ToolSheetComponent {
   readonly online = inject(NetworkStatusService).online;
   readonly availabilityVerified = inject(NetworkStatusService).availabilityVerified;
   readonly data = inject<ToolSheetData>(MAT_BOTTOM_SHEET_DATA);
+  readonly tool = signal(this.data.tool);
   private readonly sheetRef = inject(MatBottomSheetRef<ToolSheetComponent, ToolSheetAction>);
   protected readonly fallbackImage = fallbackImage;
   private readonly borrowedDateFormatter = new Intl.DateTimeFormat(undefined, {
     dateStyle: 'medium',
   });
   protected readonly canPreviewImage = computed(() => {
-    const imageUrl = normalizeImageUrl(this.data.tool.image || '');
+    const imageUrl = normalizeImageUrl(this.tool().image || '');
     return Boolean(imageUrl && imageUrl !== TOOL_PLACEHOLDER_URL);
   });
   protected readonly showBorrowedDateChip = computed(() =>
-    Boolean(this.data.tool.activeLoan?.loanDate)
+    Boolean(this.tool().activeLoan?.loanDate)
     && (this.data.mode === 'borrowed' || this.data.mode === 'my-tools'),
   );
 

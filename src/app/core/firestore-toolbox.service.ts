@@ -69,6 +69,24 @@ export class FirestoreToolboxService {
     return this.parseToolDocuments(snapshot.exists() ? [snapshot] : []);
   }
 
+  watchToolChanges(
+    knownTools: ToolRecord[],
+    onChange: (toolIds: string[]) => void,
+    onError: (error: Error) => void,
+  ): Unsubscribe {
+    const versions = new Map(knownTools.map(tool => [tool.documentId, tool.updatedAt ?? '']));
+    return onSnapshot(collection(this.firebase.firestore, 'tools'), { includeMetadataChanges: true }, snapshot => {
+      // Local pending writes and cached results do not verify shared availability.
+      if (snapshot.metadata.fromCache || snapshot.metadata.hasPendingWrites) return;
+      const current = new Map(snapshot.docs.map(document => [document.id, this.readDateTimeString(document.data()['updatedAt'])]));
+      const changed = [...current].filter(([id, version]) => !versions.has(id) || versions.get(id) !== version).map(([id]) => id);
+      for (const id of versions.keys()) if (!current.has(id)) changed.push(id);
+      versions.clear();
+      current.forEach((version, id) => versions.set(id, version));
+      if (changed.length) onChange(changed);
+    }, onError);
+  }
+
   private async parseToolDocuments(documents: Array<{ id: string; data(): DocumentData | undefined }>) {
     const records = documents.map((snapshot) => ({ id: snapshot.id, data: snapshot.data()! }));
     let loanDocuments: Array<{ id: string; data(): DocumentData }> = [];
@@ -345,6 +363,7 @@ export class FirestoreToolboxService {
       image: this.readString(data['image']),
       thumbnail: this.readString(data['thumbnail']),
       createdAt: this.readDateTimeString(data['createdAt']),
+      updatedAt: this.readDateTimeString(data['updatedAt']),
     };
   }
 

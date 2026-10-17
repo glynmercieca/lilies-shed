@@ -65,6 +65,10 @@ export class ToolboxStateService {
   private notificationsUserId: string | null = null;
   private notificationsSubscription: Unsubscribe | null = null;
   private readNotificationsSubscription: Unsubscribe | null = null;
+  private inventorySubscription: Unsubscribe | null = null;
+  private inventoryUserId: string | null = null;
+  private inventoryUpdates = Promise.resolve();
+  private lastRefreshAt = 0;
 
   readonly tools = computed(() => decorateTools(this.snapshot()));
   readonly categories = computed(() =>
@@ -164,10 +168,23 @@ export class ToolboxStateService {
       if (online && !wasOnline && this.auth.currentUser()) void this.refresh();
       wasOnline = online;
     });
-    inject(DestroyRef).onDestroy(() => this.stopNotificationsLiveRefresh());
+    const refreshOnFocus = () => {
+      if (document.visibilityState === 'visible' && this.online() && this.auth.currentUser()
+        && Date.now() - this.lastRefreshAt >= 30_000) void this.refresh();
+    };
+    window.addEventListener('focus', refreshOnFocus);
+    document.addEventListener('visibilitychange', refreshOnFocus);
+    inject(DestroyRef).onDestroy(() => {
+      this.stopNotificationsLiveRefresh();
+      this.stopInventoryLiveRefresh();
+      window.removeEventListener('focus', refreshOnFocus);
+      document.removeEventListener('visibilitychange', refreshOnFocus);
+    });
     effect(() => {
       const user = this.auth.currentUser();
       const loadedUserEmail = this.loadedUserEmail();
+
+      if (this.inventoryUserId && this.inventoryUserId !== user?.id) this.stopInventoryLiveRefresh();
 
       if (!user) {
         if (loadedUserEmail) {
@@ -238,6 +255,7 @@ export class ToolboxStateService {
     this.toolSortMode.set('date-added');
     this.loadedUserEmail.set(null);
     this.stopNotificationsLiveRefresh();
+    this.stopInventoryLiveRefresh();
     await this.router.navigate(['/']);
   }
 
@@ -313,15 +331,49 @@ export class ToolboxStateService {
       ]);
       if (this.auth.currentUser()?.id !== user.id) return;
       this.snapshot.set(snapshot);
+      this.lastRefreshAt = Date.now();
       this.network.availabilityVerified.set(this.online());
       this.readNotificationIds.set(readNotificationIds);
       this.resetListPaging();
+      this.startInventoryLiveRefresh(user.id);
       void this.runWeeklyCategoryDiscovery();
     } catch (error) {
       this.notify(error instanceof Error ? error.message : 'Unable to refresh toolbox data.');
     } finally {
       this.loading.set(false);
     }
+  }
+
+  private startInventoryLiveRefresh(userId: string): void {
+    if (this.inventorySubscription && this.inventoryUserId === userId) return;
+    this.stopInventoryLiveRefresh();
+    this.inventoryUserId = userId;
+    this.inventorySubscription = this.toolbox.watchToolChanges(this.snapshot().tools, ids => {
+      if (this.auth.currentUser()?.id !== userId) return;
+      this.network.availabilityVerified.set(false);
+      this.inventoryUpdates = this.inventoryUpdates.then(async () => {
+        for (const id of ids) {
+          if (this.auth.currentUser()?.id !== userId || this.inventoryUserId !== userId) return;
+          await this.refreshTool(id);
+        }
+        if (this.auth.currentUser()?.id === userId) this.network.availabilityVerified.set(this.online());
+      }).catch(error => {
+        if (this.auth.currentUser()?.id !== userId) return;
+        this.network.availabilityVerified.set(false);
+        this.notify(error instanceof Error ? error.message : 'Unable to update availability.');
+      });
+    }, error => {
+      if (this.auth.currentUser()?.id !== userId) return;
+      this.stopInventoryLiveRefresh();
+      this.network.availabilityVerified.set(false);
+      this.notify(error.message || 'Unable to update availability.');
+    });
+  }
+
+  private stopInventoryLiveRefresh(): void {
+    this.inventorySubscription?.();
+    this.inventorySubscription = null;
+    this.inventoryUserId = null;
   }
 
   startNotificationsLiveRefresh(): void {
@@ -468,7 +520,7 @@ export class ToolboxStateService {
       }
 
       handlingAction = true;
-      const completed = await this.handleToolSheetAction(action, tool);
+      const completed = await this.handleToolSheetAction(action, this.activeToolSheetTool ?? tool);
       handlingAction = false;
 
       if (completed) {
@@ -947,6 +999,11 @@ export class ToolboxStateService {
         if (tool && this.activeToolSheetKey !== key) {
           this.activeToolSheetRef?.dismiss();
           this.openToolSheet(tool, mode);
+        } else if (tool && this.activeToolSheetRef) {
+          this.activeToolSheetTool = tool;
+          this.activeToolSheetRef.instance.tool.set(tool);
+        } else if (!tool && this.activeToolSheetRef) {
+          this.activeToolSheetRef.dismiss();
         }
       } else if (this.activeToolSheetRef) {
         this.activeToolSheetRef.dismiss();
