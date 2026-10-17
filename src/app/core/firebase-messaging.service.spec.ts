@@ -1,9 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { MatSnackBar } from '@angular/material/snack-bar';
-const sdk = vi.hoisted(() => ({ setDoc: vi.fn(), runTransaction: vi.fn(), updateDoc: vi.fn(), getToken: vi.fn(), deleteToken: vi.fn() }));
+const sdk = vi.hoisted(() => ({ setDoc: vi.fn(), runTransaction: vi.fn(), updateDoc: vi.fn(), getToken: vi.fn(), deleteToken: vi.fn(), onMessage: vi.fn() }));
 vi.mock('firebase/firestore', () => ({ doc: (_db: unknown, path: string, id: string) => ({ path, id }), setDoc: sdk.setDoc, runTransaction: sdk.runTransaction, updateDoc: sdk.updateDoc, arrayRemove: (token: string) => ({ remove: token }) }));
-vi.mock('firebase/messaging', () => ({ isSupported: async () => true, getMessaging: () => ({}), getToken: sdk.getToken, deleteToken: sdk.deleteToken, onMessage: vi.fn() }));
+vi.mock('firebase/messaging', () => ({ isSupported: async () => true, getMessaging: () => ({}), getToken: sdk.getToken, deleteToken: sdk.deleteToken, onMessage: sdk.onMessage }));
 import { APP_SETTINGS } from './app-settings';
 const originalVapidKey = APP_SETTINGS.firebaseVapidKey;
 import { FirebaseMessagingService } from './firebase-messaging.service';
@@ -35,4 +35,19 @@ it('sign-out removes the stored token from the private account and browser', asy
   expect(sdk.updateDoc).toHaveBeenCalledWith({ path: 'users', id: 'UserA' }, { notificationTokens: { remove: 'old-token' } });
   expect(sdk.deleteToken).toHaveBeenCalledOnce();
   expect(window.localStorage.getItem('lilies-shed.fcm-token')).toBeNull();
+});
+
+it('shows a replayed foreground event only once and uses the event tag for browser notifications', async () => {
+  const shown = vi.fn();
+  vi.stubGlobal('Notification', class { static permission = 'granted'; constructor(title: string, options: unknown) { shown(title, options); } });
+  sdk.getToken.mockResolvedValue('token');
+  await TestBed.inject(FirebaseMessagingService).syncCurrentUser({ id: 'UserA', name: 'Alice', email: '', firstName: 'Alice', lastName: '', picture: '' });
+  const callback = sdk.onMessage.mock.calls[0][1];
+  const payload = { notification: { title: 'Tool borrowed', body: 'Drill borrowed' }, data: { notificationId: 'event' } };
+  callback(payload);
+  callback(payload);
+  expect(shown).toHaveBeenCalledOnce();
+  expect(shown.mock.calls[0][1]).toMatchObject({ tag: 'event' });
+  expect(TestBed.inject(MatSnackBar).open).toHaveBeenCalledOnce();
+  TestBed.inject(FirebaseMessagingService).dismissForegroundNotification();
 });

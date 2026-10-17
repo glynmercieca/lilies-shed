@@ -3,11 +3,13 @@ const logger = require('firebase-functions/logger');
 const { initializeApp } = require('firebase-admin/app');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const { getMessaging } = require('firebase-admin/messaging');
+const { createNotificationDelivery } = require('./notification-delivery');
 
 initializeApp();
 
 const db = getFirestore();
 const messaging = getMessaging();
+const { createNotification, sendPush } = createNotificationDelivery({ db, messaging, FieldValue });
 const FUNCTION_REGION = 'europe-west1';
 const APP_LINK = process.env.APP_LINK || 'https://shed.lilies.world/my-tools';
 const APP_ICON = process.env.APP_ICON || 'https://shed.lilies.world/notification-icon.png';
@@ -17,6 +19,8 @@ exports.notifyOwnerOnBorrow = onDocumentCreated(
   {
     document: 'loan/{loanId}',
     region: FUNCTION_REGION,
+    retry: true,
+    timeoutSeconds: 300,
   },
   async (event) => {
     const loan = event.data?.data();
@@ -24,7 +28,7 @@ exports.notifyOwnerOnBorrow = onDocumentCreated(
       return;
     }
 
-    await notifyOwner(loan, 'borrowed');
+    await notifyOwner(loan, 'borrowed', event.id);
   },
 );
 
@@ -32,6 +36,8 @@ exports.notifyOwnerOnReturn = onDocumentUpdated(
   {
     document: 'loan/{loanId}',
     region: FUNCTION_REGION,
+    retry: true,
+    timeoutSeconds: 300,
   },
   async (event) => {
     const before = event.data?.before.data();
@@ -46,7 +52,7 @@ exports.notifyOwnerOnReturn = onDocumentUpdated(
       return;
     }
 
-    await notifyOwner(after, 'returned');
+    await notifyOwner(after, 'returned', event.id);
   },
 );
 
@@ -54,6 +60,8 @@ exports.notifyUsersOnToolRequest = onDocumentCreated(
   {
     document: 'requests/{requestId}',
     region: FUNCTION_REGION,
+    retry: true,
+    timeoutSeconds: 300,
   },
   async (event) => {
     const toolRequest = event.data?.data();
@@ -61,11 +69,11 @@ exports.notifyUsersOnToolRequest = onDocumentCreated(
       return;
     }
 
-    await notifyUsersOfToolRequest(toolRequest);
+    await notifyUsersOfToolRequest(toolRequest, event.id);
   },
 );
 
-async function notifyOwner(loan, eventType) {
+async function notifyOwner(loan, eventType, eventId) {
   const toolId = readString(loan.toolId) || readString(loan.itemId);
   if (!toolId) {
     logger.warn('Loan is missing toolId/itemId.', { loan });
@@ -97,7 +105,7 @@ async function notifyOwner(loan, eventType) {
   const toolName = readString(tool.name) || readString(tool.id) || 'An item';
   const notification = buildNotificationPayload(toolName, borrowerSummary.displayName, eventType);
 
-  await createNotification({
+  const notificationId = await createNotification(eventId, {
     type: 'borrow',
     title: notification.notification.title,
     message: notification.notification.body,
@@ -106,27 +114,16 @@ async function notifyOwner(loan, eventType) {
     recipientId: ownerId,
   });
 
-  const tokens = readStringArray(owner.notificationTokens);
+  const tokens = owner.notificationsEnabled === false || owner.active === false ? [] : readStringArray(owner.notificationTokens);
   if (!tokens.length) {
     return;
   }
 
-  const response = await messaging.sendEachForMulticast({
-    ...notification,
-    tokens,
-  });
-  const invalidTokens = [];
-  response.responses.forEach((result, index) => {
-    if (!result.success && isInvalidTokenError(result.error?.code)) {
-      invalidTokens.push(tokens[index]);
-    }
-  });
-
-  if (invalidTokens.length) {
-    await db.collection('users').doc(ownerId).update({
+  await sendPush(notificationId, notification, tokens, async invalidTokens => {
+    if (invalidTokens.length) await db.collection('users').doc(ownerId).update({
       notificationTokens: FieldValue.arrayRemove(...invalidTokens),
     });
-  }
+  });
 }
 
 async function resolveUserSummary(userId, fallbackDisplayName, emptyFallback) {
@@ -153,19 +150,7 @@ async function resolveUserSummary(userId, fallbackDisplayName, emptyFallback) {
   };
 }
 
-async function createNotification(notification) {
-  await db.collection('notifications').add({
-    type: notification.type,
-    title: notification.title,
-    message: notification.message,
-    actorUserId: notification.actorUserId,
-    actorFirstName: notification.actorFirstName,
-    recipientId: notification.recipientId,
-    createdAt: FieldValue.serverTimestamp(),
-  });
-}
-
-async function notifyUsersOfToolRequest(toolRequest) {
+async function notifyUsersOfToolRequest(toolRequest, eventId) {
   const message = readString(toolRequest.message);
   if (!message) {
     logger.warn('Tool request missing message.', { toolRequest });
@@ -175,7 +160,7 @@ async function notifyUsersOfToolRequest(toolRequest) {
   const requesterId = readString(toolRequest.requesterId);
   const requesterSummary = await resolveUserSummary(requesterId, '', 'Someone');
 
-  await createNotification({
+  const notificationId = await createNotification(eventId, {
     type: 'tool-request',
     title: 'Tool Request',
     message,
@@ -193,6 +178,7 @@ async function notifyUsersOfToolRequest(toolRequest) {
     }
 
     const user = documentSnapshot.data() || {};
+    if (user.notificationsEnabled === false || user.active === false) return;
     const tokens = readStringArray(user.notificationTokens);
     tokens.forEach((token) => tokenOwners.set(token, documentSnapshot.id));
   });
@@ -202,8 +188,7 @@ async function notifyUsersOfToolRequest(toolRequest) {
     return;
   }
 
-  const response = await messaging.sendEachForMulticast({
-    tokens,
+  await sendPush(notificationId, {
     data: {
       link: APP_NOTIFICATION_LINK,
     },
@@ -221,29 +206,17 @@ async function notifyUsersOfToolRequest(toolRequest) {
         link: APP_NOTIFICATION_LINK,
       },
     },
-  });
-  const invalidTokensByUser = new Map();
-  response.responses.forEach((result, index) => {
-    if (!result.success && isInvalidTokenError(result.error?.code)) {
-      const token = tokens[index];
+  }, tokens, async invalidTokens => {
+    const invalidTokensByUser = new Map();
+    invalidTokens.forEach(token => {
       const userId = tokenOwners.get(token);
-      if (!userId) {
-        return;
-      }
-
-      const userTokens = invalidTokensByUser.get(userId) || [];
-      userTokens.push(token);
-      invalidTokensByUser.set(userId, userTokens);
-    }
+      const values = invalidTokensByUser.get(userId) || [];
+      values.push(token);
+      invalidTokensByUser.set(userId, values);
+    });
+    await Promise.all([...invalidTokensByUser].map(([userId, values]) =>
+      db.collection('users').doc(userId).update({ notificationTokens: FieldValue.arrayRemove(...values) })));
   });
-
-  await Promise.all(
-    [...invalidTokensByUser.entries()].map(([userId, invalidTokens]) =>
-      db.collection('users').doc(userId).update({
-        notificationTokens: FieldValue.arrayRemove(...invalidTokens),
-      }),
-    ),
-  );
 }
 
 function buildNotificationPayload(toolName, borrowerName, eventType) {
@@ -301,6 +274,3 @@ function readStringArray(value) {
   return Array.isArray(value) ? value.map(readString).filter(Boolean) : [];
 }
 
-function isInvalidTokenError(code) {
-  return code === 'messaging/registration-token-not-registered' || code === 'messaging/invalid-registration-token';
-}

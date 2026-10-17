@@ -25,6 +25,7 @@ export class FirebaseMessagingService {
   private readonly snackBar = inject(MatSnackBar);
   private readonly supportPromise = isSupported().catch(() => false);
   private foregroundListenerAttached = false;
+  private readonly receivedNotificationIds = new Set<string>();
   private serviceWorkerRegistrationPromise: Promise<ServiceWorkerRegistration> | null = null;
   readonly foregroundNotification = signal<ForegroundNotification | null>(null);
   readonly notificationOpenRequests = signal(0);
@@ -146,6 +147,12 @@ export class FirebaseMessagingService {
     }
 
     onMessage(messaging, (payload) => {
+      const notificationId = payload.data?.['notificationId'];
+      if (notificationId) {
+        if (this.receivedNotificationIds.has(notificationId)) return;
+        this.receivedNotificationIds.add(notificationId);
+        if (this.receivedNotificationIds.size > 100) this.receivedNotificationIds.delete(this.receivedNotificationIds.values().next().value!);
+      }
       const title = payload.notification?.title?.trim() || 'Lilies Shed';
       const body = payload.notification?.body?.trim() || 'You have a new toolbox update.';
       this.showForegroundNotification({ title, body });
@@ -154,6 +161,7 @@ export class FirebaseMessagingService {
       if (Notification.permission === 'granted') {
         const notification = new Notification(title, {
           body,
+          tag: notificationId,
           icon: payload.notification?.image || '/notification-icon.png',
         });
         notification.onclick = () => {
