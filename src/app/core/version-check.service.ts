@@ -1,5 +1,6 @@
-import { Injectable, inject } from '@angular/core';
+import { DestroyRef, Injectable, inject } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { SwUpdate } from '@angular/service-worker';
 
 import { APP_SETTINGS } from './app-settings';
 
@@ -12,6 +13,8 @@ export class VersionCheckService {
   private static readonly checkIntervalMs = 5 * 60 * 1000;
 
   private readonly snackBar = inject(MatSnackBar);
+  private readonly updates = inject(SwUpdate, { optional: true });
+  private readonly destroyRef = inject(DestroyRef);
   private started = false;
   private promptShown = false;
   private intervalId: ReturnType<typeof window.setInterval> | null = null;
@@ -23,6 +26,15 @@ export class VersionCheckService {
     }
 
     this.started = true;
+    if (this.updates?.isEnabled) {
+      const versions = this.updates.versionUpdates.subscribe((event) => {
+        if (event.type === 'VERSION_READY') this.promptReload('An updated version is ready.');
+      });
+      const unrecoverable = this.updates.unrecoverable.subscribe(() => {
+        this.promptReload('Reload to restore the latest app version.');
+      });
+      this.destroyRef.onDestroy(() => { versions.unsubscribe(); unrecoverable.unsubscribe(); });
+    }
     void this.checkForUpdate();
 
     this.intervalId = window.setInterval(() => {
@@ -31,6 +43,11 @@ export class VersionCheckService {
 
     document.addEventListener('visibilitychange', this.handleVisibilityChange);
     window.addEventListener('focus', this.handleFocus);
+    this.destroyRef.onDestroy(() => {
+      if (this.intervalId) window.clearInterval(this.intervalId);
+      document.removeEventListener('visibilitychange', this.handleVisibilityChange);
+      window.removeEventListener('focus', this.handleFocus);
+    });
   }
 
   private readonly handleVisibilityChange = () => {
@@ -49,6 +66,12 @@ export class VersionCheckService {
     }
 
     try {
+      if (this.updates?.isEnabled) {
+        // Prompt only after the worker has downloaded a complete consistent
+        // version. Reload then moves the client to that version's cached shell.
+        await this.updates.checkForUpdate();
+        return;
+      }
       const response = await fetch(this.versionUrl(), {
         cache: 'no-store',
         headers: {
@@ -66,15 +89,16 @@ export class VersionCheckService {
         return;
       }
 
-      this.promptShown = true;
-      const snackBarRef = this.snackBar.open(
-        `Version ${deployedVersion} is available.`,
-        'Reload',
-      );
-      snackBarRef.onAction().subscribe(() => window.location.reload());
+      this.promptReload(`Version ${deployedVersion} is available.`);
     } catch {
       // Ignore transient fetch failures for background version checks.
     }
+  }
+
+  private promptReload(message: string): void {
+    if (this.promptShown) return;
+    this.promptShown = true;
+    this.snackBar.open(message, 'Reload').onAction().subscribe(() => window.location.reload());
   }
 
   private versionUrl(): string {

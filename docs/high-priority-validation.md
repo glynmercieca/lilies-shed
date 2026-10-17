@@ -75,10 +75,12 @@ results are discarded. Full catalog reads remain intentional to preserve global
 search/category/count behavior: 18-item paging is still rendering pagination.
 
 Validation: 34 app tests across 8 files, rendered app shell, production build,
-and all 8 emulator integration tests. An instrumented service fixture with
-60 tools, 1,000 historical loans and 100 possible profiles reads 122 tool/loan/
-profile documents instead of 1,160 (89.5% fewer), excluding notification/category
-reads common to the comparison. A warm targeted mutation refresh reads 2
+and all 8 emulator integration tests. An instrumented service fixture verifies
+122 tool/loan/profile document reads for 60 tools with two referenced profiles.
+For a modeled catalog with 1,000 historical loans and 100 total profiles, the old
+full-collection strategy would read 1,160 (an 89.5% reduction for that scenario),
+excluding notification/category reads common to the comparison.
+A warm targeted mutation refresh reads 2
 documents, and reference-data reads are reused. Category writes per refresh:
 12 to zero. These are fixture measurements, not production billing estimates.
 Statistics continue to use active loans; names, category filtering, owner search,
@@ -106,3 +108,47 @@ Router smoke tests render shed, borrowed, my-tools, options, about and privacy;
 exercise protected-route redirects including the return URL; open add/request
 dialog deep links; and open/close the tool-sheet plus image-preview deep link
 without duplicate overlays. These use mocked authentication and data services.
+
+## 5. Production offline cache and updates
+
+Production builds generate `ngsw-worker.js` and `ngsw.json`. The cache contains
+the app shell, brand images and app code, with no API/data cache groups. Firebase's
+messaging worker and the uncached version JSON are excluded. Messaging retains
+its separate push scope. Angular's worker prefetches lazy page/dialog code when
+installing a version so those routes can open offline; initial-bundle savings
+describe startup execution/downloads, not total offline-cache installation bytes.
+
+Version prompts wait for `VERSION_READY`, then reload into the completed cached
+version. Without an enabled app worker, the existing uncached JSON version check
+remains. Offline checks fail quietly; subscriptions/timers are cleaned up.
+
+Offline notices explicitly say availability is unknown. Cards and tool details
+avoid availability claims while offline or after an unverified/failed refresh;
+tool actions are disabled. Tool and loan-summary refresh reads require the server,
+preventing silent cache fallback from being labelled verified. Reconnection
+refreshes the catalog. Borrowing is still a server transaction and is never queued
+for offline execution. App-shell caching does not provide offline sign-in or a
+complete offline tool database. A first online visit/cache installation is needed.
+
+Validation: 40 app tests across 10 files and 9 emulator integration tests, including
+headless Chromium using the actual borrow operation while truly disconnected:
+it rejects and leaves no loan/reservation after reconnection. Production browser
+smoke checks pass at `/` and `/lilies-shed/`: generated worker control, offline
+reload, an offline lazy privacy-page deep link, separate worker registration
+scopes, an in-memory simulated version release, ready-version notification,
+reload into version 2, and version 2 offline reload. No browser page errors.
+The messaging scope check uses an inert stand-in to avoid loading external Firebase
+code; authenticated FCM token delivery/push notifications were not tested.
+Live authenticated production browser testing remains unavailable.
+
+Final initial bundle: 1.40 MB raw / 309.05 kB estimated transfer. CI installs
+Chromium, runs both suites and the production build, then verifies the offline
+build before uploading deployment artifacts. Locally run `npx playwright install
+chromium` once before integration/offline tests; CI also installs Linux libraries.
+
+Later deployment must publish the entire generated browser directory, including
+the generated worker/manifest and hashed chunks, after the rules/migration/setup
+sequence above. No deployment or production writes were performed here. Existing
+Sass deprecations, one template diagnostic and dependency audit findings remain
+(the final development-tool installation reports 42 audit findings); upgrades
+and the broader CRITICAL permissions redesign are outside these five steps.

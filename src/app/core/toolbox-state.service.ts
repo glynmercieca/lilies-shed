@@ -15,6 +15,7 @@ import { CategoryDiscoveryService } from './category-discovery.service';
 import { matchesUserId } from './identity.util';
 import { SheetsSnapshot, ToolCategoryRecord, ToolWithStatus } from './models';
 import { decorateTools } from './tool-status.util';
+import { NetworkStatusService } from './network-status.service';
 import type { RequestToolDialogComponent } from '../request-tool-dialog';
 import type { ToolImagePreviewDialogComponent } from '../tool-image-preview-dialog';
 import type { ToolSheetAction, ToolSheetComponent, ToolSheetMode } from '../tool-sheet';
@@ -39,6 +40,8 @@ export class ToolboxStateService {
   private readonly router = inject(Router);
 
   readonly auth = inject(FirebaseAuthService);
+  private readonly network = inject(NetworkStatusService);
+  readonly online = this.network.online;
   readonly loading = signal(false);
   readonly searchTerm = signal('');
   readonly selectedCategoryId = signal('');
@@ -147,6 +150,12 @@ export class ToolboxStateService {
   });
 
   constructor() {
+    let wasOnline = this.online();
+    effect(() => {
+      const online = this.online();
+      if (online && !wasOnline && this.auth.currentUser()) void this.refresh();
+      wasOnline = online;
+    });
     inject(DestroyRef).onDestroy(() => this.stopNotificationsLiveRefresh());
     effect(() => {
       const user = this.auth.currentUser();
@@ -286,6 +295,7 @@ export class ToolboxStateService {
     }
 
     this.loading.set(true);
+    this.network.availabilityVerified.set(false);
     try {
       const user = this.auth.currentUser();
       if (!user) return;
@@ -295,6 +305,7 @@ export class ToolboxStateService {
       ]);
       if (this.auth.currentUser()?.id !== user.id) return;
       this.snapshot.set(snapshot);
+      this.network.availabilityVerified.set(this.online());
       this.readNotificationIds.set(readNotificationIds);
       this.resetListPaging();
       void this.runWeeklyCategoryDiscovery();
@@ -497,6 +508,10 @@ export class ToolboxStateService {
   }
 
   async borrowTool(tool: ToolWithStatus): Promise<boolean> {
+    if (!this.online()) {
+      this.notify('Connect to the internet to check availability and borrow a tool.');
+      return false;
+    }
     const user = this.auth.currentUser();
     if (!user || !tool.available) {
       return false;

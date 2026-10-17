@@ -1,6 +1,9 @@
 import { readFile } from 'node:fs/promises';
 import { before, after, beforeEach, test } from 'node:test';
 import assert from 'node:assert/strict';
+import { createServer } from 'node:http';
+import { build } from 'esbuild';
+import { chromium } from 'playwright';
 import { initializeTestEnvironment, assertFails } from '@firebase/rules-unit-testing';
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { reserveTool, returnLoan } from '../src/app/core/borrow-operations.ts';
@@ -46,6 +49,39 @@ test('missing, deleted, unmigrated and owned tools cannot be borrowed and create
   await assert.rejects(reserveTool(db(), 'deleted', 'borrower', date));
   await assert.rejects(reserveTool(db(), 'legacy', 'borrower', date));
   assert.equal((await getDocs(collection(db(), 'loan'))).size, 0);
+});
+
+test('offline borrowing fails without queuing a loan for reconnection', async () => {
+  const bundle = await build({ stdin: { contents: `
+    import { initializeApp } from 'firebase/app';
+    import { getFirestore, connectFirestoreEmulator, doc, getDoc } from 'firebase/firestore';
+    import { reserveTool } from './src/app/core/borrow-operations.ts';
+    const client = getFirestore(initializeApp({ projectId: 'demo-lilies-tests', apiKey: 'demo', appId: 'demo' }));
+    connectFirestoreEmulator(client, '127.0.0.1', 8085, { mockUserToken: { sub: 'offline' } });
+    window.prime = () => getDoc(doc(client, 'tools', 'tool')).then((snapshot) => snapshot.data().activeLoanId);
+    window.borrow = () => reserveTool(client, 'tool', 'offline', '2026-10-17');
+  `, resolveDir: process.cwd() }, bundle: true, write: false, platform: 'browser', format: 'iife' });
+  const server = createServer((_request, response) => {
+    response.setHeader('Content-Type', 'text/html');
+    response.end(`<script>${bundle.outputFiles[0].text}</script>`);
+  });
+  await new Promise((done) => server.listen(0, '127.0.0.1', done));
+  let browser;
+  try {
+    browser = await chromium.launch({ headless: true });
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    await page.goto(`http://127.0.0.1:${server.address().port}`);
+    assert.equal(await page.evaluate(() => window.prime()), null);
+    await context.setOffline(true);
+    await assert.rejects(page.evaluate(() => window.borrow()));
+    await context.setOffline(false);
+    assert.equal((await getDocs(collection(db(), 'loan'))).size, 0);
+    assert.equal((await getDoc(doc(db(), 'tools', 'tool'))).data().activeLoanId, null);
+  } finally {
+    await browser?.close();
+    await new Promise((done) => server.close(done));
+  }
 });
 
 test('rules reject standalone loans, standalone reservations, forged borrowers and anonymous clients', async () => {

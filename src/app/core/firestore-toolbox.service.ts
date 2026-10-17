@@ -8,7 +8,9 @@ import {
   doc,
   documentId,
   getDoc,
+  getDocFromServer,
   getDocs,
+  getDocsFromServer,
   limit,
   onSnapshot,
   orderBy,
@@ -55,7 +57,7 @@ export class FirestoreToolboxService {
   async loadSnapshot(userId: string): Promise<SheetsSnapshot> {
     const [categories, toolsSnapshot, notifications] = await Promise.all([
       this.cachedCategories(),
-      getDocs(collection(this.firebase.firestore, 'tools')),
+      getDocsFromServer(collection(this.firebase.firestore, 'tools')),
       this.loadNotifications(userId),
     ]);
     const { tools, loans } = await this.parseToolDocuments(toolsSnapshot.docs);
@@ -63,7 +65,7 @@ export class FirestoreToolboxService {
   }
 
   async loadToolUpdate(toolId: string): Promise<{ tools: ToolRecord[]; loans: LoanRecord[] }> {
-    const snapshot = await getDoc(doc(this.firebase.firestore, 'tools', toolId));
+    const snapshot = await getDocFromServer(doc(this.firebase.firestore, 'tools', toolId));
     return this.parseToolDocuments(snapshot.exists() ? [snapshot] : []);
   }
 
@@ -72,11 +74,11 @@ export class FirestoreToolboxService {
     let loanDocuments: Array<{ id: string; data(): DocumentData }> = [];
     if (records.some(({ data }) => !('latestLoanId' in data))) {
       // Read old history only until the migration has initialized tool pointers.
-      loanDocuments = (await getDocs(collection(this.firebase.firestore, 'loan'))).docs;
+      loanDocuments = (await getDocsFromServer(collection(this.firebase.firestore, 'loan'))).docs;
     } else {
       const ids = [...new Set(records.flatMap(({ data }) => [data['activeLoanId'], data['latestLoanId']]).filter(Boolean))];
       const groups = await Promise.all(Array.from({ length: Math.ceil(ids.length / 30) }, (_, index) =>
-        getDocs(query(collection(this.firebase.firestore, 'loan'), where(documentId(), 'in', ids.slice(index * 30, index * 30 + 30)))),
+        getDocsFromServer(query(collection(this.firebase.firestore, 'loan'), where(documentId(), 'in', ids.slice(index * 30, index * 30 + 30)))),
       ));
       loanDocuments = groups.flatMap((group) => group.docs);
     }

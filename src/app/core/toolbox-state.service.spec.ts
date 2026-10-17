@@ -15,6 +15,7 @@ import { FirebaseAuthService } from './firebase-auth.service';
 import { FirebaseMessagingService } from './firebase-messaging.service';
 import { ImageUploadService } from './image-upload.service';
 import { SheetsSnapshot, UserProfile } from './models';
+import { NetworkStatusService } from './network-status.service';
 
 const user: UserProfile = { id: 'borrower', email: 'b@example.com', name: 'Ben', firstName: 'Ben', lastName: '', picture: '' };
 const empty = (): SheetsSnapshot => ({ categories: [], tools: [], loans: [], notifications: [] });
@@ -47,7 +48,7 @@ describe('toolbox refresh and targeted mutations', () => {
     service = TestBed.inject(ToolboxStateService);
     vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
   });
-  afterEach(() => { vi.unstubAllGlobals(); window.localStorage.removeItem('shed-theme-mode'); });
+  afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); window.localStorage.removeItem('shed-theme-mode'); });
 
   it('coalesces overlapping refreshes, including sign-in effect, into one load', async () => {
     const pending = deferred<SheetsSnapshot>();
@@ -90,6 +91,20 @@ describe('toolbox refresh and targeted mutations', () => {
     service.setSelectedCategory('power-tools');
     expect(service.filteredTools()).toHaveLength(1);
     expect(service.tools()[0].latestLoan?.id).toBe('loan');
+    const navigatorOnline = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    window.dispatchEvent(new Event('offline'));
+    expect(TestBed.inject(NetworkStatusService).online()).toBe(false);
+    expect(await service.borrowTool({ ...service.tools()[0], available: true })).toBe(false);
+    expect(storage.addBorrowRequest).toHaveBeenCalledTimes(1);
+    TestBed.tick();
+    navigatorOnline.mockReturnValue(true);
+    window.dispatchEvent(new Event('online'));
+    TestBed.tick();
+    await vi.waitFor(() => expect(storage.loadSnapshot).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() => expect(TestBed.inject(NetworkStatusService).availabilityVerified()).toBe(true));
+    storage.loadSnapshot.mockRejectedValueOnce(new Error('Server unavailable'));
+    await service.refresh();
+    expect(TestBed.inject(NetworkStatusService).availabilityVerified()).toBe(false);
   });
 
   it('renders lazy secondary pages, preserves query parameters and redirects protected deep links', async () => {

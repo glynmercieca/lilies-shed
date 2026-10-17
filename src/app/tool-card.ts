@@ -1,11 +1,12 @@
 import { TitleCasePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { ToolWithStatus } from './core/models';
+import { NetworkStatusService } from './core/network-status.service';
 import { fallbackImage } from './core/image-url.util';
 import { ResolvedImageDirective } from './core/resolved-image.directive';
 
@@ -26,6 +27,8 @@ type ToolCardMode = 'shed' | 'borrowed' | 'my-tools';
   changeDetection: ChangeDetectionStrategy.Eager,
 })
 export class ToolCardComponent {
+  readonly online = inject(NetworkStatusService).online;
+  readonly availabilityVerified = inject(NetworkStatusService).availabilityVerified;
   readonly mode = input.required<ToolCardMode>();
   readonly tool = input.required<ToolWithStatus>();
 

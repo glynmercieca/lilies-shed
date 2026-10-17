@@ -38,6 +38,7 @@
           },
           "configurations": {
             "production": {
+              "serviceWorker": "ngsw-config.json",
               "optimization": {
                 "fonts": false
               },
