@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { arrayRemove, arrayUnion, doc, setDoc, updateDoc } from 'firebase/firestore';
+import { arrayRemove, doc, runTransaction, setDoc, updateDoc } from 'firebase/firestore';
 import { deleteToken, getMessaging, getToken, isSupported, onMessage } from 'firebase/messaging';
 
 import { APP_SETTINGS } from './app-settings';
@@ -83,17 +83,19 @@ export class FirebaseMessagingService {
       }
 
       window.localStorage.setItem(TOKEN_STORAGE_KEY, token);
-      await setDoc(
-        doc(this.firebase.firestore, 'users', user.id),
-        {
+      const userRef = doc(this.firebase.firestore, 'users', user.id);
+      await runTransaction(this.firebase.firestore, async transaction => {
+        const snapshot = await transaction.get(userRef);
+        const existing = snapshot.data()?.['notificationTokens'];
+        const tokens = Array.isArray(existing) ? existing.filter((value): value is string => typeof value === 'string' && value !== token) : [];
+        transaction.set(userRef, {
           notificationsEnabled: true,
           notificationPermission: permission,
-          notificationTokens: arrayUnion(token),
+          notificationTokens: [...new Set(tokens), token].slice(-20),
           lastNotificationTokenAt: new Date().toISOString(),
           lastNotificationTokenError: '',
-        },
-        { merge: true },
-      );
+        }, { merge: true });
+      });
 
       this.attachForegroundListener(messaging);
     } catch (error) {

@@ -9,29 +9,65 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == userId;
     }
 
-    match /users/{userId} {
+    function text(value, maximum) {
+      return value is string && value.size() <= maximum;
+    }
+
+    match /publicProfiles/{userId} {
       allow read: if signedIn();
-      allow create: if isSelf(userId)
-        && (!('readNotificationIds' in request.resource.data)
-          || (request.resource.data.readNotificationIds is list
-            && request.resource.data.readNotificationIds.size() <= 500));
-      // Existing large histories can remain unchanged during profile updates.
-      allow update: if isSelf(userId)
-        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['readNotificationIds'])
-          || (request.resource.data.readNotificationIds is list
-            && request.resource.data.readNotificationIds.size() <= 500));
+      allow create, update: if isSelf(userId)
+        && request.resource.data.keys().hasAll(['displayName', 'firstName', 'lastName', 'photoURL'])
+        && request.resource.data.keys().hasOnly(['displayName', 'firstName', 'lastName', 'photoURL'])
+        && text(request.resource.data.displayName, 200)
+        && text(request.resource.data.firstName, 100)
+        && text(request.resource.data.lastName, 100)
+        && text(request.resource.data.photoURL, 2048);
       allow delete: if false;
+    }
+
+    // Legacy users records remain private; no token/settings migration into public records.
+    match /users/{userId} {
+      allow read: if isSelf(userId);
+      allow create: if isSelf(userId) && validPrivateFields(request.resource.data.keys());
+      allow update: if isSelf(userId)
+        && validPrivateFields(request.resource.data.diff(resource.data).affectedKeys());
+      allow delete: if false;
+
+      function validPrivateFields(changed) {
+        let d = request.resource.data;
+        return changed.hasOnly(['email', 'displayName', 'firstName', 'lastName', 'photoURL',
+            'active', 'lastLoginAt', 'createdAt', 'updatedAt', 'readNotificationIds',
+            'notificationsEnabled', 'notificationPermission', 'notificationTokens',
+            'lastNotificationTokenAt', 'lastNotificationTokenError'])
+          && (!changed.hasAny(['readNotificationIds']) || (d.readNotificationIds is list && d.readNotificationIds.size() <= 500))
+          && (!changed.hasAny(['notificationTokens']) || (d.notificationTokens is list && d.notificationTokens.size() <= 20))
+          && (!changed.hasAny(['notificationsEnabled']) || d.notificationsEnabled is bool)
+          && (!changed.hasAny(['active']) || d.active is bool)
+          && (!changed.hasAny(['notificationPermission']) || d.notificationPermission in ['default', 'denied', 'granted'])
+          && (!changed.hasAny(['email']) || text(d.email, 320))
+          && (!changed.hasAny(['displayName']) || text(d.displayName, 320))
+          && (!changed.hasAny(['firstName']) || text(d.firstName, 100))
+          && (!changed.hasAny(['lastName']) || text(d.lastName, 100))
+          && (!changed.hasAny(['photoURL']) || text(d.photoURL, 2048))
+          && (!changed.hasAny(['lastNotificationTokenAt']) || text(d.lastNotificationTokenAt, 40))
+          && (!changed.hasAny(['lastNotificationTokenError']) || text(d.lastNotificationTokenError, 2000))
+          && (!changed.hasAny(['lastLoginAt']) || d.lastLoginAt == request.time)
+          && (!changed.hasAny(['createdAt']) || d.createdAt == request.time)
+          && (!changed.hasAny(['updatedAt']) || d.updatedAt == request.time);
+      }
     }
 
     match /tools/{toolId} {
       allow read: if signedIn();
       allow create: if signedIn()
+        && validNewTool(toolId)
         && request.resource.data.ownerId == request.auth.uid
         && request.resource.data.borrowStateVersion == 1
         && request.resource.data.activeLoanId == null
         && request.resource.data.latestLoanId == null
         && request.resource.data.deleted == false;
       allow update: if signedIn()
+        && request.resource.data.updatedAt == request.time
         && resource.data.borrowStateVersion == 1
         && request.resource.data.borrowStateVersion == 1
         && request.resource.data.ownerId == resource.data.ownerId
@@ -39,6 +75,8 @@ service cloud.firestore {
         && (
           // An owner may edit/delete only while the tool is unreserved.
           (request.auth.uid == resource.data.ownerId
+            && resource.data.deleted == false
+            && validOwnerEdit()
             && resource.data.activeLoanId == null
             && request.resource.data.activeLoanId == null
             && request.resource.data.latestLoanId == resource.data.latestLoanId)
@@ -46,6 +84,38 @@ service cloud.firestore {
           || releaseTool(toolId)
         );
       allow delete: if false;
+
+      function validNewTool(toolId) {
+        let d = request.resource.data;
+        return d.keys().hasAll(['id', 'name', 'categoryId', 'categoryName', 'description', 'notes',
+            'deleted', 'borrowStateVersion', 'activeLoanId', 'latestLoanId', 'ownerId',
+            'image', 'thumbnail', 'createdAt', 'updatedAt'])
+          && d.keys().hasOnly(['id', 'name', 'categoryId', 'categoryName', 'description', 'notes',
+            'deleted', 'borrowStateVersion', 'activeLoanId', 'latestLoanId', 'ownerId',
+            'image', 'thumbnail', 'createdAt', 'updatedAt'])
+          && d.id == toolId && text(toolId, 128)
+          && validEditableFields(d.keys())
+          && d.createdAt == request.time && d.updatedAt == request.time;
+      }
+
+      function validOwnerEdit() {
+        let changed = request.resource.data.diff(resource.data).affectedKeys();
+        return changed.hasOnly(['name', 'categoryId', 'categoryName', 'description', 'notes', 'image', 'thumbnail', 'deleted', 'updatedAt'])
+          && validEditableFields(changed);
+      }
+
+      function validEditableFields(changed) {
+        let d = request.resource.data;
+        return (!changed.hasAny(['name']) || (text(d.name, 200) && d.name.size() > 0))
+          && (!changed.hasAny(['description']) || text(d.description, 4000))
+          && (!changed.hasAny(['notes']) || text(d.notes, 4000))
+          && (!changed.hasAny(['image']) || text(d.image, 2048))
+          && (!changed.hasAny(['thumbnail']) || text(d.thumbnail, 2048))
+          && (!changed.hasAny(['deleted']) || d.deleted is bool)
+          && (!changed.hasAny(['categoryId', 'categoryName']) ||
+            (text(d.categoryId, 100) && text(d.categoryName, 200)
+              && get(/databases/$(database)/documents/categories/$(d.categoryId)).data.name == d.categoryName));
+      }
 
       function reservationFieldsOnly() {
         return request.resource.data.diff(resource.data).affectedKeys()
@@ -83,8 +153,22 @@ service cloud.firestore {
     }
 
     match /categories/{categoryId} {
-      allow read, create, update: if signedIn();
+      allow read: if signedIn();
+      // This is the existing category administrator's Firebase UID, enforced here.
+      allow create, update: if isSelf('R01SeK0oBJPFVBt0Okm12BnLxgs2')
+        && request.resource.data.keys().hasAll(['id', 'name', 'order', 'discoveredAt'])
+        && request.resource.data.keys().hasOnly(['id', 'name', 'order', 'discoveredAt'])
+        && request.resource.data.id == categoryId
+        && text(categoryId, 100) && text(request.resource.data.name, 200)
+        && request.resource.data.name.size() > 0
+        && request.resource.data.order is int && request.resource.data.order >= 0
+        && request.resource.data.order <= 10000
+        && request.resource.data.discoveredAt == request.time;
       allow delete: if false;
+    }
+
+    function validDate(value) {
+      return value is string && value.matches('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$');
     }
 
     match /loan/{loanId} {
@@ -97,9 +181,10 @@ service cloud.firestore {
         let toolId = request.resource.data.toolId;
         let before = get(/databases/$(database)/documents/tools/$(toolId)).data;
         let after = getAfter(/databases/$(database)/documents/tools/$(toolId)).data;
-        return request.resource.data.keys().hasOnly(['toolId', 'borrowerId', 'loanDate', 'returnDate', 'createdAt'])
+        return text(loanId, 128)
+          && request.resource.data.keys().hasOnly(['toolId', 'borrowerId', 'loanDate', 'returnDate', 'createdAt'])
           && request.resource.data.borrowerId == request.auth.uid
-          && request.resource.data.loanDate is string && request.resource.data.loanDate.size() > 0
+          && validDate(request.resource.data.loanDate)
           && request.resource.data.returnDate == ''
           && request.resource.data.createdAt == request.time
           && before.borrowStateVersion == 1 && before.activeLoanId == null
@@ -113,7 +198,8 @@ service cloud.firestore {
         let after = getAfter(/databases/$(database)/documents/tools/$(toolId)).data;
         return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['returnDate', 'updatedAt'])
           && resource.data.returnDate == ''
-          && request.resource.data.returnDate is string && request.resource.data.returnDate.size() > 0
+          && validDate(request.resource.data.returnDate)
+          && request.resource.data.updatedAt == request.time
           && (request.auth.uid == resource.data.borrowerId || request.auth.uid == before.ownerId)
           && before.activeLoanId == loanId && after.activeLoanId == null;
       }
@@ -122,21 +208,23 @@ service cloud.firestore {
     match /requests/{requestId} {
       allow read: if signedIn();
       allow create: if signedIn()
+        && request.resource.data.keys().hasAll(['requesterId', 'message', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['requesterId', 'message', 'createdAt'])
         && request.resource.data.requesterId == request.auth.uid
         && request.resource.data.message is string
         && request.resource.data.message.size() > 0
         && request.resource.data.message.size() <= 1000
-        && request.resource.data.createdAt is timestamp;
+        && request.resource.data.createdAt == request.time;
       allow update, delete: if false;
     }
 
     match /notifications/{notificationId} {
-      allow read: if signedIn();
+      allow read: if signedIn() && (resource.data.recipientId == request.auth.uid || resource.data.recipientId == '');
       allow create, update, delete: if false;
     }
 
     match /meta/{docId} {
-      allow read, write: if signedIn();
+      allow read, write: if false;
     }
   }
 }

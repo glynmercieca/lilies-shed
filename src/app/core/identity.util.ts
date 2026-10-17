@@ -76,7 +76,7 @@ export function matchesUserId(user: UserProfile | null, id: string): boolean {
     return false;
   }
 
-  return normalize(user.id) === normalize(id);
+  return user.id === id;
 }
 
 export function matchesUserIdentity(user: UserProfile | null, value: string): boolean {

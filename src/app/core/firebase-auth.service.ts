@@ -106,6 +106,15 @@ export class FirebaseAuthService {
   }
 
   private async upsertUserDocument(user: UserProfile): Promise<void> {
+    // Only this explicit display projection is shared with other members.
+    const firstName = user.firstName.includes('@') ? '' : user.firstName.slice(0, 100);
+    const lastName = user.lastName.includes('@') ? '' : user.lastName.slice(0, 100);
+    await setDoc(doc(this.firebase.firestore, 'publicProfiles', user.id), {
+      displayName: [firstName, lastName].filter(Boolean).join(' ').slice(0, 200) || 'Member',
+      firstName,
+      lastName,
+      photoURL: user.picture.slice(0, 2048),
+    });
     const userRef = doc(this.firebase.firestore, 'users', user.id);
     const snapshot = await getDoc(userRef);
 
@@ -113,10 +122,10 @@ export class FirebaseAuthService {
       userRef,
       {
         email: user.email,
-        displayName: user.name,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        photoURL: user.picture,
+        displayName: user.name.slice(0, 320),
+        firstName: user.firstName.slice(0, 100),
+        lastName: user.lastName.slice(0, 100),
+        photoURL: user.picture.slice(0, 2048),
         active: true,
         lastLoginAt: serverTimestamp(),
         ...(snapshot.exists() ? {} : { createdAt: serverTimestamp() }),

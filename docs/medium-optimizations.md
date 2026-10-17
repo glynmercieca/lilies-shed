@@ -1,3 +1,7 @@
+# Historical validation note
+
+The database-permissions update supersedes the notification recipient migration and rollout instructions below. Do not run the retired lowercasing script. Follow [database-permissions.md](database-permissions.md) for exact UID migration, private profile separation and deployment ordering.
+
 # Medium-priority optimizations
 
 ## Images

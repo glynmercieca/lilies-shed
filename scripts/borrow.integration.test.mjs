@@ -32,7 +32,7 @@ test('two competing borrows commit exactly one loan and reservation; return allo
   const loan = loans.docs[0];
   assert.equal((await getDoc(doc(db(), 'tools', 'tool'))).data().activeLoanId, loan.id);
   await assertFails(returnLoan(db('stranger'), loan.id, date));
-  await assertFails(updateDoc(doc(db('owner'), 'tools', 'tool'), { deleted: true }));
+  await assertFails(updateDoc(doc(db('owner'), 'tools', 'tool'), { deleted: true, updatedAt: serverTimestamp() }));
   await returnLoan(db(loan.data().borrowerId), loan.id, date);
   await returnLoan(db(loan.data().borrowerId), loan.id, date); // retry is harmless
   await reserveTool(db('next'), 'tool', 'next', date);
@@ -94,14 +94,14 @@ test('rules reject standalone loans, standalone reservations, forged borrowers a
 });
 
 test('owner can return, edit and soft-delete; strangers cannot and deleted tools stay unavailable', async () => {
-  await assertFails(updateDoc(doc(db(), 'tools', 'tool'), { name: 'Changed' }));
+  await assertFails(updateDoc(doc(db(), 'tools', 'tool'), { name: 'Changed', updatedAt: serverTimestamp() }));
   await reserveTool(db(), 'tool', 'borrower', date);
   const loanId = (await getDoc(doc(db(), 'tools', 'tool'))).data().activeLoanId;
   await assertFails(updateDoc(doc(db(), 'loan', loanId), { returnDate: date }));
-  await assertFails(updateDoc(doc(db('owner'), 'tools', 'tool'), { name: 'Changed' }));
+  await assertFails(updateDoc(doc(db('owner'), 'tools', 'tool'), { name: 'Changed', updatedAt: serverTimestamp() }));
   await returnLoan(db('owner'), loanId, date);
-  await updateDoc(doc(db('owner'), 'tools', 'tool'), { name: 'Changed' });
-  await updateDoc(doc(db('owner'), 'tools', 'tool'), { deleted: true });
+  await updateDoc(doc(db('owner'), 'tools', 'tool'), { name: 'Changed', updatedAt: serverTimestamp() });
+  await updateDoc(doc(db('owner'), 'tools', 'tool'), { deleted: true, updatedAt: serverTimestamp() });
   await assert.rejects(reserveTool(db(), 'tool', 'borrower', date));
 });
 
@@ -120,7 +120,7 @@ test('failed return batch cannot release reservation or overwrite immutable loan
 test('borrow versus delete cannot leave a deleted tool on an active loan', async () => {
   await Promise.allSettled([
     reserveTool(db(), 'tool', 'borrower', date),
-    updateDoc(doc(db('owner'), 'tools', 'tool'), { deleted: true }),
+    updateDoc(doc(db('owner'), 'tools', 'tool'), { deleted: true, updatedAt: serverTimestamp() }),
   ]);
   const final = (await getDoc(doc(db(), 'tools', 'tool'))).data();
   assert.equal(Boolean(final.deleted && final.activeLoanId), false);

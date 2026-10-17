@@ -112,10 +112,10 @@ export class ToolFormDialogComponent implements OnDestroy {
   protected readonly maxImageSizeMb = MAX_IMAGE_INPUT_BYTES / (1024 * 1024);
 
   readonly form = this.formBuilder.nonNullable.group({
-    name: [this.data.value?.name ?? '', Validators.required],
+    name: [this.data.value?.name ?? '', [Validators.required, Validators.maxLength(200)]],
     categoryId: [this.data.value?.categoryId ?? '', Validators.required],
-    description: [this.data.value?.description ?? '', Validators.required],
-    notes: [this.data.value?.notes ?? ''],
+    description: [this.data.value?.description ?? '', [Validators.required, Validators.maxLength(4000)]],
+    notes: [this.data.value?.notes ?? '', Validators.maxLength(4000)],
   });
 
   constructor() {
