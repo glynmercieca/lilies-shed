@@ -21,6 +21,9 @@ describe('App', () => {
   it('should create the app shell', () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
+    fixture.detectChanges();
     expect(app).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('router-outlet')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.app-shell')).toBeTruthy();
   });
 });

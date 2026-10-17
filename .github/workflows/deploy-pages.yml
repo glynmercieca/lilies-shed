@@ -102,7 +102,10 @@ jobs:
         uses: actions/configure-pages@v5
 
       - name: Install dependencies
-        run: npm i
+        run: npm ci
+
+      - name: Test application
+        run: npm test -- --watch=false
 
       - name: Compute base href
         id: base-href
