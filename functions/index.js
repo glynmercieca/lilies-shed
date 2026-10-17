@@ -131,13 +131,12 @@ async function notifyOwner(loan, eventType) {
 
 async function resolveUserSummary(userId, fallbackDisplayName, emptyFallback) {
   if (userId) {
-    const userSnapshot = await db.collection('users').doc(userId).get();
+    const userSnapshot = await db.collection('publicProfiles').doc(userId).get();
     if (userSnapshot.exists) {
       const user = userSnapshot.data() || {};
       const displayName =
         readString(user.displayName) ||
         [readString(user.firstName), readString(user.lastName)].filter(Boolean).join(' ') ||
-        readString(user.email) ||
         emptyFallback;
 
       return {

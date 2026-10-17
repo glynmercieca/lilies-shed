@@ -106,6 +106,13 @@ export class FirebaseAuthService {
   }
 
   private async upsertUserDocument(user: UserProfile): Promise<void> {
+    // Only this explicit display projection is shared with other members.
+    await setDoc(doc(this.firebase.firestore, 'publicProfiles', user.id), {
+      displayName: [user.firstName, user.lastName].filter(Boolean).join(' ') || 'Member',
+      firstName: user.firstName,
+      lastName: user.lastName,
+      photoURL: user.picture,
+    });
     const userRef = doc(this.firebase.firestore, 'users', user.id);
     const snapshot = await getDoc(userRef);
 

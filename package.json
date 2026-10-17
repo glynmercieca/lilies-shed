@@ -11,7 +11,7 @@
     "build": "node scripts/run-ng.cjs build",
     "watch": "node scripts/run-ng.cjs build --watch --configuration development",
     "test": "node scripts/run-ng.cjs test",
-    "test:integration": "firebase emulators:exec --only firestore --config firebase.test.json --project demo-lilies-tests \"node --experimental-strip-types --test scripts/borrow.integration.test.mjs\"",
+    "test:integration": "firebase emulators:exec --only firestore --config firebase.test.json --project demo-lilies-tests \"node --experimental-strip-types --test --test-concurrency=1 scripts/*.integration.test.mjs\"",
     "test:offline": "node scripts/offline-smoke.mjs"
   },
   "private": true,

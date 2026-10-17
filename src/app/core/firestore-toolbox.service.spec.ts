@@ -64,11 +64,11 @@ describe('recipient notification queries', () => {
     ]);
     const queries = sdk.getDocs.mock.calls.map(([source]) => source.constraints);
     expect(queries[0]).toEqual([
-      { field: 'recipientId', op: 'in', value: ['UserA', 'usera'] },
+      { field: 'recipientId', op: 'in', value: ['UserA'] },
       { field: 'createdAt', direction: 'desc' },
       { count: 50 },
     ]);
-    expect(queries[1][0]).toEqual({ field: 'recipientId', op: 'in', value: ['', null] });
+    expect(queries[1][0]).toEqual({ field: 'recipientId', op: 'in', value: [''] });
     expect(queries[1][2]).toEqual({ count: 50 });
   });
 
@@ -135,6 +135,7 @@ describe('recipient notification queries', () => {
     expect(notifications.at(-1)?.id).toBe('n10');
     expect(sdk.getDocs.mock.calls[2][0].constraints).toEqual([
       { field: 'recipientId', op: 'in', value: ['user'] },
+      { count: 50 },
     ]);
   });
 
@@ -165,6 +166,7 @@ describe('recipient notification queries', () => {
     errors[0](missingIndex());
     expect(sdk.onSnapshot.mock.calls[2][0].constraints).toEqual([
       { field: 'recipientId', op: 'in', value: ['user'] },
+      { count: 50 },
     ]);
     callbacks[1]({ docs: [notification('broadcast', '2026-10-12')] });
     expect(changed).not.toHaveBeenCalled();
@@ -222,6 +224,7 @@ describe('recipient notification queries', () => {
     sdk.getDoc.mockImplementation(async (reference) => {
       documentReads++;
       if (reference.path === 'tools') return { ...tools[0], exists: () => true };
+      expect(reference.path).toBe('publicProfiles');
       expect(['owner', 'borrower']).toContain(reference.id);
       return { exists: () => true, data: () => ({ firstName: reference.id === 'owner' ? 'Olivia' : 'Ben', email: `${reference.id}@example.com` }) };
     });

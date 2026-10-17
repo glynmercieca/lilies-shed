@@ -106,7 +106,7 @@ export class FirestoreToolboxService {
   private cachedUser(id: string): Promise<UserProfile | null> {
     const cached = this.usersCache.get(id);
     if (cached && cached.expires > Date.now()) return cached.value;
-    const value = getDoc(doc(this.firebase.firestore, 'users', id)).then((snapshot) => {
+    const value = getDoc(doc(this.firebase.firestore, 'publicProfiles', id)).then((snapshot) => {
       if (!snapshot.exists()) return null;
       const data = snapshot.data() as FirestoreUserRecord;
       const email = this.readString(data.email).toLowerCase();
@@ -402,11 +402,11 @@ export class FirestoreToolboxService {
 
   private notificationsQueries(userId: string, indexed = true) {
     const notifications = collection(this.firebase.firestore, 'notifications');
-    const recipientIds = [...new Set([userId, userId.trim().toLowerCase()])];
-    const ordering = indexed ? [orderBy('createdAt', 'desc'), limit(NOTIFICATION_QUERY_LIMIT)] : [];
+    const recipientIds = [userId];
+    const ordering = indexed ? [orderBy('createdAt', 'desc'), limit(NOTIFICATION_QUERY_LIMIT)] : [limit(NOTIFICATION_QUERY_LIMIT)];
     return [
       query(notifications, where('recipientId', 'in', recipientIds), ...ordering),
-      query(notifications, where('recipientId', 'in', ['', null]), ...ordering),
+      query(notifications, where('recipientId', 'in', ['']), ...ordering),
     ];
   }
 
@@ -417,8 +417,8 @@ export class FirestoreToolboxService {
   }
 
   private boundNotificationsSnapshot(documents: QueryDocumentSnapshot<DocumentData>[]): AppNotificationRecord[] {
-    // A recipient-only query uses automatic indexes. Sort before limiting so we
-    // retain the newest records, rather than an arbitrary document-ID window.
+    // The bounded fallback uses automatic indexes. Deploy the composite index
+    // for guaranteed newest-first results; never scan an unbounded history.
     return mergeNotifications([this.parseNotificationsSnapshot(documents)])
       .filter((notification) => Boolean(notification.createdAt))
       .slice(0, NOTIFICATION_QUERY_LIMIT);

@@ -9,18 +9,52 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == userId;
     }
 
-    match /users/{userId} {
+    function text(value, maximum) {
+      return value is string && value.size() <= maximum;
+    }
+
+    match /publicProfiles/{userId} {
       allow read: if signedIn();
-      allow create: if isSelf(userId)
-        && (!('readNotificationIds' in request.resource.data)
-          || (request.resource.data.readNotificationIds is list
-            && request.resource.data.readNotificationIds.size() <= 500));
-      // Existing large histories can remain unchanged during profile updates.
-      allow update: if isSelf(userId)
-        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['readNotificationIds'])
-          || (request.resource.data.readNotificationIds is list
-            && request.resource.data.readNotificationIds.size() <= 500));
+      allow create, update: if isSelf(userId)
+        && request.resource.data.keys().hasAll(['displayName', 'firstName', 'lastName', 'photoURL'])
+        && request.resource.data.keys().hasOnly(['displayName', 'firstName', 'lastName', 'photoURL'])
+        && text(request.resource.data.displayName, 200)
+        && text(request.resource.data.firstName, 100)
+        && text(request.resource.data.lastName, 100)
+        && text(request.resource.data.photoURL, 2048);
       allow delete: if false;
+    }
+
+    // Legacy users records remain private; no token/settings migration into public records.
+    match /users/{userId} {
+      allow read: if isSelf(userId);
+      allow create: if isSelf(userId) && validPrivateFields(request.resource.data.keys());
+      allow update: if isSelf(userId)
+        && validPrivateFields(request.resource.data.diff(resource.data).affectedKeys());
+      allow delete: if false;
+
+      function validPrivateFields(changed) {
+        let d = request.resource.data;
+        return changed.hasOnly(['email', 'displayName', 'firstName', 'lastName', 'photoURL',
+            'active', 'lastLoginAt', 'createdAt', 'updatedAt', 'readNotificationIds',
+            'notificationsEnabled', 'notificationPermission', 'notificationTokens',
+            'lastNotificationTokenAt', 'lastNotificationTokenError'])
+          && (!changed.hasAny(['readNotificationIds']) || (d.readNotificationIds is list && d.readNotificationIds.size() <= 500))
+          && (!changed.hasAny(['notificationTokens']) || (d.notificationTokens is list && d.notificationTokens.size() <= 20))
+          && (!changed.hasAny(['notificationsEnabled']) || d.notificationsEnabled is bool)
+          && (!changed.hasAny(['active']) || d.active is bool)
+          && (!changed.hasAny(['notificationPermission']) || d.notificationPermission in ['default', 'denied', 'granted'])
+          && (!changed.hasAny(['email']) || text(d.email, 320))
+          && (!changed.hasAny(['displayName']) || text(d.displayName, 320))
+          && (!changed.hasAny(['firstName']) || text(d.firstName, 100))
+          && (!changed.hasAny(['lastName']) || text(d.lastName, 100))
+          && (!changed.hasAny(['photoURL']) || text(d.photoURL, 2048))
+          && (!changed.hasAny(['lastNotificationTokenAt']) || text(d.lastNotificationTokenAt, 40))
+          && (!changed.hasAny(['lastNotificationTokenError']) || text(d.lastNotificationTokenError, 2000))
+          && (!changed.hasAny(['lastLoginAt']) || d.lastLoginAt == request.time)
+          && (!changed.hasAny(['createdAt']) || d.createdAt == request.time)
+          && (!changed.hasAny(['updatedAt']) || d.updatedAt == request.time);
+      }
     }
 
     match /tools/{toolId} {
@@ -131,7 +165,7 @@ service cloud.firestore {
     }
 
     match /notifications/{notificationId} {
-      allow read: if signedIn();
+      allow read: if signedIn() && (resource.data.recipientId == request.auth.uid || resource.data.recipientId == '');
       allow create, update, delete: if false;
     }
 
