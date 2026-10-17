@@ -85,3 +85,24 @@ Statistics continue to use active loans; names, category filtering, owner search
 borrowed counts and latest-loan data have behavior checks. Profiles may display
 cached names for up to five minutes. Run the final migration version during the
 rollout window described above to get the history-read reduction.
+
+## 4. Startup loading
+
+Pages now use lazy route components while retaining their guards. The root state
+service imports dialog classes as types and loads UI code on demand. Route-driven
+forms, sheets and previews share one on-demand entry point. A shared pending load
+prevents duplicate overlays, and the URL is re-read when loading completes so an
+outdated navigation cannot reopen a dismissed overlay. Return/delete/edit and
+notification-opt-in dialogs load on demand as well. Initial bundle budgets were
+tightened to warn at 1.5 MB and fail at 1.65 MB.
+
+Measured production initial bundle: 1.40 MB raw / 308.62 kB estimated transfer,
+versus the current pre-lazy build of 1.75 MB / approximately 366 kB (about 20%
+raw and 16% transfer reduction). The original review's 1.94 MB figure was not used
+as the comparison baseline. Lazy chunks are downloaded when their features open.
+
+Validation: 36 app tests, all 8 emulator integration tests, production build.
+Router smoke tests render shed, borrowed, my-tools, options, about and privacy;
+exercise protected-route redirects including the return URL; open add/request
+dialog deep links; and open/close the tool-sheet plus image-preview deep link
+without duplicate overlays. These use mocked authentication and data services.

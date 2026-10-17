@@ -1,10 +1,14 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { provideRouter, Router } from '@angular/router';
+import { RouterTestingHarness } from '@angular/router/testing';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
+import { Subject } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { routes } from '../app.routes';
 import { ToolboxStateService } from './toolbox-state.service';
 import { FirestoreToolboxService } from './firestore-toolbox.service';
 import { FirebaseAuthService } from './firebase-auth.service';
@@ -19,21 +23,31 @@ const deferred = <T>() => { let resolve!: (value: T) => void; const promise = ne
 describe('toolbox refresh and targeted mutations', () => {
   let currentUser: ReturnType<typeof signal<UserProfile | null>>;
   let service: ToolboxStateService;
+  let dialogOpen: ReturnType<typeof vi.fn>;
+  let sheetOpen: ReturnType<typeof vi.fn>;
   let storage: { loadSnapshot: ReturnType<typeof vi.fn>; loadReadNotificationIds: ReturnType<typeof vi.fn>; loadToolUpdate: ReturnType<typeof vi.fn>; addBorrowRequest: ReturnType<typeof vi.fn> };
   beforeEach(() => {
+    window.localStorage.setItem('shed-theme-mode', 'light');
+    vi.stubGlobal('Notification', { permission: 'default' });
     currentUser = signal<UserProfile | null>(user);
+    dialogOpen = vi.fn().mockImplementation(() => ({
+      componentInstance: { submitRequested: new Subject(), saving: () => false, setSaving: vi.fn() },
+      afterClosed: () => new Subject(), close: vi.fn(),
+    }));
+    sheetOpen = vi.fn().mockImplementation(() => ({ afterDismissed: () => new Subject(), dismiss: vi.fn() }));
     storage = { loadSnapshot: vi.fn().mockResolvedValue(empty()), loadReadNotificationIds: vi.fn().mockResolvedValue(new Set()), loadToolUpdate: vi.fn(), addBorrowRequest: vi.fn().mockResolvedValue(undefined) };
-    TestBed.configureTestingModule({ providers: [provideRouter([]),
-      { provide: FirebaseAuthService, useValue: { currentUser, ensureValidSession: async () => true } },
+    TestBed.configureTestingModule({ providers: [provideRouter(routes), provideNoopAnimations(),
+      { provide: FirebaseAuthService, useValue: { currentUser, ensureValidSession: async () => Boolean(currentUser()), isConfigured: () => true, isBusy: () => false, error: () => null } },
       { provide: FirestoreToolboxService, useValue: storage },
       { provide: FirebaseMessagingService, useValue: { syncCurrentUser: vi.fn() } },
       { provide: ImageUploadService, useValue: {} },
-      { provide: MatDialog, useValue: {} }, { provide: MatBottomSheet, useValue: {} },
+      { provide: MatDialog, useValue: { open: dialogOpen } }, { provide: MatBottomSheet, useValue: { open: sheetOpen } },
       { provide: MatSnackBar, useValue: { open: vi.fn() } },
     ] });
     service = TestBed.inject(ToolboxStateService);
     vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
   });
+  afterEach(() => { vi.unstubAllGlobals(); window.localStorage.removeItem('shed-theme-mode'); });
 
   it('coalesces overlapping refreshes, including sign-in effect, into one load', async () => {
     const pending = deferred<SheetsSnapshot>();
@@ -76,5 +90,44 @@ describe('toolbox refresh and targeted mutations', () => {
     service.setSelectedCategory('power-tools');
     expect(service.filteredTools()).toHaveLength(1);
     expect(service.tools()[0].latestLoan?.id).toBe('loan');
+  });
+
+  it('renders lazy secondary pages, preserves query parameters and redirects protected deep links', async () => {
+    const harness = await RouterTestingHarness.create();
+    for (const path of ['/shed', '/borrowed', '/my-tools', '/options', '/about', '/privacy']) {
+      await harness.navigateByUrl(path);
+      expect(harness.routeNativeElement?.textContent?.trim().length).toBeGreaterThan(0);
+    }
+    await harness.navigateByUrl('/shed?dialog=add-tool');
+    await vi.waitFor(() => expect(dialogOpen).toHaveBeenCalledTimes(1));
+    TestBed.tick();
+    expect(dialogOpen).toHaveBeenCalledTimes(1);
+    await harness.navigateByUrl('/shed');
+    await harness.navigateByUrl('/options?dialog=request-tool');
+    await vi.waitFor(() => expect(dialogOpen).toHaveBeenCalledTimes(2));
+    currentUser.set(null);
+    await harness.navigateByUrl('/borrowed?sheet=borrowed-stats');
+    const router = TestBed.inject(Router);
+    expect(router.url).toContain('/home');
+    expect(router.parseUrl(router.url).queryParamMap.get('returnUrl')).toBe('/borrowed?sheet=borrowed-stats');
+  });
+
+  it('opens a lazy tool sheet and image-preview deep link once, and closes both on navigation', async () => {
+    storage.loadSnapshot.mockResolvedValue({ ...empty(), tools: [{
+      documentId: 'tool', id: '100000', name: 'Drill', categoryId: 'other', categoryName: 'Other', description: '', notes: '', deleted: false, ownerId: 'owner', owner: 'Olivia', ownerEmail: '', ownerFirstName: 'Olivia', ownerLastName: '', image: '/drill.jpg',
+    }] });
+    const harness = await RouterTestingHarness.create();
+    await service.refresh();
+    await harness.navigateByUrl('/shed?sheet=tool&mode=shed&toolId=tool&preview=tool-image');
+    await vi.waitFor(() => {
+      expect(sheetOpen).toHaveBeenCalledTimes(1);
+      expect(dialogOpen).toHaveBeenCalledTimes(1);
+    });
+    TestBed.tick();
+    expect(sheetOpen.mock.calls[0][1].data.tool.name).toBe('Drill');
+    expect(dialogOpen.mock.calls[0][1].data.image).toBe('/drill.jpg');
+    await harness.navigateByUrl('/shed');
+    expect(sheetOpen.mock.results[0].value.dismiss).toHaveBeenCalled();
+    expect(dialogOpen.mock.results[0].value.close).toHaveBeenCalled();
   });
 });

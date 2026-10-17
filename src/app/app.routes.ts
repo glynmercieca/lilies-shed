@@ -1,25 +1,44 @@
 import { Routes } from '@angular/router';
 
-import { AboutViewComponent } from './about-view';
-import { BorrowedViewComponent } from './borrowed-view';
 import { authGuard } from './core/auth.guard';
 import { homeRedirectGuard } from './core/home-redirect.guard';
-import { HomeViewComponent } from './home-view';
-import { LoadingViewComponent } from './loading-view';
-import { OptionsViewComponent } from './options-view';
-import { PrivacyViewComponent } from './privacy-view';
-import { ShedViewComponent } from './shed-view';
-import { MyToolsView } from './my-tools-view';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'home' },
-  { path: 'home', component: HomeViewComponent, canActivate: [homeRedirectGuard] },
-  { path: 'about', component: AboutViewComponent },
-  { path: 'privacy', component: PrivacyViewComponent },
-  { path: 'loading', component: LoadingViewComponent, canActivate: [authGuard] },
-  { path: 'shed', component: ShedViewComponent, canActivate: [authGuard] },
-  { path: 'borrowed', component: BorrowedViewComponent, canActivate: [authGuard] },
-  { path: 'my-tools', component: MyToolsView, canActivate: [authGuard] },
-  { path: 'options', component: OptionsViewComponent, canActivate: [authGuard] },
+  {
+    path: 'home',
+    loadComponent: () => import('./home-view').then((m) => m.HomeViewComponent),
+    canActivate: [homeRedirectGuard],
+  },
+  { path: 'about', loadComponent: () => import('./about-view').then((m) => m.AboutViewComponent) },
+  {
+    path: 'privacy',
+    loadComponent: () => import('./privacy-view').then((m) => m.PrivacyViewComponent),
+  },
+  {
+    path: 'loading',
+    loadComponent: () => import('./loading-view').then((m) => m.LoadingViewComponent),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'shed',
+    loadComponent: () => import('./shed-view').then((m) => m.ShedViewComponent),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'borrowed',
+    loadComponent: () => import('./borrowed-view').then((m) => m.BorrowedViewComponent),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'my-tools',
+    loadComponent: () => import('./my-tools-view').then((m) => m.MyToolsView),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'options',
+    loadComponent: () => import('./options-view').then((m) => m.OptionsViewComponent),
+    canActivate: [authGuard],
+  },
   { path: '**', redirectTo: 'home' },
 ];
