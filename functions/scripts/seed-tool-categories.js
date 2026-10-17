@@ -1,6 +1,6 @@
 const { initializeApp } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
-const categories = require('../../../src/app/core/tool-categories.json');
+const categories = require('../../src/app/core/tool-categories.json');
 
 async function main() {
   if (!process.env.GCLOUD_PROJECT) throw new Error('Set GCLOUD_PROJECT explicitly.');

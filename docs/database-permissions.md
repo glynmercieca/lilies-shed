@@ -1,11 +1,11 @@
 # Database permissions rollout
 
-The full rollout remains a local implementation; the focused production repair
-below is the exception.
-
-Update, 17 October 2026: the focused owner-profile repair below has now been
-deployed through the signed-in Firebase Console. The broader permissions and
-borrowing rollout described in this document remains separate and incomplete.
+Update, 17 October 2026: the full borrowing/profile data migration, Firestore
+and Storage rules, notification index, and notification functions have now been
+deployed to `shed-3fc03`. See [the production rollout record](production-rollout-2026-10-17.md)
+for backups, verification results and outstanding live smoke checks. The earlier
+implementation notes below describe the original plan and validation history;
+statements that deployment had not yet happened are historical.
 
 ## Production owner-profile repair (17 October 2026)
 
