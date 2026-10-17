@@ -3,12 +3,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const sdk = vi.hoisted(() => ({
   getDocs: vi.fn(),
+  getDoc: vi.fn(),
+  setDoc: vi.fn(),
   onSnapshot: vi.fn(),
   runTransaction: vi.fn(),
 }));
 vi.mock('firebase/firestore', () => ({
   collection: (_db: unknown, path: string) => ({ path }),
   doc: (_db: unknown, path: string, id: string) => ({ path, id }),
+  documentId: () => '__name__',
   where: (field: string, op: string, value: unknown) => ({ field, op, value }),
   orderBy: (field: string, direction: string) => ({ field, direction }),
   limit: (count: number) => ({ count }),
@@ -16,8 +19,8 @@ vi.mock('firebase/firestore', () => ({
   getDocs: sdk.getDocs,
   onSnapshot: sdk.onSnapshot,
   runTransaction: sdk.runTransaction,
-  getDoc: vi.fn(),
-  setDoc: vi.fn(),
+  getDoc: sdk.getDoc,
+  setDoc: sdk.setDoc,
   updateDoc: vi.fn(),
   serverTimestamp: () => 'server-time',
   Timestamp: class {},
@@ -39,6 +42,7 @@ describe('recipient notification queries', () => {
   let service: FirestoreToolboxService;
   beforeEach(() => {
     vi.resetAllMocks();
+    sdk.getDoc.mockResolvedValue({ exists: () => false, data: () => undefined });
     TestBed.configureTestingModule({
       providers: [
         FirestoreToolboxService,
@@ -192,5 +196,60 @@ describe('recipient notification queries', () => {
     expect(written).toHaveLength(500);
     expect(written).toEqual(expect.arrayContaining(['n0', 'n599', 'new']));
     expect(set.mock.calls[0][2]).toEqual({ merge: true });
+  });
+
+  it('reads only referenced loan summaries/profiles, caches reference data and targets a changed tool', async () => {
+    const tools = Array.from({ length: 60 }, (_, i) => ({ id: `tool-${i}`, data: () => ({
+      id: String(100000 + i), name: `Tool ${i}`, ownerId: 'owner', latestLoanId: `loan-${i}`, activeLoanId: null,
+    }) }));
+    let documentReads = 0;
+    sdk.getDocs.mockImplementation(async (source) => {
+      const path = source.source?.path ?? source.path;
+      let docs: Array<{ id: string; data(): unknown }> = [];
+      if (path === 'tools') docs = tools;
+      if (path === 'loan') {
+        // A whole-history read would include 1,000 records in this fixture.
+        expect(source.constraints).toHaveLength(1);
+        const ids = source.constraints[0].value as string[];
+        expect(ids.length).toBeLessThanOrEqual(30);
+        docs = ids.map((id) => ({ id, data: () => ({ toolId: `tool-${id.slice(5)}`, borrowerId: 'borrower', loanDate: '2026-10-01', returnDate: '2026-10-02' }) }));
+      }
+      documentReads += docs.length;
+      return { docs };
+    });
+    sdk.getDoc.mockImplementation(async (reference) => {
+      documentReads++;
+      if (reference.path === 'tools') return { ...tools[0], exists: () => true };
+      expect(['owner', 'borrower']).toContain(reference.id);
+      return { exists: () => true, data: () => ({ firstName: reference.id === 'owner' ? 'Olivia' : 'Ben', email: `${reference.id}@example.com` }) };
+    });
+    const snapshot = await service.loadSnapshot('user');
+    expect(snapshot.tools).toHaveLength(60);
+    expect(snapshot.loans).toHaveLength(60);
+    expect(snapshot.tools[0].ownerFirstName).toBe('Olivia');
+    expect(snapshot.loans[0].borrowerFirstName).toBe('Ben');
+    expect(documentReads).toBe(122); // 60 tools, 60 latest loans, 2 profiles
+    expect(sdk.setDoc).not.toHaveBeenCalled();
+    expect(sdk.getDocs.mock.calls.filter(([source]) => (source.source?.path ?? source.path) === 'users')).toHaveLength(0);
+    const beforeTargeted = documentReads;
+    const updated = await service.loadToolUpdate('tool-0');
+    expect(updated.tools).toHaveLength(1);
+    expect(updated.loans).toHaveLength(1);
+    expect(documentReads - beforeTargeted).toBe(2);
+    await service.loadSnapshot('user');
+    expect(sdk.getDoc).toHaveBeenCalledTimes(3); // two profiles plus targeted tool
+    expect(sdk.getDocs.mock.calls.filter(([source]) => source.source?.path === 'categories')).toHaveLength(1);
+  });
+
+  it('retains unmigrated legacy history and numeric tool links', async () => {
+    sdk.getDocs.mockImplementation(async (source) => {
+      const path = source.source?.path ?? source.path;
+      return { docs: path === 'tools' ? [{ id: 'canonical', data: () => ({ id: '100000', name: 'Drill' }) }]
+        : path === 'loan' ? [{ id: 'legacy', data: () => ({ itemId: '100000', loanDate: '2026-01-01', returnDate: '' }) }]
+        : [] };
+    });
+    const result = await service.loadSnapshot('user');
+    expect(result.loans[0].itemId).toBe('canonical');
+    expect(sdk.setDoc).not.toHaveBeenCalled();
   });
 });

@@ -51,3 +51,37 @@ CI now also runs the emulator suite with Java 21. Local Windows execution needs
 Java 21 on PATH (a portable ignored runtime was used for this validation).
 Authenticated live-browser verification was unavailable; no production records
 were changed.
+
+## 3. Database work reduction
+
+Normal loading no longer writes the 12 fixed categories. A privileged one-time
+setup script, `node functions/scripts/seed-tool-categories.js`, previews the seed;
+use `--apply` with `GCLOUD_PROJECT` set to create missing categories only. It uses
+the same category JSON as the app and preserves existing documents.
+
+The borrow-state migration now also initializes `latestLoanId`. Borrow operations
+advance that pointer atomically, with rule enforcement. Loading fetches only the
+active/latest referenced loan documents in batches of 30. Unmigrated catalogs
+retain the full-history fallback until migration. History stays in Firestore;
+latest-loan selection is chronological rather than document-query order. Owner
+and borrower profiles are loaded by referenced ID, cached for five minutes, as
+are categories. New category discovery invalidates its cache. Tool ID allocation
+uses the existing counter and only a one-document maximum lookup for bootstrap.
+
+Successful add/edit/delete/borrow/return operations reload only the affected
+tool and loan summaries, retaining notification state and list paging.
+Overlapping full refreshes share one operation per account, and old-account
+results are discarded. Full catalog reads remain intentional to preserve global
+search/category/count behavior: 18-item paging is still rendering pagination.
+
+Validation: 34 app tests across 8 files, rendered app shell, production build,
+and all 8 emulator integration tests. An instrumented service fixture with
+60 tools, 1,000 historical loans and 100 possible profiles reads 122 tool/loan/
+profile documents instead of 1,160 (89.5% fewer), excluding notification/category
+reads common to the comparison. A warm targeted mutation refresh reads 2
+documents, and reference-data reads are reused. Category writes per refresh:
+12 to zero. These are fixture measurements, not production billing estimates.
+Statistics continue to use active loans; names, category filtering, owner search,
+borrowed counts and latest-loan data have behavior checks. Profiles may display
+cached names for up to five minutes. Run the final migration version during the
+rollout window described above to get the history-read reduction.

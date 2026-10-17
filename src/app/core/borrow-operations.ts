@@ -15,7 +15,7 @@ export async function reserveTool(db: Firestore, toolId: string, borrowerId: str
     if (tool['activeLoanId'] !== null) throw new Error('Someone has already borrowed this tool. Refresh to see its current status.');
     if (tool['ownerId'] === borrowerId) throw new Error('You cannot borrow your own tool.');
     transaction.set(loanRef, { toolId, borrowerId, loanDate: date, returnDate: '', createdAt: serverTimestamp() });
-    transaction.update(toolRef, { activeLoanId: loanRef.id, updatedAt: serverTimestamp() });
+    transaction.update(toolRef, { activeLoanId: loanRef.id, latestLoanId: loanRef.id, updatedAt: serverTimestamp() });
   });
 }
 

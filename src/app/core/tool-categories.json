@@ -1,0 +1,62 @@
+[
+  {
+    "id": "hand-tools",
+    "name": "Hand tools",
+    "order": 10
+  },
+  {
+    "id": "power-tools",
+    "name": "Power tools",
+    "order": 20
+  },
+  {
+    "id": "garden-outdoor",
+    "name": "Garden and outdoor",
+    "order": 30
+  },
+  {
+    "id": "ladders-access",
+    "name": "Ladders and access",
+    "order": 40
+  },
+  {
+    "id": "electrical",
+    "name": "Electrical",
+    "order": 50
+  },
+  {
+    "id": "plumbing",
+    "name": "Plumbing",
+    "order": 60
+  },
+  {
+    "id": "painting-decorating",
+    "name": "Painting and decorating",
+    "order": 70
+  },
+  {
+    "id": "measuring-layout",
+    "name": "Measuring and layout",
+    "order": 80
+  },
+  {
+    "id": "safety",
+    "name": "Safety gear",
+    "order": 90
+  },
+  {
+    "id": "cleaning",
+    "name": "Cleaning",
+    "order": 100
+  },
+  {
+    "id": "automotive",
+    "name": "Automotive",
+    "order": 110
+  },
+  {
+    "id": "other",
+    "name": "Other",
+    "order": 120
+  }
+]

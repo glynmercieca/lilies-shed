@@ -29,6 +29,7 @@ service cloud.firestore {
         && request.resource.data.ownerId == request.auth.uid
         && request.resource.data.borrowStateVersion == 1
         && request.resource.data.activeLoanId == null
+        && request.resource.data.latestLoanId == null
         && request.resource.data.deleted == false;
       allow update: if signedIn()
         && resource.data.borrowStateVersion == 1
@@ -39,7 +40,8 @@ service cloud.firestore {
           // An owner may edit/delete only while the tool is unreserved.
           (request.auth.uid == resource.data.ownerId
             && resource.data.activeLoanId == null
-            && request.resource.data.activeLoanId == null)
+            && request.resource.data.activeLoanId == null
+            && request.resource.data.latestLoanId == resource.data.latestLoanId)
           || reserveTool(toolId)
           || releaseTool(toolId)
         );
@@ -47,7 +49,7 @@ service cloud.firestore {
 
       function reservationFieldsOnly() {
         return request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['activeLoanId', 'updatedAt']);
+          .hasOnly(['activeLoanId', 'latestLoanId', 'updatedAt']);
       }
 
       function reserveTool(toolId) {
@@ -57,6 +59,7 @@ service cloud.firestore {
           && resource.data.deleted == false
           && resource.data.activeLoanId == null
           && loanId is string
+          && request.resource.data.latestLoanId == loanId
           && !exists(/databases/$(database)/documents/loan/$(loanId))
           && resource.data.ownerId != request.auth.uid
           && loan.toolId == toolId
@@ -71,6 +74,7 @@ service cloud.firestore {
         return reservationFieldsOnly()
           && loanId is string
           && request.resource.data.activeLoanId == null
+          && request.resource.data.latestLoanId == resource.data.latestLoanId
           && before.toolId == toolId
           && before.returnDate == ''
           && after.returnDate is string && after.returnDate.size() > 0

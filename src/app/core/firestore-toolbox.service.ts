@@ -1,3 +1,4 @@
+import fixedCategories from './tool-categories.json';
 import { Injectable, inject } from '@angular/core';
 import {
   QueryDocumentSnapshot,
@@ -5,6 +6,7 @@ import {
   Timestamp,
   collection,
   doc,
+  documentId,
   getDoc,
   getDocs,
   limit,
@@ -41,65 +43,79 @@ interface FirestoreUserRecord {
   photoURL?: string;
 }
 
-export const FIXED_TOOL_CATEGORIES: ToolCategoryRecord[] = [
-  { id: 'hand-tools', name: 'Hand tools', order: 10 },
-  { id: 'power-tools', name: 'Power tools', order: 20 },
-  { id: 'garden-outdoor', name: 'Garden and outdoor', order: 30 },
-  { id: 'ladders-access', name: 'Ladders and access', order: 40 },
-  { id: 'electrical', name: 'Electrical', order: 50 },
-  { id: 'plumbing', name: 'Plumbing', order: 60 },
-  { id: 'painting-decorating', name: 'Painting and decorating', order: 70 },
-  { id: 'measuring-layout', name: 'Measuring and layout', order: 80 },
-  { id: 'safety', name: 'Safety gear', order: 90 },
-  { id: 'cleaning', name: 'Cleaning', order: 100 },
-  { id: 'automotive', name: 'Automotive', order: 110 },
-  { id: 'other', name: 'Other', order: 120 },
-];
+export const FIXED_TOOL_CATEGORIES: ToolCategoryRecord[] = fixedCategories;
 
 @Injectable({ providedIn: 'root' })
 export class FirestoreToolboxService {
   private readonly firebase = inject(FirebaseClientService);
 
-  async loadSnapshot(userId: string): Promise<SheetsSnapshot> {
-    void this.ensureToolCategories();
+  private usersCache = new Map<string, { expires: number; value: Promise<UserProfile | null> }>();
+  private categoriesCache: { expires: number; value: Promise<ToolCategoryRecord[]> } | null = null;
 
-    const [usersSnapshot, categories, toolsSnapshot, loansSnapshot, notifications] = await Promise.all([
-      getDocs(collection(this.firebase.firestore, 'users')),
-      this.loadCategories(),
+  async loadSnapshot(userId: string): Promise<SheetsSnapshot> {
+    const [categories, toolsSnapshot, notifications] = await Promise.all([
+      this.cachedCategories(),
       getDocs(collection(this.firebase.firestore, 'tools')),
-      getDocs(collection(this.firebase.firestore, 'loan')),
       this.loadNotifications(userId),
     ]);
-
-    const usersById = new Map<string, UserProfile>(
-      usersSnapshot.docs.map((documentSnapshot) => {
-        const data = documentSnapshot.data() as FirestoreUserRecord;
-        const email = this.readString(data.email).toLowerCase();
-        const displayName = this.readString(data.displayName) || email || documentSnapshot.id;
-        const firstName = this.readString(data.firstName) || splitUserName(displayName).firstName;
-        const lastName = this.readString(data.lastName) || splitUserName(displayName).lastName;
-
-        return [
-          documentSnapshot.id,
-          {
-            id: documentSnapshot.id,
-            email,
-            name: displayName,
-            picture: this.readString(data.photoURL),
-            firstName,
-            lastName,
-          },
-        ];
-      }),
-    );
-
-    const tools = toolsSnapshot.docs
-      .map((documentSnapshot) => this.parseTool(documentSnapshot.id, documentSnapshot.data(), usersById))
-      .filter((tool): tool is ToolRecord => Boolean(tool));
-    const loans = loansSnapshot.docs
-      .map((documentSnapshot) => this.parseLoan(documentSnapshot.id, documentSnapshot.data(), usersById))
-      .filter((loan): loan is LoanRecord => Boolean(loan));
+    const { tools, loans } = await this.parseToolDocuments(toolsSnapshot.docs);
     return { categories, tools, loans, notifications };
+  }
+
+  async loadToolUpdate(toolId: string): Promise<{ tools: ToolRecord[]; loans: LoanRecord[] }> {
+    const snapshot = await getDoc(doc(this.firebase.firestore, 'tools', toolId));
+    return this.parseToolDocuments(snapshot.exists() ? [snapshot] : []);
+  }
+
+  private async parseToolDocuments(documents: Array<{ id: string; data(): DocumentData | undefined }>) {
+    const records = documents.map((snapshot) => ({ id: snapshot.id, data: snapshot.data()! }));
+    let loanDocuments: Array<{ id: string; data(): DocumentData }> = [];
+    if (records.some(({ data }) => !('latestLoanId' in data))) {
+      // Read old history only until the migration has initialized tool pointers.
+      loanDocuments = (await getDocs(collection(this.firebase.firestore, 'loan'))).docs;
+    } else {
+      const ids = [...new Set(records.flatMap(({ data }) => [data['activeLoanId'], data['latestLoanId']]).filter(Boolean))];
+      const groups = await Promise.all(Array.from({ length: Math.ceil(ids.length / 30) }, (_, index) =>
+        getDocs(query(collection(this.firebase.firestore, 'loan'), where(documentId(), 'in', ids.slice(index * 30, index * 30 + 30)))),
+      ));
+      loanDocuments = groups.flatMap((group) => group.docs);
+    }
+    const userIds = [...new Set([
+      ...records.map(({ data }) => this.readString(data['ownerId'])),
+      ...loanDocuments.map((snapshot) => this.readString(snapshot.data()['borrowerId'])),
+    ].filter(Boolean))];
+    const users = await Promise.all(userIds.map((id) => this.cachedUser(id)));
+    const usersById = new Map(users.filter((user): user is UserProfile => Boolean(user)).map((user) => [user.id, user]));
+    const aliases = new Map(records.flatMap(({ id, data }) => [[id, id], [this.readString(data['id']) || id, id]] as [string, string][]));
+    const tools = records.map(({ id, data }) => this.parseTool(id, data, usersById)).filter((tool): tool is ToolRecord => Boolean(tool));
+    const loans = loanDocuments.map((snapshot) => this.parseLoan(snapshot.id, snapshot.data(), usersById))
+      .filter((loan): loan is LoanRecord => Boolean(loan))
+      .map((loan) => ({ ...loan, itemId: aliases.get(loan.itemId) ?? loan.itemId }));
+    return { tools, loans };
+  }
+
+  private cachedCategories(): Promise<ToolCategoryRecord[]> {
+    if (!this.categoriesCache || this.categoriesCache.expires < Date.now()) {
+      this.categoriesCache = { expires: Date.now() + 300_000, value: this.loadCategories() };
+    }
+    return this.categoriesCache.value;
+  }
+
+  private cachedUser(id: string): Promise<UserProfile | null> {
+    const cached = this.usersCache.get(id);
+    if (cached && cached.expires > Date.now()) return cached.value;
+    const value = getDoc(doc(this.firebase.firestore, 'users', id)).then((snapshot) => {
+      if (!snapshot.exists()) return null;
+      const data = snapshot.data() as FirestoreUserRecord;
+      const email = this.readString(data.email).toLowerCase();
+      const name = this.readString(data.displayName) || email || id;
+      const parts = splitUserName(name);
+      return { id, email, name, picture: this.readString(data.photoURL),
+        firstName: this.readString(data.firstName) || parts.firstName,
+        lastName: this.readString(data.lastName) || parts.lastName };
+    }).catch((error) => { this.usersCache.delete(id); throw error; });
+    this.usersCache.set(id, { expires: Date.now() + 300_000, value });
+    return value;
   }
 
   async loadNotifications(userId: string): Promise<AppNotificationRecord[]> {
@@ -201,7 +217,7 @@ export class FirestoreToolboxService {
     await returnLoan(this.firebase.firestore, loan.id, this.today());
   }
 
-  async addTool(formValue: ToolFormValue, owner: UserProfile): Promise<void> {
+  async addTool(formValue: ToolFormValue, owner: UserProfile): Promise<string> {
     const nextId = await this.allocateNextToolId();
     const toolRef = doc(collection(this.firebase.firestore, 'tools'));
     const category = this.resolveCategory(formValue.categoryId);
@@ -215,12 +231,14 @@ export class FirestoreToolboxService {
       deleted: false,
       borrowStateVersion: 1,
       activeLoanId: null,
+      latestLoanId: null,
       ownerId: owner.id,
       image: formValue.imageUrl,
       thumbnail: formValue.thumbnailUrl || '',
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
+    return toolRef.id;
   }
 
   async updateTool(tool: ToolRecord, formValue: ToolFormValue): Promise<void> {
@@ -270,6 +288,7 @@ export class FirestoreToolboxService {
       return;
     }
 
+    this.categoriesCache = null;
     await Promise.all(
       categories.map((category) =>
         setDoc(
@@ -311,6 +330,7 @@ export class FirestoreToolboxService {
       notes: this.readString(data['notes']),
       deleted: this.readBoolean(data['deleted']),
       ownerId,
+      activeLoanId: data['activeLoanId'],
       owner: ownerDisplay,
       ownerEmail,
       ownerFirstName,
@@ -412,7 +432,10 @@ export class FirestoreToolboxService {
 
   private async allocateNextToolId(): Promise<string> {
     const counterRef = doc(this.firebase.firestore, 'meta', 'counters');
-    const existingMaxToolId = await this.fetchMaxToolId();
+    const counter = await getDoc(counterRef);
+    const savedNextId = Number(counter.data()?.['nextToolId']);
+    const existingMaxToolId = Number.isFinite(savedNextId) && savedNextId >= 100000
+      ? savedNextId - 1 : await this.fetchMaxToolId();
 
     return runTransaction(this.firebase.firestore, async (transaction) => {
       const snapshot = await transaction.get(counterRef);
@@ -422,19 +445,6 @@ export class FirestoreToolboxService {
       transaction.set(counterRef, { nextToolId: nextValue + 1 }, { merge: true });
       return String(nextValue);
     });
-  }
-
-  private async ensureToolCategories(): Promise<void> {
-    try {
-      await Promise.all(
-        FIXED_TOOL_CATEGORIES.map((category) =>
-          setDoc(doc(this.firebase.firestore, 'categories', category.id), category, { merge: true }),
-        ),
-      );
-    } catch {
-      // Category documents are a convenience cache. The app can use the fixed local list
-      // until Firestore rules are deployed and the collection is seeded.
-    }
   }
 
   private async loadCategories(): Promise<ToolCategoryRecord[]> {
@@ -455,7 +465,7 @@ export class FirestoreToolboxService {
   }
 
   private async fetchMaxToolId(): Promise<number> {
-    const snapshot = await getDocs(query(collection(this.firebase.firestore, 'tools'), orderBy('id', 'desc')));
+    const snapshot = await getDocs(query(collection(this.firebase.firestore, 'tools'), orderBy('id', 'desc'), limit(1)));
     const highestId = snapshot.docs
       .map((documentSnapshot) => Number(documentSnapshot.data()['id'] ?? documentSnapshot.id))
       .find((value) => Number.isFinite(value));

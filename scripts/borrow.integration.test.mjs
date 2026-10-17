@@ -9,7 +9,7 @@ import migration from '../functions/scripts/plan-borrow-migration.js';
 let env;
 const db = (uid = 'borrower') => env.authenticatedContext(uid).firestore();
 const date = '2026-10-17';
-const tool = { id: '100000', name: 'Drill', ownerId: 'owner', deleted: false, borrowStateVersion: 1, activeLoanId: null };
+const tool = { id: '100000', name: 'Drill', ownerId: 'owner', deleted: false, borrowStateVersion: 1, activeLoanId: null, latestLoanId: null };
 before(async () => {
   env = await initializeTestEnvironment({ projectId: 'demo-lilies-tests', firestore: {
     host: '127.0.0.1', port: 8085, rules: await readFile('firestore.rules', 'utf8'),

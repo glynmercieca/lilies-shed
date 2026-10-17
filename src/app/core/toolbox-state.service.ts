@@ -258,7 +258,31 @@ export class ToolboxStateService {
     this.ownedVisibleCount.update((count) => count + this.listPageSize);
   }
 
-  async refresh(): Promise<void> {
+  private pendingRefresh: { userId: string; promise: Promise<void> } | null = null;
+
+  refresh(): Promise<void> {
+    const userId = this.auth.currentUser()?.id ?? '';
+    if (this.pendingRefresh?.userId === userId) return this.pendingRefresh.promise;
+    const promise = this.performRefresh().finally(() => {
+      if (this.pendingRefresh?.promise === promise) this.pendingRefresh = null;
+    });
+    this.pendingRefresh = { userId, promise };
+    return promise;
+  }
+
+  private async refreshTool(toolId: string): Promise<void> {
+    const userId = this.auth.currentUser()?.id;
+    await this.pendingRefresh?.promise;
+    const update = await this.toolbox.loadToolUpdate(toolId);
+    if (this.auth.currentUser()?.id !== userId) return;
+    this.snapshot.update((snapshot) => ({
+      ...snapshot,
+      tools: [...snapshot.tools.filter((tool) => tool.documentId !== toolId), ...update.tools],
+      loans: [...snapshot.loans.filter((loan) => loan.itemId !== toolId), ...update.loans.filter((loan) => loan.itemId === toolId)],
+    }));
+  }
+
+  private async performRefresh(): Promise<void> {
     if (!(await this.auth.ensureValidSession())) {
       return;
     }
@@ -482,7 +506,7 @@ export class ToolboxStateService {
     this.savingToolId.set(tool.id);
     try {
       await this.toolbox.addBorrowRequest(tool.documentId, user);
-      await this.refresh();
+      await this.refreshTool(tool.documentId);
       await this.router.navigate(['/borrowed']);
       this.notify(`Borrow request saved for ${this.formatToolTitle(tool.name)}.`);
       return true;
@@ -514,7 +538,7 @@ export class ToolboxStateService {
     this.savingToolId.set(tool.id);
     try {
       await this.toolbox.markReturned(tool.activeLoan);
-      await this.refresh();
+      await this.refreshTool(tool.documentId);
       this.notify(`${this.formatToolTitle(tool.name)} marked as returned.`);
       return true;
     } catch (error) {
@@ -567,7 +591,7 @@ export class ToolboxStateService {
 
       try {
         const uploadedImageUrl = await this.imageUpload.uploadImage(result.imageFile);
-        await this.toolbox.addTool(
+        const toolId = await this.toolbox.addTool(
           {
             ...result,
             imageUrl: uploadedImageUrl?.imageUrl || result.imageUrl,
@@ -575,7 +599,7 @@ export class ToolboxStateService {
           },
           user,
         );
-        await this.refresh();
+        await this.refreshTool(toolId);
         dialogRef.close(true);
         this.notify('Tool added.');
       } catch (error) {
@@ -640,7 +664,7 @@ export class ToolboxStateService {
           imageUrl: uploadedImageUrl?.imageUrl || result.imageUrl,
           thumbnailUrl: uploadedImageUrl?.thumbnailUrl || (result.imageUrl ? result.thumbnailUrl : ''),
         });
-        await this.refresh();
+        await this.refreshTool(tool.documentId);
         dialogRef.close(true);
         this.notify(`${this.formatToolTitle(tool.name)} updated.`);
       } catch (error) {
@@ -677,7 +701,7 @@ export class ToolboxStateService {
     this.savingToolId.set(tool.id);
     try {
       await this.toolbox.markToolDeleted(tool);
-      await this.refresh();
+      await this.refreshTool(tool.documentId);
       this.notify(`${this.formatToolTitle(tool.name)} deleted.`);
       return true;
     } catch (error) {
