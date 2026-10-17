@@ -8,11 +8,14 @@
       "resources": {
         "files": [
           "/favicon.ico",
+          "/logo.svg",
+          "/logo-minimal.svg",
           "/index.csr.html",
           "/index.html",
           "/manifest.webmanifest",
           "/*.css",
-          "/*.js"
+          "/*.js",
+          "!/firebase-messaging-sw.js"
         ]
       }
     },

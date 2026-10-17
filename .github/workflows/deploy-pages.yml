@@ -102,7 +102,21 @@ jobs:
         uses: actions/configure-pages@v5
 
       - name: Install dependencies
-        run: npm i
+        run: npm ci
+
+      - name: Install smoke-test browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Test application
+        run: npm test -- --watch=false
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Test borrowing with Firestore emulator
+        run: npm run test:integration
 
       - name: Compute base href
         id: base-href
@@ -121,6 +135,9 @@ jobs:
 
       - name: Build Angular app
         run: npm run build -- --base-href "${{ steps.base-href.outputs.value }}"
+
+      - name: Verify offline app and updates
+        run: npm run test:offline
 
       - name: Add SPA fallback for GitHub Pages
         shell: bash

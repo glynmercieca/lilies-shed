@@ -5,7 +5,10 @@ export function decorateTools(snapshot: SheetsSnapshot): ToolWithStatus[] {
   const latestLoanByTool = new Map<string, LoanRecord>();
 
   for (const loan of snapshot.loans) {
-    latestLoanByTool.set(loan.itemId, loan);
+    const latest = latestLoanByTool.get(loan.itemId);
+    if (!latest || loan.loanDate > latest.loanDate || (loan.loanDate === latest.loanDate && loan.id > latest.id)) {
+      latestLoanByTool.set(loan.itemId, loan);
+    }
     if (!loan.returnDate) {
       activeLoanByTool.set(loan.itemId, loan);
     }
@@ -15,6 +18,6 @@ export function decorateTools(snapshot: SheetsSnapshot): ToolWithStatus[] {
     ...tool,
     activeLoan: activeLoanByTool.get(tool.documentId),
     latestLoan: latestLoanByTool.get(tool.documentId),
-    available: !activeLoanByTool.has(tool.documentId),
+    available: !tool.deleted && !tool.activeLoanId && !activeLoanByTool.has(tool.documentId),
   }));
 }

@@ -16,6 +16,7 @@ export interface ToolRecord {
   description: string;
   notes: string;
   deleted: boolean;
+  activeLoanId?: string | null;
   ownerId: string;
   owner: string;
   ownerEmail: string;

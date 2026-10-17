@@ -12,6 +12,7 @@ import { Subject } from 'rxjs';
 
 import { TOOL_PLACEHOLDER_URL, fallbackImage, normalizeImageUrl } from './core/image-url.util';
 import { ToolWithStatus } from './core/models';
+import { NetworkStatusService } from './core/network-status.service';
 import { ResolvedImageDirective } from './core/resolved-image.directive';
 
 export type ToolSheetMode = 'shed' | 'borrowed' | 'my-tools';
@@ -41,6 +42,8 @@ export interface ToolSheetData {
   changeDetection: ChangeDetectionStrategy.Eager,
 })
 export class ToolSheetComponent {
+  readonly online = inject(NetworkStatusService).online;
+  readonly availabilityVerified = inject(NetworkStatusService).availabilityVerified;
   readonly data = inject<ToolSheetData>(MAT_BOTTOM_SHEET_DATA);
   private readonly sheetRef = inject(MatBottomSheetRef<ToolSheetComponent, ToolSheetAction>);
   protected readonly fallbackImage = fallbackImage;

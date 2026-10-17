@@ -15,13 +15,11 @@ import { CategoryDiscoveryService } from './category-discovery.service';
 import { matchesUserId } from './identity.util';
 import { SheetsSnapshot, ToolCategoryRecord, ToolWithStatus } from './models';
 import { decorateTools } from './tool-status.util';
-import { DeleteToolDialogComponent } from '../delete-tool-dialog';
-import { NotificationOptInDialogComponent } from '../notification-opt-in-dialog';
-import { RequestToolDialogComponent } from '../request-tool-dialog';
-import { ReturnToolDialogComponent } from '../return-tool-dialog';
-import { ToolImagePreviewDialogComponent } from '../tool-image-preview-dialog';
-import { ToolSheetAction, ToolSheetComponent, ToolSheetMode } from '../tool-sheet';
-import { ToolFormDialogComponent } from '../tool-form-dialog';
+import { NetworkStatusService } from './network-status.service';
+import type { RequestToolDialogComponent } from '../request-tool-dialog';
+import type { ToolImagePreviewDialogComponent } from '../tool-image-preview-dialog';
+import type { ToolSheetAction, ToolSheetComponent, ToolSheetMode } from '../tool-sheet';
+import type { ToolFormDialogComponent } from '../tool-form-dialog';
 
 type ToolSortMode = 'name' | 'date-added';
 
@@ -42,6 +40,8 @@ export class ToolboxStateService {
   private readonly router = inject(Router);
 
   readonly auth = inject(FirebaseAuthService);
+  private readonly network = inject(NetworkStatusService);
+  readonly online = this.network.online;
   readonly loading = signal(false);
   readonly searchTerm = signal('');
   readonly selectedCategoryId = signal('');
@@ -150,6 +150,12 @@ export class ToolboxStateService {
   });
 
   constructor() {
+    let wasOnline = this.online();
+    effect(() => {
+      const online = this.online();
+      if (online && !wasOnline && this.auth.currentUser()) void this.refresh();
+      wasOnline = online;
+    });
     inject(DestroyRef).onDestroy(() => this.stopNotificationsLiveRefresh());
     effect(() => {
       const user = this.auth.currentUser();
@@ -195,6 +201,7 @@ export class ToolboxStateService {
       await this.router.navigate(['/loading']);
       const shouldPromptForNotifications = await this.messaging.canPromptForNotifications();
       if (shouldPromptForNotifications) {
+        const { NotificationOptInDialogComponent } = await import('../notification-opt-in-dialog');
         const dialogRef = this.dialog.open(NotificationOptInDialogComponent, {
           maxWidth: '480px',
           width: 'min(92vw, 480px)',
@@ -258,12 +265,37 @@ export class ToolboxStateService {
     this.ownedVisibleCount.update((count) => count + this.listPageSize);
   }
 
-  async refresh(): Promise<void> {
+  private pendingRefresh: { userId: string; promise: Promise<void> } | null = null;
+
+  refresh(): Promise<void> {
+    const userId = this.auth.currentUser()?.id ?? '';
+    if (this.pendingRefresh?.userId === userId) return this.pendingRefresh.promise;
+    const promise = this.performRefresh().finally(() => {
+      if (this.pendingRefresh?.promise === promise) this.pendingRefresh = null;
+    });
+    this.pendingRefresh = { userId, promise };
+    return promise;
+  }
+
+  private async refreshTool(toolId: string): Promise<void> {
+    const userId = this.auth.currentUser()?.id;
+    await this.pendingRefresh?.promise;
+    const update = await this.toolbox.loadToolUpdate(toolId);
+    if (this.auth.currentUser()?.id !== userId) return;
+    this.snapshot.update((snapshot) => ({
+      ...snapshot,
+      tools: [...snapshot.tools.filter((tool) => tool.documentId !== toolId), ...update.tools],
+      loans: [...snapshot.loans.filter((loan) => loan.itemId !== toolId), ...update.loans.filter((loan) => loan.itemId === toolId)],
+    }));
+  }
+
+  private async performRefresh(): Promise<void> {
     if (!(await this.auth.ensureValidSession())) {
       return;
     }
 
     this.loading.set(true);
+    this.network.availabilityVerified.set(false);
     try {
       const user = this.auth.currentUser();
       if (!user) return;
@@ -273,6 +305,7 @@ export class ToolboxStateService {
       ]);
       if (this.auth.currentUser()?.id !== user.id) return;
       this.snapshot.set(snapshot);
+      this.network.availabilityVerified.set(this.online());
       this.readNotificationIds.set(readNotificationIds);
       this.resetListPaging();
       void this.runWeeklyCategoryDiscovery();
@@ -398,6 +431,7 @@ export class ToolboxStateService {
   }
 
   private openToolSheet(tool: ToolWithStatus, mode: ToolSheetMode = 'shed'): void {
+    const { ToolSheetComponent } = this.routeOverlays!;
     const actionRequested = new Subject<ToolSheetAction>();
     const previewRequested = new Subject<void>();
     const sheetRef = this.bottomSheet.open<ToolSheetComponent, unknown, void>(
@@ -474,6 +508,10 @@ export class ToolboxStateService {
   }
 
   async borrowTool(tool: ToolWithStatus): Promise<boolean> {
+    if (!this.online()) {
+      this.notify('Connect to the internet to check availability and borrow a tool.');
+      return false;
+    }
     const user = this.auth.currentUser();
     if (!user || !tool.available) {
       return false;
@@ -482,7 +520,7 @@ export class ToolboxStateService {
     this.savingToolId.set(tool.id);
     try {
       await this.toolbox.addBorrowRequest(tool.documentId, user);
-      await this.refresh();
+      await this.refreshTool(tool.documentId);
       await this.router.navigate(['/borrowed']);
       this.notify(`Borrow request saved for ${this.formatToolTitle(tool.name)}.`);
       return true;
@@ -499,6 +537,7 @@ export class ToolboxStateService {
       return false;
     }
 
+    const { ReturnToolDialogComponent } = await import('../return-tool-dialog');
     const dialogRef = this.dialog.open(ReturnToolDialogComponent, {
       data: {
         toolName: tool.name,
@@ -514,7 +553,7 @@ export class ToolboxStateService {
     this.savingToolId.set(tool.id);
     try {
       await this.toolbox.markReturned(tool.activeLoan);
-      await this.refresh();
+      await this.refreshTool(tool.documentId);
       this.notify(`${this.formatToolTitle(tool.name)} marked as returned.`);
       return true;
     } catch (error) {
@@ -539,6 +578,7 @@ export class ToolboxStateService {
   }
 
   private openAddToolDialog(): void {
+    const { ToolFormDialogComponent } = this.routeOverlays!;
     const user = this.auth.currentUser();
     if (!user) {
       return;
@@ -567,7 +607,7 @@ export class ToolboxStateService {
 
       try {
         const uploadedImageUrl = await this.imageUpload.uploadImage(result.imageFile);
-        await this.toolbox.addTool(
+        const toolId = await this.toolbox.addTool(
           {
             ...result,
             imageUrl: uploadedImageUrl?.imageUrl || result.imageUrl,
@@ -575,7 +615,7 @@ export class ToolboxStateService {
           },
           user,
         );
-        await this.refresh();
+        await this.refreshTool(toolId);
         dialogRef.close(true);
         this.notify('Tool added.');
       } catch (error) {
@@ -602,6 +642,7 @@ export class ToolboxStateService {
       return false;
     }
 
+    const { ToolFormDialogComponent } = await import('../tool-form-dialog');
     const dialogRef = this.dialog.open(ToolFormDialogComponent, {
       data: {
         categories: this.categories(),
@@ -640,7 +681,7 @@ export class ToolboxStateService {
           imageUrl: uploadedImageUrl?.imageUrl || result.imageUrl,
           thumbnailUrl: uploadedImageUrl?.thumbnailUrl || (result.imageUrl ? result.thumbnailUrl : ''),
         });
-        await this.refresh();
+        await this.refreshTool(tool.documentId);
         dialogRef.close(true);
         this.notify(`${this.formatToolTitle(tool.name)} updated.`);
       } catch (error) {
@@ -660,6 +701,7 @@ export class ToolboxStateService {
       return false;
     }
 
+    const { DeleteToolDialogComponent } = await import('../delete-tool-dialog');
     const dialogRef = this.dialog.open(DeleteToolDialogComponent, {
       data: {
         toolId: tool.id,
@@ -677,7 +719,7 @@ export class ToolboxStateService {
     this.savingToolId.set(tool.id);
     try {
       await this.toolbox.markToolDeleted(tool);
-      await this.refresh();
+      await this.refreshTool(tool.documentId);
       this.notify(`${this.formatToolTitle(tool.name)} deleted.`);
       return true;
     } catch (error) {
@@ -702,6 +744,7 @@ export class ToolboxStateService {
   }
 
   private openRequestToolDialog(): void {
+    const { RequestToolDialogComponent } = this.routeOverlays!;
     const user = this.auth.currentUser();
     if (!user) {
       return;
@@ -862,12 +905,28 @@ export class ToolboxStateService {
     this.ownedVisibleCount.set(this.listPageSize);
   }
 
+  private routeOverlays: typeof import('../route-overlays') | null = null;
+  private loadingRouteOverlays = false;
+
   private syncOverlayFromRoute(): void {
     const queryParamMap = this.router.parseUrl(this.router.url).queryParamMap;
     const sheet = queryParamMap.get('sheet');
     const dialog = queryParamMap.get('dialog');
     const preview = queryParamMap.get('preview');
 
+    if (!this.routeOverlays && (sheet === 'tool' || dialog === 'add-tool' || dialog === 'request-tool')) {
+      if (!this.loadingRouteOverlays) {
+        this.loadingRouteOverlays = true;
+        void import('../route-overlays').then((overlays) => {
+          this.routeOverlays = overlays;
+          // Re-read the CURRENT URL after loading: navigation can close or replace
+          // a dialog before its code arrives. Multiple effects share this load.
+          this.syncOverlayFromRoute();
+        }).catch(() => this.notify('Unable to open this dialog. Please try again.'))
+          .finally(() => { this.loadingRouteOverlays = false; });
+      }
+      return;
+    }
     this.syncingOverlayFromRoute = true;
     try {
       if (sheet === 'tool') {
@@ -937,6 +996,7 @@ export class ToolboxStateService {
       return;
     }
 
+    const { ToolImagePreviewDialogComponent } = this.routeOverlays!;
     const dialogRef = this.dialog.open(ToolImagePreviewDialogComponent, {
       autoFocus: false,
       closeOnNavigation: false,
